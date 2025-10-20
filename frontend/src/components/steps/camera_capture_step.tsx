@@ -437,10 +437,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             
             detectedFacesRef.current = detections;
             setDetectedFaces(detections);
-            
-            // Draw detection results on overlay
-            drawDetectionResults(detections);
-            
+                        
             if (detections.length > 0) {
               const detection = detections[0];
               const { detection: box, landmarks } = detection;
@@ -509,207 +506,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     if (!ctx) return;
     
     ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
-  };
-
-  const drawDetectionResults = (detections: any[]) => {
-    if (!overlayCanvasRef.current || !videoRef.current) return;
-    
-    const canvas = overlayCanvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const video = videoRef.current;
-    
-    if (!ctx) return;
-    
-    // Update canvas size to match container (video element's parent)
-    const container = video.parentElement;
-    if (!container) return;
-    
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
-    
-    // Get the exact video element position and size within the container
-    const videoRect = video.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    
-    // Calculate offset of video within the container
-    const videoOffsetX = videoRect.left - containerRect.left;
-    const videoOffsetY = videoRect.top - containerRect.top;
-    const videoDisplayWidth = videoRect.width;
-    const videoDisplayHeight = videoRect.height;
-    
-    // Calculate scale factors from video natural size to actual display size
-    const scaleX = videoDisplayWidth / video.videoWidth;
-    const scaleY = videoDisplayHeight / video.videoHeight;
-    
-    console.log('=== OVERLAY DEBUG ===');
-    console.log('Container dimensions:', containerRect.width, 'x', containerRect.height);
-    console.log('Video natural size:', video.videoWidth, 'x', video.videoHeight);
-    console.log('Video display size:', videoDisplayWidth, 'x', videoDisplayHeight);
-    console.log('Video offset in container:', videoOffsetX.toFixed(1), videoOffsetY.toFixed(1));
-    console.log('Scale factors:', scaleX.toFixed(3), scaleY.toFixed(3));
-    console.log('Canvas size:', canvas.width, 'x', canvas.height);
-    
-    ctx.strokeStyle = '#00ff00';
-    ctx.fillStyle = '#00ff00';
-    ctx.lineWidth = 2;
-    
-    detections.forEach((detection, faceIndex) => {
-      const { detection: box, landmarks } = detection;
-      const n = normalizeFaceBox(box);
-      if (!n) return;
-      
-      // Draw bounding box with proper offset
-      ctx.strokeStyle = faceIndex === 0 ? '#00ff00' : '#ff0000';
-      ctx.lineWidth = 3;
-      
-      const scaledBox = {
-        x: (n.x * scaleX) + videoOffsetX,
-        y: (n.y * scaleY) + videoOffsetY,
-        width: n.width * scaleX,
-        height: n.height * scaleY
-      };
-      
-      ctx.strokeRect(scaledBox.x, scaledBox.y, scaledBox.width, scaledBox.height);
-      
-      // Draw face confidence score
-      ctx.fillStyle = ctx.strokeStyle;
-      ctx.font = '14px Arial';
-      ctx.fillText(`Face ${faceIndex + 1}: ${(detection.detection.score * 100).toFixed(1)}%`, 
-                   scaledBox.x, scaledBox.y - 10);
-      
-      // Draw landmarks if available
-      if (landmarks && landmarks.positions) {
-        ctx.fillStyle = '#ffff00';
-        ctx.strokeStyle = '#ffff00';
-        
-        landmarks.positions.forEach((point: any, index: number) => {
-          // Scale landmark coordinates with proper offset
-          const scaledX = (point.x * scaleX) + videoOffsetX;
-          const scaledY = (point.y * scaleY) + videoOffsetY;
-          
-          // Draw landmark point
-          ctx.beginPath();
-          ctx.arc(scaledX, scaledY, 2, 0, 2 * Math.PI);
-          ctx.fill();
-          
-          // Draw landmark number every 10th point to avoid clutter
-          if (index % 10 === 0) {
-            ctx.fillStyle = '#ffffff';
-            ctx.font = '10px Arial';
-            ctx.fillText(index.toString(), scaledX + 3, scaledY - 3);
-            ctx.fillStyle = '#ffff00';
-          }
-        });
-        
-        // Draw key facial features connections
-        drawFacialFeatureLines(ctx, landmarks.positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-      }
-      
-      // Draw face angle information
-      if (faceAngle && faceIndex === 0) {
-        const angleX = scaledBox.x + scaledBox.width + 10;
-        const angleY = scaledBox.y + 20;
-        
-        ctx.fillStyle = '#ffffff';
-        ctx.font = '12px Arial';
-        ctx.fillText(`Yaw: ${(faceAngle as any).yaw?.toFixed(1) || 'N/A'}°`, angleX, angleY);
-        ctx.fillText(`Pitch: ${(faceAngle as any).pitch?.toFixed(1) || 'N/A'}°`, angleX, angleY + 15);
-        ctx.fillText(`Roll: ${(faceAngle as any).roll?.toFixed(1) || 'N/A'}°`, angleX, angleY + 30);
-      }
-    });
-    
-    console.log('=== DRAWN', detections.length, 'faces on overlay ===');
-  };
-
-  const drawFacialFeatureLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Draw eye connections
-    drawEyeLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-    
-    // Draw eyebrow connections
-    drawEyebrowLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-    
-    // Draw nose connections
-    drawNoseLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-    
-    // Draw mouth connections
-    drawMouthLines(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-    
-    // Draw jawline
-    drawJawline(ctx, positions, scaleX, scaleY, videoOffsetX, videoOffsetY);
-  };
-
-  const drawEyeLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Left eye outline (indices 36-47)
-    const leftEyePoints = positions.slice(36, 47);
-    if (leftEyePoints.length > 0) {
-      ctx.beginPath();
-      ctx.moveTo(leftEyePoints[0][0] * scaleX + videoOffsetX, leftEyePoints[0][1] * scaleY + videoOffsetY);
-      for (let i = 1; i < leftEyePoints.length; i++) {
-        ctx.lineTo(leftEyePoints[i][0] * scaleX + videoOffsetX, leftEyePoints[i][1] * scaleY + videoOffsetY);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = '#00ffff';
-      ctx.stroke();
-    }
-    
-    // Right eye outline (indices 42-47, but use 39-47 for right eye)
-    const rightEyePoints = positions.slice(42, 48);
-    if (rightEyePoints.length > 0) {
-      ctx.beginPath();
-      ctx.moveTo(rightEyePoints[0][0] * scaleX + videoOffsetX, rightEyePoints[0][1] * scaleY + videoOffsetY);
-      for (let i = 1; i < rightEyePoints.length; i++) {
-        ctx.lineTo(rightEyePoints[i][0] * scaleX + videoOffsetX, rightEyePoints[i][1] * scaleY + videoOffsetY);
-      }
-      ctx.closePath();
-      ctx.strokeStyle = '#00ffff';
-      ctx.stroke();
-    }
-  };
-
-  const drawEyebrowLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Left eyebrow (indices 17-21)
-    const leftEyebrow = positions.slice(17, 22);
-    drawPolyline(ctx, leftEyebrow, scaleX, scaleY, '#ff00ff', videoOffsetX, videoOffsetY);
-    
-    // Right eyebrow (indices 22-26)
-    const rightEyebrow = positions.slice(22, 27);
-    drawPolyline(ctx, rightEyebrow, scaleX, scaleY, '#ff00ff', videoOffsetX, videoOffsetY);
-  };
-
-  const drawNoseLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Nose outline (indices 27-35)
-    const nosePoints = positions.slice(27, 36);
-    drawPolyline(ctx, nosePoints, scaleX, scaleY, '#ffff00', videoOffsetX, videoOffsetY);
-  };
-
-  const drawMouthLines = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Outer mouth (indices 48-58)
-    const outerMouth = positions.slice(48, 59);
-    drawPolyline(ctx, outerMouth, scaleX, scaleY, '#ff8800', videoOffsetX, videoOffsetY);
-    
-    // Inner mouth (indices 60-67)
-    const innerMouth = positions.slice(60, 68);
-    drawPolyline(ctx, innerMouth, scaleX, scaleY, '#ff8800', videoOffsetX, videoOffsetY);
-  };
-
-  const drawJawline = (ctx: CanvasRenderingContext2D, positions: any[], scaleX: number, scaleY: number, videoOffsetX: number, videoOffsetY: number) => {
-    // Jawline (indices 0-16)
-    const jawlinePoints = positions.slice(0, 17);
-    drawPolyline(ctx, jawlinePoints, scaleX, scaleY, '#34e7d3', videoOffsetX, videoOffsetY);
-  };
-
-  const drawPolyline = (ctx: CanvasRenderingContext2D, points: any[], scaleX: number, scaleY: number, color: string, videoOffsetX: number, videoOffsetY: number) => {
-    if (points.length === 0) return;
-    
-    ctx.strokeStyle = color;
-    ctx.beginPath();
-    ctx.moveTo(points[0][0] * scaleX + videoOffsetX, points[0][1] * scaleY + videoOffsetY);
-    
-    for (let i = 1; i < points.length; i++) {
-      ctx.lineTo(points[i][0] * scaleX + videoOffsetX, points[i][1] * scaleY + videoOffsetY);
-    }
-    
-    ctx.stroke();
   };
 
   const updateGuidance = (detections: any[]) => {
@@ -822,7 +618,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     // Heuristics:
     // - Too far: face occupies less than ~6% of frame
     // - Too close: face occupies more than ~25% of frame
-    if (faceAreaRatio < 0.06) {
+    if (faceAreaRatio < 0.1) {
       return { needsAdjustment: true, message: 'Move closer to the camera' };
     }
     if (faceAreaRatio > 0.25) {
@@ -862,8 +658,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const avgDistance = (leftDistance + rightDistance) / 2;
     const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
 
-    // If asymmetry is significant (more than 15% difference), guide user to turn
-    if (asymmetryRatio > 0.15) {
+    // If asymmetry is significant (more than 25% difference), guide user to turn
+    if (asymmetryRatio > 0.25) {
       if (leftDistance > rightDistance) {
         // Left cheek is farther than right, user needs to turn right
         return { 
@@ -1145,19 +941,46 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               }}
             />
             
-            {/* Face Detection Overlay Canvas */}
-            <canvas
-              ref={overlayCanvasRef}
-              className="absolute inset-0 pointer-events-none z-10"
-              style={{
-                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
-              }}
-            />
-            
             {/* Face guide overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
-              <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
-            </div>
+            {
+              guidanceMessage !== 'Center your face in the guide box' && (
+                <AnimatePresence>
+                  <motion.div
+                    key="guide-overlay"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.98 }}
+                    transition={{ duration: 0.35, ease: 'easeOut' }}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-5"
+                  >
+                    {/* Bloom glow (soft blurred white) */}
+                    <div
+                      aria-hidden
+                      className="absolute rounded-lg"
+                      style={{
+                        width: '12rem',      // matches guide box width (w-48)
+                        height: '15rem',     // matches guide box height (h-60)
+                        boxShadow: '0 12px 40px rgba(75, 189, 241, 0.8), 0 0 80px rgba(255,255,255,0.08)',
+                        filter: 'blur(10px)',
+                        transform: 'translateZ(0)',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                    {/* Guide box (visible border) */}
+                    <div
+                      className="relative w-48 h-60 rounded-lg"
+                      style={{
+                        border: '2px solid rgba(45, 172, 245, 0.95)',
+                        background: 'linear-gradient(180deg, rgba(29, 123, 231, 0.02), rgba(255,255,255,0))',
+                        boxShadow: '0 4px 18px rgba(48, 156, 245, 0.04) inset',
+                        pointerEvents: 'none'
+                      }}
+                    />
+                  </motion.div>
+                </AnimatePresence>
+              )
+            }
+            
             
             {/* Dynamic Guidance Text */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
