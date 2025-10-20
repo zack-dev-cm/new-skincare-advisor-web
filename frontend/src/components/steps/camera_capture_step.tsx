@@ -943,7 +943,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             
             {/* Face guide overlay */}
             {
-              guidanceMessage !== 'Center your face in the guide box' && (
+              guidanceType === "positioning" && guidanceMessage !== 'Center your face in the guide box' && (
                 <AnimatePresence>
                   <motion.div
                     key="guide-overlay"
@@ -960,7 +960,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                       style={{
                         width: '12rem',      // matches guide box width (w-48)
                         height: '15rem',     // matches guide box height (h-60)
-                        boxShadow: '0 12px 40px rgba(75, 189, 241, 0.8), 0 0 80px rgba(255,255,255,0.08)',
+                        boxShadow: '0 12px 40px rgba(139, 75, 241, 0.8), 0 0 80px rgba(196, 24, 212, 0.23)',
                         filter: 'blur(10px)',
                         transform: 'translateZ(0)',
                         pointerEvents: 'none'
@@ -970,7 +970,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                     <div
                       className="relative w-48 h-60 rounded-lg"
                       style={{
-                        border: '2px solid rgba(45, 172, 245, 0.95)',
+                        border: '2px solid rgba(132, 45, 245, 0.95)',
                         background: 'linear-gradient(180deg, rgba(29, 123, 231, 0.02), rgba(255,255,255,0))',
                         boxShadow: '0 4px 18px rgba(48, 156, 245, 0.04) inset',
                         pointerEvents: 'none'
