@@ -20,7 +20,7 @@ export default function ModalFooter({
   onTabChange
 }: ModalFooterProps) {
   return (
-    <div className={`border-t border-gray-200 bg-white ${className}`}>
+    <div className={`border-t border-primary-900 bg-primary-800 ${className}`}>
       {/* Tab Navigation - Only show on results step */}
       {(showTabButtons && onTabChange) ? (
         <div className="routine-btns w-full flex">
@@ -56,7 +56,7 @@ export default function ModalFooter({
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full ${
-                  index < currentStep ? 'bg-purple-600' : 'bg-gray-300'
+                  index < currentStep ? 'bg-gray-700' : 'bg-primary-500'
                 }`}
               />
             ))}

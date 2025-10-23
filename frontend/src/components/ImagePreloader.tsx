@@ -128,12 +128,12 @@ export default function ImagePreloader({
         </div>
 
         {/* Loading Content */}
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-purple-50 to-purple-100">
+        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
           <div className="text-center max-w-sm w-full mx-4">
             {/* Loading Animation */}
             <div className="mb-6">
               <motion.div
-                className="w-16 h-16 bg-gradient-to-r from-purple-600 to-purple-500 rounded-full mx-auto mb-4"
+                className="w-16 h-16 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full mx-auto mb-4"
                 animate={{ 
                   scale: [1, 1.1, 1],
                   rotate: [0, 180, 360]
@@ -160,7 +160,7 @@ export default function ImagePreloader({
             {/* Progress Bar */}
             <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
               <motion.div
-                className="bg-gradient-to-r from-purple-600 to-purple-500 h-2 rounded-full"
+                className="bg-gradient-to-r from-primary-600 to-primary-500 h-2 rounded-full"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
@@ -176,9 +176,9 @@ export default function ImagePreloader({
             {/* Phase Indicator for Analysis Mode */}
             {mode === 'analysis' && (
               <div className="mt-4 flex justify-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-purple-600' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-purple-600' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-purple-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-primary-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-primary-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-primary-600' : 'bg-gray-300'}`} />
               </div>
             )}
           </div>

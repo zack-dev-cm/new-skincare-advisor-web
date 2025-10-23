@@ -658,15 +658,15 @@ export default function SkinAnalysisImage({
 
         {/* View Toggle Buttons */}
         <div className="flex justify-center mb-4 mt-8">
-          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-purple-100">
+          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-primary-100">
             {carouselImages.map((image, index) => (
               <button
                 key={index}
                 onClick={() => goToImage(index)}
                 className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
                   currentImageIndex === index
-                    ? 'bg-gradient-to-r from-purple-600 to-purple-500 text-white shadow'
-                    : 'text-gray-700 hover:bg-purple-50 hover:text-purple-700'
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow'
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
                 }`}
               >
                 {image.label}

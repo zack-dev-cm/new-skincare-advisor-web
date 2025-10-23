@@ -119,8 +119,8 @@ export default function Home() {
 
   // For standalone mode, show a simple trigger button
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-white">
-      <div className="bg-[#e9d5ff] border-b border-purple-200/70 flex items-center justify-center py-2">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white">
+      <div className="bg-[#e9d5ff] border-b border-primary-200/70 flex items-center justify-center py-2">
         <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
       </div>
       <div className="text-center flex flex-col items-center gap-6 py-16">

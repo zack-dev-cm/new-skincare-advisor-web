@@ -20,7 +20,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-main bg-cover bg-center flex flex-col h-full"
+      className="bg-primary-200 bg-cover bg-center flex flex-col h-full"
     >
       {/* Main content */}
       <div className="flex flex-col justify-center text-center m-8 mt-auto bg-white/50 backdrop-blur-sm rounded-lg p-8 overflow-y-auto h-fit">
@@ -35,7 +35,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               href="https://dermaself-dev.myshopify.com/pages/privacy-policy" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-purple-600 hover:text-purple-700 underline"
+              className="text-primary-600 hover:text-primary-700 underline"
             >
               Informativa sulla Privacy
             </a>
@@ -50,7 +50,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               type="checkbox"
               checked={consentGiven}
               onChange={(e) => setConsentGiven(e.target.checked)}
-              className="mt-1 w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <span className="text-sm text-gray-700">
               Acconsento al trattamento dei miei dati personali per ricevere raccomandazioni personalizzate per la cura della pelle.
@@ -68,7 +68,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           disabled={!consentGiven}
             className={`py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto ${
             consentGiven 
-              ? 'bg-purple-600 hover:bg-purple-700 text-white' 
+              ? 'bg-primary-600 hover:bg-primary-700 text-white' 
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           whileHover={consentGiven ? { scale: 1.02 } : {}}
@@ -79,13 +79,13 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
         {/* Fake login button */}
         <motion.button
           onClick={() => { /* fake button - no action */ }}
-          className="mt-3 py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto bg-[#f1e3ff] hover:bg-[#e9d8ff] text-gray-900 flex items-center justify-center gap-2"
+          className="mt-3 py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto bg-primary-200 hover:bg-primary-300 text-gray-900 flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
           <span>Accedi con</span>
           <div className="flex items-center">
-            <span className="text-sm font-semibold text-purple-600">Dermaself</span>
+            <span className="text-sm font-semibold text-primary-600">Dermaself</span>
           </div>
         </motion.button>
       </div>

@@ -81,7 +81,7 @@ export default function CartToast({
               
               <button
                 onClick={onGoToCart}
-                className="flex items-center space-x-2 bg-purple-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors"
+                className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
               >
                 <ShoppingBag className="w-4 h-4" />
                 <span>Vai al carrello ({cartItemCount})</span>

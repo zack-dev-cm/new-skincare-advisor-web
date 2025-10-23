@@ -817,7 +817,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 setError(null);
                 startCamera();
               }}
-              className="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+              className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Riprova Fotocamera
             </button>

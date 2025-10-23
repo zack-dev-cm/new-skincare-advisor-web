@@ -335,7 +335,7 @@ export default function RoutineProductCard({
               <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
               <button
                 type="button"
-                className="mt-2 text-xs font-semibold text-purple-700 hover:text-purple-800"
+                className="mt-2 text-xs font-semibold text-primary-700 hover:text-primary-800"
                 onClick={() => setWhyExpanded(prev => !prev)}
               >
                 {whyExpanded ? 'Show less' : 'Show more'}
@@ -347,7 +347,7 @@ export default function RoutineProductCard({
           {/* Footer actions: stacked on mobile, inline on md+ */}
           <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
             <button 
-              className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-purple-600 text-white hover:bg-purple-700'}`}
+              className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
               onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
               disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
               aria-label={isInCart ? 'Rimuovi dal carrello' : 'Aggiungi al carrello'}
@@ -373,7 +373,7 @@ export default function RoutineProductCard({
             {alternatives && alternatives.length > 0 && (
               <button 
                 type="button"
-                className="flex-1 h-12 inline-flex items-center justify-between rounded-full bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-purple-100"
+                className="flex-1 h-12 inline-flex items-center justify-between rounded-full bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-primary-100"
                 onClick={onToggleAlternatives}
                 aria-controls={`alt-list-${product.id}`}
               >
@@ -390,7 +390,7 @@ export default function RoutineProductCard({
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
                 <div className="flex gap-4 w-max pr-3 pb-1">
                   {alternatives.map((alt: any) => (
-                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-purple-100 p-3 min-w-[280px] sm:min-w-[300px]">
+                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-primary-100 p-3 min-w-[280px] sm:min-w-[300px]">
                       <div className="flex items-start gap-3">
                         <img
                           width="96"
@@ -423,7 +423,7 @@ export default function RoutineProductCard({
                             return (
                               <button
                                 type="button"
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
+                                className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
                                 onClick={async () => {
                                   try {
                                     if (!alt?.variants?.[0]?.id) return;
@@ -519,7 +519,7 @@ export default function RoutineProductCard({
       {/* Add All to Bag Button for Last Step */}
       {isLastStep && showAddAllButton && onAddAllToCart && (
             <button 
-              className="mt-4 bg-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-purple-700 transition-colors"
+              className="mt-4 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
           onClick={onAddAllToCart}
           disabled={state.loading}
         >
@@ -549,7 +549,7 @@ export default function RoutineProductCard({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-lg w-[calc(100%-2rem)] max-w-md md:w-full max-h-[80vh] mx-auto overflow-y-auto scrollbar-thin scrollbar-thumb-purple-600 scrollbar-track-gray-200"
+            className="bg-white rounded-lg w-[calc(100%-2rem)] max-w-md md:w-full max-h-[80vh] mx-auto overflow-y-auto scrollbar-thin scrollbar-thumb-primary-600 scrollbar-track-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -584,7 +584,7 @@ export default function RoutineProductCard({
 
                 {/* Price */}
                 <div>
-                  <p className="text-xl font-bold text-purple-600">
+                  <p className="text-xl font-bold text-primary-600">
                     {selectedVariant ? formatPrice(selectedVariant.price) : new Intl.NumberFormat('en-US', { style: 'currency', currency: getActiveCurrency() }).format(0)}
                   </p>
                 </div>

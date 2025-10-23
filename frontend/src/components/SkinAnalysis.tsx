@@ -263,8 +263,8 @@ export default function SkinAnalysis() {
                   <span>Image Processing</span>
                 </div>
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Loader2 className="w-4 h-4 text-primary-600 animate-spin" />
                   </div>
                   <span>AI Analysis</span>
                 </div>

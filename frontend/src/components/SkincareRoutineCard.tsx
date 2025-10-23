@@ -206,7 +206,7 @@ export default function SkincareRoutineCard({
                     <button 
                       onClick={() => handleAddAlternativeToCart(product)}
                       disabled={state.loading}
-                      className="w-full bg-purple-600 text-white py-1 px-2 rounded text-xs hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="w-full bg-primary-600 text-white py-1 px-2 rounded text-xs hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {state.loading ? 'Aggiungendo...' : 'Aggiungi al Carrello'}
                     </button>
@@ -219,7 +219,7 @@ export default function SkincareRoutineCard({
           {/* Add All to Bag Button for Last Step */}
           {isLastStep && showAddAllButton && onAddAllToCart && (
             <button 
-              className="add-all-to-bag mt-4 w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="add-all-to-bag mt-4 w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={onAddAllToCart}
               disabled={state.loading}
             >

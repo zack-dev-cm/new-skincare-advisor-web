@@ -4,15 +4,16 @@
 
 /* Background image utilities */
 .bg-main {
-  background-image: var(--bg-main);
+  /* background-image: var(--bg-main); */
+  background: gray
 }
 
 .bg-bg1 {
-  background-image: var(--bg-1);
+  /* background-image: var(--bg-1); */
 }
 
 .bg-bg2 {
-  background-image: var(--bg-2);
+  /* background-image: var(--bg-2); */
 }
 
 /* Embed-specific styles */
@@ -41,11 +42,11 @@
   --primary-200: #ede9fe;
   --primary-300: #ddd6fe;
   --primary-400: #c4b5fd;
-  --primary-500: #a78bfa;
-  --primary-600: #8b5cf6;
-  --primary-700: #7c3aed;
-  --primary-800: #6d28d9;
-  --primary-900: #5b21b6;
+  --primary-500: #353535;
+  --primary-600: #2e2e2e;
+  --primary-700: #222222;
+  --primary-800: #202020;
+  --primary-900: #161616;
 }
 
 /* Base Styles */
@@ -64,7 +65,6 @@ body {
 .btn-primary:hover {
   border: none !important;
   outline: none !important;
-  background-color: #7c3aed;
 }
 
 .btn-primary:focus {

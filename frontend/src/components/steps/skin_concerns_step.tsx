@@ -59,7 +59,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-bg2 bg-cover bg-center h-full flex flex-col"
+      className="bg-primary-200 bg-cover bg-center h-full flex flex-col"
     >
       {/* Skin Concerns Selection */}
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
@@ -83,8 +83,8 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
             >
               <div className={`relative rounded-2xl overflow-hidden border-2 transition-all h-full duration-200 ${
                 selectedConcerns.includes(concern.id)
-                  ? 'border-purple-500 shadow-lg shadow-purple-100'
-                  : 'border-transparent hover:border-purple-300'
+                  ? 'border-primary-500 shadow-lg shadow-primary-100'
+                  : 'border-transparent hover:border-primary-300'
               }`}>
                 <div className="flex bg-white h-full">
                   <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center py-2">
@@ -120,7 +120,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
           <motion.button
             onClick={onNext}
             disabled={selectedConcerns.length === 0}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

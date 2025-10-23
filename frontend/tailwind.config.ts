@@ -11,17 +11,16 @@ const config: Config = {
       colors: {
         // Purple/Violet Brand Colors - from reference design
         primary: {
-          50: '#faf5ff',
-          100: '#f5f3ff',
-          200: '#ede9fe',
-          300: '#ddd6fe',
-          400: '#c4b5fd',
-          500: '#a78bfa',
-          600: '#8b5cf6',
-          700: '#7c3aed',
-          800: '#6d28d9',
-          900: '#5b21b6',
-          DEFAULT: '#8b5cf6',
+          50: '#f9fafb',
+          100: '#f3f4f6',
+          200: '#e5e7eb',
+          300: '#d1d5db',
+          400: '#9ca3af',
+          500: '#6b7280',
+          600: '#374151',
+          700: '#1f2937',
+          800: '#111827',
+          900: '#000000',
         },
         // Clean accent colors palette
         accentPalette: {

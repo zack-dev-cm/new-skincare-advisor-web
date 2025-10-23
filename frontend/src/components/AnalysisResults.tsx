@@ -405,9 +405,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 + index * 0.1 }}
-                    className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg"
+                    className="flex items-start space-x-3 p-3 bg-primary-50 rounded-lg"
                   >
-                    <div className="w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0"></div>
+                    <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
                     <p className="text-gray-700">{recommendation}</p>
                   </motion.div>
                 ))
@@ -416,9 +416,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.4 }}
-                  className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg"
+                  className="flex items-start space-x-3 p-3 bg-primary-50 rounded-lg"
                 >
-                  <div className="w-2 h-2 bg-purple-600 rounded-full mt-2 flex-shrink-0"></div>
+                  <div className="w-2 h-2 bg-primary-600 rounded-full mt-2 flex-shrink-0"></div>
                   <p className="text-gray-700">
                     {typeof result.recommendations === 'string' 
                       ? result.recommendations 
@@ -447,15 +447,15 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
               Basato sulla tua analisi della pelle, ecco i prodotti che raccomandiamo per la tua routine
             </p>
             {isLoadingProducts ? (
-              <div className="mt-4 p-4 bg-purple-50 rounded-lg">
+              <div className="mt-4 p-4 bg-primary-50 rounded-lg">
                 <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-purple-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-purple-700">Caricamento prodotti da Shopify...</p>
+                  <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
+                  <p className="text-sm text-primary-700">Caricamento prodotti da Shopify...</p>
                 </div>
               </div>
             ) : (
-              <div className="mt-4 p-4 bg-purple-50 rounded-lg">
-                <p className="text-sm text-purple-700">
+              <div className="mt-4 p-4 bg-primary-50 rounded-lg">
+                <p className="text-sm text-primary-700">
                   Trovati {routineSteps.length} prodotti principali e{' '}
                   {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} prodotti alternativi
                 </p>
@@ -526,7 +526,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                         <button 
                           onClick={() => handleAddAlternativeToCart(product)}
                           disabled={state.loading}
-                          className="w-full bg-purple-600 text-white py-2 px-4 rounded-lg hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="w-full bg-primary-600 text-white py-2 px-4 rounded-lg hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           {state.loading ? (
                             <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>

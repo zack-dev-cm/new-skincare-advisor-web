@@ -142,7 +142,7 @@ function MobileCapturePageInner() {
       {cameraActive && !image && (
         <button
           onClick={capturePhoto}
-          className="bg-purple-600 text-white px-6 py-2 rounded shadow"
+          className="bg-primary-600 text-white px-6 py-2 rounded shadow"
         >
           Capture Photo
         </button>

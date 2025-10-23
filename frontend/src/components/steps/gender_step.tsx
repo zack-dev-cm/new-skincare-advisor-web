@@ -70,8 +70,8 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
             >
               <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
                 selectedGender === option.id
-                  ? 'border-purple-500 shadow-lg shadow-purple-100'
-                  : 'border-transparent hover:border-purple-300'
+                  ? 'border-primary-500 shadow-lg shadow-primary-100'
+                  : 'border-transparent hover:border-primary-300'
               }`}>
                 <div className="flex h-full bg-white">
                   <div className="flex-1 min-w-0 px-6 py-4 flex flex-col justify-center items-center">
@@ -90,7 +90,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
           <motion.button
             onClick={onNext}
             disabled={!selectedGender}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-purple-600 text-white hover:bg-purple-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
