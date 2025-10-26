@@ -1,7 +1,7 @@
 'use client';
 import React, { useState, useRef, useCallback } from 'react';
 import Image from 'next/image';
-import LogoViolet from '../app/RGB_Logo_Violet.avif';
+import LogoWhite from '../app/RGB_Logo_White.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -103,7 +103,7 @@ export default function SkinAnalysis() {
     <div className="w-full">
       {/* Branded header for analysis flow */}
       <div className="px-4 py-3 flex items-center justify-center border-b border-gray-200 bg-[#e9d5ff] mb-4">
-        <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
+        <Image src={LogoWhite} alt="Dermaself" className="h-8 w-auto" priority />
       </div>
       <AnimatePresence key="skin-analysis-steps" mode="wait">
         {step === 'upload' && (

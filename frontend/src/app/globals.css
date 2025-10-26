@@ -4,16 +4,24 @@
 
 /* Background image utilities */
 .bg-main {
-  /* background-image: var(--bg-main); */
-  background: gray
+  background-image: var(--bg-main);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .bg-bg1 {
-  /* background-image: var(--bg-1); */
+  background-image: var(--bg-1);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .bg-bg2 {
-  /* background-image: var(--bg-2); */
+  background-image: var(--bg-2);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 /* Embed-specific styles */
@@ -205,6 +213,11 @@ body {
 /* Routine Styles */
 .routine-btns {
   @apply flex;
+}
+
+/* Make icons white by default for dark backgrounds */
+.routine-btns img {
+  filter: brightness(0) invert(1);
 }
 
 .active-btn {

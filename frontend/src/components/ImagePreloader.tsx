@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
-import LogoViolet from '../app/RGB_Logo_Violet.avif';
+import LogoWhite from '../app/RGB_Logo_White.png';
 
 interface ImagePreloaderProps {
   onComplete: () => void;
@@ -121,9 +121,9 @@ export default function ImagePreloader({
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Header - Same as modal */}
-        <div className="px-4 py-3 flex items-center justify-center border-b border-gray-200 bg-[#e9d5ff]">
+        <div className="px-4 py-3 flex items-center justify-center border-b border-primary-200/70 bg-primary-800">
           <div className="flex-1 text-center flex items-center justify-center">
-            <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
+            <Image src={LogoWhite} alt="Dermaself" className="h-8 w-auto" priority />
           </div>
         </div>
 
@@ -185,9 +185,9 @@ export default function ImagePreloader({
         </div>
 
         {/* Footer - Same as modal */}
-        <div className="bg-gray-100 px-4 py-2 border-t border-gray-200">
+        <div className="bg-primary-800 px-4 py-2 border-t border-primary-900">
           <div className="flex items-center justify-center">
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-white/70">
               {mode === 'initial' 
                 ? 'Optimizing your experience...'
                 : 'Please wait while we process your image...'

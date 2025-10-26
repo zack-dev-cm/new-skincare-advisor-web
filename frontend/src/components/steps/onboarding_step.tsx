@@ -32,7 +32,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           <p className="text-sm leading-relaxed">
             Utilizzando questo servizio, accetti la nostra{' '}
             <a 
-              href="https://dermaself-dev.myshopify.com/pages/privacy-policy" 
+              href="https://dermaself.it/pages/privacy-policy" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-primary-600 hover:text-primary-700 underline"

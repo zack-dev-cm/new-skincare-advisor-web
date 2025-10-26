@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, lazy } from 'react';
 import Image from 'next/image';
-import LogoViolet from './RGB_Logo_Violet.avif';
+import LogoWhite from './RGB_Logo_White.png';
 
 // Lazy load the modal to reduce initial bundle size
 const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
@@ -121,7 +121,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white">
       <div className="bg-[#e9d5ff] border-b border-primary-200/70 flex items-center justify-center py-2">
-        <Image src={LogoViolet} alt="Dermaself" className="h-8 w-auto" priority />
+        <Image src={LogoWhite} alt="Dermaself" className="h-8 w-auto" priority />
       </div>
       <div className="text-center flex flex-col items-center gap-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">

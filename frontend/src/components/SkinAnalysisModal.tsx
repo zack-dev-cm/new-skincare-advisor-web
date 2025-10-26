@@ -25,7 +25,7 @@ import ImagePreloader from './ImagePreloader';
 import dynamic from 'next/dynamic';
 
 // Brand logo
-import LogoViolet from '../app/RGB_Logo_Violet.avif';
+import LogoWhite from '../app/RGB_Logo_White.png';
 
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
   loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
@@ -291,11 +291,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             {currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
-                className="w-8 h-8 bg-black/5 rounded-lg flex items-center justify-center hover:bg-black/10 transition-colors"
+                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
                 aria-label="Go back"
                 title="Go back"
               >
-                <svg className="w-4 h-4 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -306,7 +306,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           <div className="flex-1 text-center flex items-center justify-center">
             <div className={`${currentStep === 'onboarding' ? 'pl-8' : ''}`}>
               <Image
-                src={LogoViolet}
+                src={LogoWhite}
                 alt="Dermaself"
                 priority
                 className="inline-block h-8 w-auto"
@@ -318,11 +318,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           <div className="flex items-center">
               <button
               onClick={handleClose}
-                className="w-8 h-8 bg-black/5 rounded-lg flex items-center justify-center hover:bg-black/10 transition-colors"
+                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
               aria-label="Close modal"
               title="Close modal"
             >
-              <X className="w-5 h-5 text-gray-700" />
+              <X className="w-5 h-5 text-white" />
             </button>
           </div>
         </div>
