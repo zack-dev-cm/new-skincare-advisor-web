@@ -54,7 +54,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-main bg-cover bg-center h-full flex flex-col"
+      className="bg-bg1 bg-cover bg-center h-full flex flex-col"
     >
       {/* Skin Type Selection */}
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
