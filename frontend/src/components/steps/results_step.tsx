@@ -88,6 +88,17 @@ export default function ResultsStep({
   // Cart functionality
   const { addToCart } = useCart();
 
+  // Scroll to top when tab changes
+  useEffect(() => {
+    // Find the scrollable parent container and scroll to top
+    const scrollableContainer = document.querySelector('.flex-1');
+    if (scrollableContainer) {
+      scrollableContainer.scrollTop = 0;
+    }
+    // Also scroll window to top as fallback
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeTab]);
+
   // Load module order configuration
   useEffect(() => {
     const loadConfig = async () => {
