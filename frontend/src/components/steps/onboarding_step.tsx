@@ -20,7 +20,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-primary-200 bg-cover bg-center flex flex-col h-full"
+      className="bg-main bg-cover bg-center flex flex-col h-full"
     >
       {/* Main content */}
       <div className="flex flex-col justify-center text-center m-8 mt-auto bg-white/50 backdrop-blur-sm rounded-lg p-8 overflow-y-auto h-fit">

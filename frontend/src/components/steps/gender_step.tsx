@@ -56,6 +56,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
         
         <div className="grid grid-cols-2 gap-3">
           {genderOptions.map((option) => (
+            // eslint-disable-next-line jsx-a11y/aria-proptypes
             <div 
               key={option.id} 
               role="radio"

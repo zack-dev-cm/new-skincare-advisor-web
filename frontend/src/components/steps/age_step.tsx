@@ -60,6 +60,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
         
         <div className="grid grid-cols-2 gap-3">
           {ageOptions.map((option) => (
+            // eslint-disable-next-line jsx-a11y/aria-proptypes
             <div 
               key={option.id} 
               role="radio"
