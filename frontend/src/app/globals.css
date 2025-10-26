@@ -5,24 +5,43 @@
 /* Background image utilities */
 .bg-main {
   background-image: var(--bg-main);
-  background-size: cover;
+  background-size: auto 100%;
   background-position: center;
   background-repeat: no-repeat;
 }
 
 .bg-bg1 {
   background-image: var(--bg-1);
-  background-size: cover;
+  background-size: auto 100%;
   background-position: center;
   background-repeat: no-repeat;
-  background-attachment: fixed;
 }
 
 .bg-bg2 {
   background-image: var(--bg-2);
-  background-size: cover;
+  background-size: auto 100%;
   background-position: center;
   background-repeat: no-repeat;
+}
+
+/* Mobile optimization for background images */
+@media (max-width: 768px) {
+  .bg-main,
+  .bg-bg1,
+  .bg-bg2 {
+    background-size: 100% auto;
+    background-position: center top;
+  }
+}
+
+/* Very small screens - maintain aspect ratio with cover */
+@media (max-width: 480px) and (max-height: 700px) {
+  .bg-main,
+  .bg-bg1,
+  .bg-bg2 {
+    background-size: cover;
+    background-position: center;
+  }
 }
 
 /* Embed-specific styles */
