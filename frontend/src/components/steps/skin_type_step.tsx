@@ -22,7 +22,7 @@ const skinTypes: SkinType[] = [
   {
     name: 'Normale',
     image: ASSETS.images.skinTypes.normal,
-    description: 'Tessuto cutaneo regolare senza problemi significativi'
+    description: 'Equilibrata e senza problemi'
   },
   {
     name: 'Secca',
@@ -37,7 +37,7 @@ const skinTypes: SkinType[] = [
   {
     name: 'Mista',
     image: ASSETS.images.skinTypes.combination,
-    description: 'Grassa nella zona T (fronte, naso e mento) e secca o normale sulle guance.'
+    description: 'Grassa in zona T, normale sulle guance'
   },
   {
     name: 'Non lo so',
