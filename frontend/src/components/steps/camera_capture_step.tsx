@@ -315,10 +315,10 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
                 await detectFacePosition();
                 getLuminosityStatus();
-            }, 1000); // Faster detection for better responsiveness
+            }, 500); // Faster detection for better responsiveness
 
             setDetectionInterval(interval);
-        }, 200); // Increased delay to ensure video is ready
+        }, 1000); // Increased delay to ensure video is ready
     };
 
 
@@ -732,11 +732,13 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         }
 
         const detection = detections[0];
-        const { detection: box, landmarks } = detection;
+        const landmarks = detection.landmarks;
+        const box = detection.detection.box;
 
         // Check lighting first - this is critical for good photo capture
         if (landmarks && landmarks.positions.length > 0) {
             const lightingGuidance = getLightingGuidance(landmarks.positions, box);
+            console.log('Lighting guidance status:', lightingGuidance);
             if (lightingGuidance.needsImprovement) {
                 if (guidanceMessage !== lightingGuidance.message) {
                     setGuidanceMessage(lightingGuidance.message);
@@ -865,122 +867,122 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             faceX + faceWidth > canvas.width || faceY + faceHeight > canvas.height) {
             console.warn('Invalid face dimensions after validation:', {
                 faceX, faceY, faceWidth, faceHeight,
-        canvasWidth: canvas.width, 
-        canvasHeight: canvas.height 
-      });
-      return { needsImprovement: false, message: '' };
-    }
-    
-    try {
-      // Extract face region image data with validated coordinates
-      const faceImageData = ctx.getImageData(faceX, faceY, faceWidth, faceHeight);
-      
-      // Calculate luminance for the face region
-      const luminance = calculateLuminance(faceImageData);
-      
-      console.log('=== LIGHTING DEBUG ===');
-      console.log('Face region luminance:', luminance.toFixed(3));
-      console.log('ImageData size:', faceImageData.width, 'x', faceImageData.height);
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
+        });
+            return { needsImprovement: false, message: '' };
+        }
 
-      // More aggressive lighting thresholds for better guidance
-      if (luminance < 0.20) {
-        console.log('Lighting: Too dark');
-        return {
-          needsImprovement: true,
-          message: 'Face toward a light source - lighting is too dark'
-        };
-      } else if (luminance > 0.80) {
-        console.log('Lighting: Too bright');
-        return {
-          needsImprovement: true,
-          message: 'Move away from bright light - lighting is too bright'
-        };
-      } else if (luminance < 0.35) {
-        console.log('Lighting: Poor lighting');
-        return {
-          needsImprovement: true,
-          message: 'Turn toward more light for better visibility'
-        };
-      } else if (luminance > 0.65) {
-        console.log('Lighting: Harsh lighting');
-        return {
-          needsImprovement: true,
-          message: 'Reduce screen brightness or move away from window'
-        };
-      }
+        try {
+            // Extract face region image data with validated coordinates
+            const faceImageData = ctx.getImageData(faceX, faceY, faceWidth, faceHeight);
 
-      console.log('Lighting: Good lighting');
-      return { needsImprovement: false, message: '' };
-      
-    } catch (error) {
-      console.error('Error in lighting analysis:', error);
-      console.error('Failed coordinates:', { faceX, faceY, faceWidth, faceHeight });
-      return { needsImprovement: false, message: '' };
-    }
-  };
+            // Calculate luminance for the face region
+            const luminance = calculateLuminance(faceImageData);
 
-  const calculateLuminance = (imageData: ImageData): number => {
-    const data = imageData.data;
-    let totalLuminance = 0;
-    let pixelCount = 0;
+            console.log('=== LIGHTING DEBUG ===');
+            console.log('Face region luminance:', luminance.toFixed(3));
+            console.log('ImageData size:', faceImageData.width, 'x', faceImageData.height);
 
-    // Sample every 4th pixel to reduce computation
-    for (let i = 0; i < data.length; i += 16) { // 4 pixels * 4 channels = 16
-      const r = data[i];
-      const g = data[i + 1];
-      const b = data[i + 2];
-      
-      // Calculate luminance using standard RGB to luminance conversion
-      const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-      
-      totalLuminance += luminance;
-      pixelCount++;
-    }
+            // More aggressive lighting thresholds for better guidance
+            if (luminance < 0.20) {
+                console.log('Lighting: Too dark');
+                return {
+                    needsImprovement: true,
+                    message: 'Face toward a light source - lighting is too dark'
+                };
+            } else if (luminance > 0.80) {
+                console.log('Lighting: Too bright');
+                return {
+                    needsImprovement: true,
+                    message: 'Move away from bright light - lighting is too bright'
+                };
+            } else if (luminance < 0.35) {
+                console.log('Lighting: Poor lighting');
+                return {
+                    needsImprovement: true,
+                    message: 'Turn toward more light for better visibility'
+                };
+            } else if (luminance > 0.65) {
+                console.log('Lighting: Harsh lighting');
+                return {
+                    needsImprovement: true,
+                    message: 'Reduce screen brightness or move away from window'
+                };
+            }
 
-    return pixelCount > 0 ? totalLuminance / pixelCount : 0;
-  };
+            console.log('Lighting: Good lighting');
+            return { needsImprovement: false, message: '' };
 
-  const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
-    if (!landmarks || landmarks.length < 68) {
-      return { shouldCorrect: false, message: '' };
-    }
+        } catch (error) {
+            console.error('Error in lighting analysis:', error);
+            console.error('Failed coordinates:', { faceX, faceY, faceWidth, faceHeight });
+            return { needsImprovement: false, message: '' };
+        }
+    };
 
-    // Get key landmarks
-    const leftCheek = landmarks[0];    // Left face contour (leftmost point)
-    const rightCheek = landmarks[16]; // Right face contour (rightmost point)
-    const noseTip = landmarks[30];    // Nose tip
-    const noseBridge = landmarks[27]; // Nose bridge
+    const calculateLuminance = (imageData: ImageData): number => {
+        const data = imageData.data;
+        let totalLuminance = 0;
+        let pixelCount = 0;
 
-    // Check if landmarks are valid
-    if (!leftCheek || !rightCheek || !noseTip || !noseBridge) {
-      return { shouldCorrect: false, message: '' };
-    }
+        // Sample every 4th pixel to reduce computation
+        for (let i = 0; i < data.length; i += 16) { // 4 pixels * 4 channels = 16
+            const r = data[i];
+            const g = data[i + 1];
+            const b = data[i + 2];
 
-    // Calculate distances from nose tip to each cheek
-    const leftDistance = Math.sqrt(
-      Math.pow(leftCheek.x - noseTip.x, 2) + Math.pow(leftCheek.y - noseTip.y, 2)
-    );
-    
-    const rightDistance = Math.sqrt(
-      Math.pow(rightCheek.x - noseTip.x, 2) + Math.pow(rightCheek.y - noseTip.y, 2)
-    );
+            // Calculate luminance using standard RGB to luminance conversion
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 
-    // Calculate asymmetry (difference in distances)
-    const asymmetry = Math.abs(leftDistance - rightDistance);
-    const avgDistance = (leftDistance + rightDistance) / 2;
-    const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
+            totalLuminance += luminance;
+            pixelCount++;
+        }
 
-    console.log('=== ANGLE DEBUG ===');
-    console.log('Left distance:', leftDistance.toFixed(2));
-    console.log('Right distance:', rightDistance.toFixed(2));
-    console.log('Asymmetry ratio:', asymmetryRatio.toFixed(3));
-    console.log('Threshold: 0.15');
+        return pixelCount > 0 ? totalLuminance / pixelCount : 0;
+    };
 
-    // If asymmetry is significant (more than 15% difference), guide user to turn
-    if (asymmetryRatio > 0.15) {
-      if (leftDistance > rightDistance) {
-        // Left cheek is farther than right, user needs to turn right
-        return { 
+    const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
+        if (!landmarks || landmarks.length < 68) {
+            return { shouldCorrect: false, message: '' };
+        }
+
+        // Get key landmarks
+        const leftCheek = landmarks[0];    // Left face contour (leftmost point)
+        const rightCheek = landmarks[16]; // Right face contour (rightmost point)
+        const noseTip = landmarks[30];    // Nose tip
+        const noseBridge = landmarks[27]; // Nose bridge
+
+        // Check if landmarks are valid
+        if (!leftCheek || !rightCheek || !noseTip || !noseBridge) {
+            return { shouldCorrect: false, message: '' };
+        }
+
+        // Calculate distances from nose tip to each cheek
+        const leftDistance = Math.sqrt(
+            Math.pow(leftCheek.x - noseTip.x, 2) + Math.pow(leftCheek.y - noseTip.y, 2)
+        );
+
+        const rightDistance = Math.sqrt(
+            Math.pow(rightCheek.x - noseTip.x, 2) + Math.pow(rightCheek.y - noseTip.y, 2)
+        );
+
+        // Calculate asymmetry (difference in distances)
+        const asymmetry = Math.abs(leftDistance - rightDistance);
+        const avgDistance = (leftDistance + rightDistance) / 2;
+        const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
+
+        console.log('=== ANGLE DEBUG ===');
+        console.log('Left distance:', leftDistance.toFixed(2));
+        console.log('Right distance:', rightDistance.toFixed(2));
+        console.log('Asymmetry ratio:', asymmetryRatio.toFixed(3));
+        console.log('Threshold: 0.15');
+
+        // If asymmetry is significant (more than 15% difference), guide user to turn
+        if (asymmetryRatio > 0.15) {
+            if (leftDistance > rightDistance) {
+                // Left cheek is farther than right, user needs to turn right
+                return {
           shouldCorrect: true, 
           message: 'Turn your head slightly right' 
         };
