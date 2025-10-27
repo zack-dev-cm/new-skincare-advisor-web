@@ -760,6 +760,19 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             }
         }
 
+
+        //check if light direction is frontal enough
+        if (landmarks && landmarks.positions.length > 0) {
+            const lightDirectionGuidance = getLightDirectionGuidance(landmarks.positions, box);
+            if (lightDirectionGuidance.shouldCorrect) {
+                if (guidanceMessage !== lightDirectionGuidance.message) {
+                    setGuidanceMessage(lightDirectionGuidance.message);
+                    setGuidanceType('positioning');
+                }
+                return;
+            }
+        }
+
         // Only check positioning if lighting and angle are good
         if (landmarks && landmarks.positions.length > 0) {
             const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, box);
@@ -789,6 +802,59 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             setGuidanceType('detecting');
         }
     };
+
+    //return the coordinates of the face box, sanitized and validated or trows error if not possible
+    const getSanitizedFaceBox = (faceBox: any, canvas: any, ctx:any, video:any ) => {
+        console.log('=== FACE BOX DEBUG ===');
+        console.log('Raw faceBox:', faceBox);
+        console.log('faceBox.x:', faceBox.x, typeof faceBox.x);
+        console.log('faceBox.y:', faceBox.y, typeof faceBox.y);
+        console.log('faceBox.width:', faceBox.width, typeof faceBox.width);
+        console.log('faceBox.height:', faceBox.height, typeof faceBox.height);
+
+        // Validate and sanitize face box coordinates
+        const rawFaceX = Number(faceBox.x);
+        const rawFaceY = Number(faceBox.y);
+        const rawFaceWidth = Number(faceBox.width);
+        const rawFaceHeight = Number(faceBox.height);
+
+        // Check for valid numbers
+        if (!Number.isFinite(rawFaceX) || !Number.isFinite(rawFaceY) ||
+            !Number.isFinite(rawFaceWidth) || !Number.isFinite(rawFaceHeight)) {
+            console.log('Lighting: Invalid numeric values in faceBox');
+            return null;
+        }
+
+        // Draw current video frame to canvas
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        // Validate and clamp face box coordinates to canvas bounds
+        const faceX = Math.floor(Math.max(0, Math.min(rawFaceX, canvas.width)));
+        const faceY = Math.floor(Math.max(0, Math.min(rawFaceY, canvas.height)));
+        const maxWidth = canvas.width - faceX;
+        const maxHeight = canvas.height - faceY;
+        const faceWidth = Math.floor(Math.max(1, Math.min(rawFaceWidth, maxWidth)));
+        const faceHeight = Math.floor(Math.max(1, Math.min(rawFaceHeight, maxHeight)));
+
+        console.log('=== VALIDATED COORDINATES ===');
+        console.log('faceX:', faceX, 'faceY:', faceY);
+        console.log('faceWidth:', faceWidth, 'faceHeight:', faceHeight);
+        console.log('canvas:', canvas.width, 'x', canvas.height);
+
+        // Ensure dimensions are valid positive integers within bounds
+        if (faceWidth <= 0 || faceHeight <= 0 ||
+            faceX < 0 || faceY < 0 ||
+            faceX >= canvas.width || faceY >= canvas.height ||
+            faceX + faceWidth > canvas.width || faceY + faceHeight > canvas.height) {
+            console.warn('Invalid face dimensions after validation:', {
+                faceX, faceY, faceWidth, faceHeight,
+                canvasWidth: canvas.width,
+                canvasHeight: canvas.height
+            });
+            return null;
+        }
+        return { x: faceX, y: faceY, width: faceWidth, height: faceHeight};
+    }
 
     const getLightingGuidance = (landmarks: any[], faceBox: any): { needsImprovement: boolean; message: string } => {
         console.log('=== LIGHTING GUIDANCE CALLED ===');
@@ -820,59 +886,17 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             return { needsImprovement: false, message: '' };
         }
 
-        // Set canvas dimensions to match video size
+        // Set canvas size to match video dimensions
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
-
-        console.log('=== FACE BOX DEBUG ===');
-        console.log('Raw faceBox:', faceBox);
-        console.log('faceBox.x:', faceBox.x, typeof faceBox.x);
-        console.log('faceBox.y:', faceBox.y, typeof faceBox.y);
-        console.log('faceBox.width:', faceBox.width, typeof faceBox.width);
-        console.log('faceBox.height:', faceBox.height, typeof faceBox.height);
-
-        // Validate and sanitize face box coordinates
-        const rawFaceX = Number(faceBox.x);
-        const rawFaceY = Number(faceBox.y);
-        const rawFaceWidth = Number(faceBox.width);
-        const rawFaceHeight = Number(faceBox.height);
-
-        // Check for valid numbers
-        if (!Number.isFinite(rawFaceX) || !Number.isFinite(rawFaceY) ||
-            !Number.isFinite(rawFaceWidth) || !Number.isFinite(rawFaceHeight)) {
-            console.log('Lighting: Invalid numeric values in faceBox');
+        // Get sanitized face box coordinates
+        let sanitizedFaceBox = getSanitizedFaceBox(faceBox, canvas, ctx, video);
+        if (!sanitizedFaceBox) {
+            console.log('Lighting: Could not sanitize face box');
             return { needsImprovement: false, message: '' };
         }
 
-        // Draw current video frame to canvas
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-
-        // Validate and clamp face box coordinates to canvas bounds
-        const faceX = Math.floor(Math.max(0, Math.min(rawFaceX, canvas.width)));
-        const faceY = Math.floor(Math.max(0, Math.min(rawFaceY, canvas.height)));
-        const maxWidth = canvas.width - faceX;
-        const maxHeight = canvas.height - faceY;
-        const faceWidth = Math.floor(Math.max(1, Math.min(rawFaceWidth, maxWidth)));
-        const faceHeight = Math.floor(Math.max(1, Math.min(rawFaceHeight, maxHeight)));
-
-        console.log('=== VALIDATED COORDINATES ===');
-        console.log('faceX:', faceX, 'faceY:', faceY);
-        console.log('faceWidth:', faceWidth, 'faceHeight:', faceHeight);
-        console.log('canvas:', canvas.width, 'x', canvas.height);
-
-        // Ensure dimensions are valid positive integers within bounds
-        if (faceWidth <= 0 || faceHeight <= 0 ||
-            faceX < 0 || faceY < 0 ||
-            faceX >= canvas.width || faceY >= canvas.height ||
-            faceX + faceWidth > canvas.width || faceY + faceHeight > canvas.height) {
-            console.warn('Invalid face dimensions after validation:', {
-                faceX, faceY, faceWidth, faceHeight,
-                canvasWidth: canvas.width,
-                canvasHeight: canvas.height
-        });
-            return { needsImprovement: false, message: '' };
-        }
-
+        const [faceX, faceY, faceWidth, faceHeight] = [sanitizedFaceBox.x, sanitizedFaceBox.y, sanitizedFaceBox.width, sanitizedFaceBox.height];
         try {
             // Extract face region image data with validated coordinates
             const faceImageData = ctx.getImageData(faceX, faceY, faceWidth, faceHeight);
@@ -942,6 +966,82 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         return pixelCount > 0 ? totalLuminance / pixelCount : 0;
     };
 
+    const getLightDirectionGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
+        if (!landmarks || landmarks.length < 68 || !videoRef.current) {
+            console.log('Lighting: Missing prerequisites');
+            return { shouldCorrect: false, message: '' };
+        }
+
+        const video = videoRef.current;
+
+        // Check if video is ready
+        if (video.readyState < 2) {
+            console.log('Lighting: Video not ready');
+            return { shouldCorrect: false, message: '' };
+        }
+
+        // Validate faceBox object and its properties
+        if (!faceBox || typeof faceBox !== 'object') {
+            console.log('Lighting: Invalid faceBox object');
+            return { shouldCorrect: false, message: '' };
+        }
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+            console.log('Lighting: No canvas context');
+            return {shouldCorrect: false, message: ''};
+        }
+
+        // Set canvas size to match video dimensions
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+
+        // Get key landmarks
+        const rightCheek = landmarks[2];    // Left face contour (leftmost point)
+        const leftCheek = landmarks[14]; // Right face contour (rightmost point)
+        const noseTip = landmarks[30];    // Nose tip
+
+        // Check if landmarks are valid
+        if (!leftCheek || !rightCheek || !noseTip) {
+            return { shouldCorrect: false, message: '' };
+        }
+
+        const validatedFaceBox = getSanitizedFaceBox(faceBox, canvas, ctx, video);
+        if (!validatedFaceBox) {
+            console.log('Lighting: Could not sanitize face box for light direction');
+            return { shouldCorrect: false, message: '' };
+        }
+
+        const leftImagedata = ctx.getImageData(
+            leftCheek.x, leftCheek.y, 20, 20);
+        const leftBrightness = calculateLuminance(leftImagedata);
+
+        const rightImagedata = ctx.getImageData(
+            rightCheek.x, rightCheek.y, 20, 20);
+        const rightBrightness = calculateLuminance(rightImagedata);
+
+
+        console.log('=== LIGHT DIRECTION DEBUG ===');
+        console.log('Left brightness:', leftBrightness);
+        console.log('Right brightness:', rightBrightness);
+
+        // If one side is significantly darker, guide user to turn
+        if ((leftBrightness - rightBrightness) > 0.2) {
+            return {
+                shouldCorrect: true,
+                message: 'Move slightly left to face the light'
+            };
+        } else if ((rightBrightness - leftBrightness) > 0.2) {
+            return {
+                shouldCorrect: true,
+                message: 'Move slightly right to face the light'
+            };
+        }
+
+        return { shouldCorrect: false, message: '' };
+    }
+
     const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
         if (!landmarks || landmarks.length < 68) {
             return { shouldCorrect: false, message: '' };
@@ -983,59 +1083,59 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             if (leftDistance > rightDistance) {
                 // Left cheek is farther than right, user needs to turn right
                 return {
-          shouldCorrect: true, 
-          message: 'Turn your head slightly right' 
-        };
-      } else {
-        // Right cheek is farther than left, user needs to turn left
-        return { 
-          shouldCorrect: true, 
-          message: 'Turn your head slightly left' 
-        };
-      }
-    }
+                    shouldCorrect: true,
+                    message: 'Turn your head slightly right'
+                };
+            } else {
+                // Right cheek is farther than left, user needs to turn left
+                return {
+          shouldCorrect: true,
+                    message: 'Turn your head slightly left'
+                };
+            }
+        }
 
-    return { shouldCorrect: false, message: '' };
-  };
+        return { shouldCorrect: false, message: '' };
+    };
 
-  const areLandmarksInGuideBox = (landmarks: any[], faceBox: any): boolean => {
-    if (!videoRef.current) return false;
-    
-    const video = videoRef.current;
-    
-    // Calculate guide box dimensions (the white dashed rectangle)
-    const guideBoxWidth = 192; // 12rem = 48 * 4 = 192px
-    const guideBoxHeight = 240; // 15rem = 60 * 4 = 240px
-    
-    // Calculate guide box center position in video coordinates
-    const videoCenterX = video.clientWidth / 2;
-    const videoCenterY = video.clientHeight / 2;
-    
-    // Calculate scale factors
-    const scaleX = video.clientWidth / video.videoWidth;
-    const scaleY = video.clientHeight / video.videoHeight;
-    
-    // Map guide box to video coordinates
-    const guideBoxLeft = (videoCenterX - 96) / scaleX; // Half guide box width
-    const guideBoxRight = (videoCenterX + 96) / scaleX;
-    const guideBoxTop = (videoCenterY - 120) / scaleY; // Half guide box height
-    const guideBoxBottom = (videoCenterY + 120) / scaleY;
-    
-    // Check if key landmarks are within the guide box
-    const keyLandmarks = [
-      0, 16,    // Chin corners
-      8,        // Chin center
-      36, 45,   // Eye outer corners
-      48, 54,   // Mouth corners
-      27, 30,   // Nose bridge, tip
-    ];
-    
-    let landmarksInBox = 0;
-    const requiredLandmarks = 5; // At least 5 key landmarks must be in box
-    
-    for (const index of keyLandmarks.slice(0, requiredLandmarks)) {
-      const landmark = landmarks[index];
-      if (landmark && 
+    const areLandmarksInGuideBox = (landmarks: any[], faceBox: any): boolean => {
+        if (!videoRef.current) return false;
+
+        const video = videoRef.current;
+
+        // Calculate guide box dimensions (the white dashed rectangle)
+        const guideBoxWidth = 192; // 12rem = 48 * 4 = 192px
+        const guideBoxHeight = 240; // 15rem = 60 * 4 = 240px
+
+        // Calculate guide box center position in video coordinates
+        const videoCenterX = video.clientWidth / 2;
+        const videoCenterY = video.clientHeight / 2;
+
+        // Calculate scale factors
+        const scaleX = video.clientWidth / video.videoWidth;
+        const scaleY = video.clientHeight / video.videoHeight;
+
+        // Map guide box to video coordinates
+        const guideBoxLeft = (videoCenterX - 96) / scaleX; // Half guide box width
+        const guideBoxRight = (videoCenterX + 96) / scaleX;
+        const guideBoxTop = (videoCenterY - 120) / scaleY; // Half guide box height
+        const guideBoxBottom = (videoCenterY + 120) / scaleY;
+
+        // Check if key landmarks are within the guide box
+        const keyLandmarks = [
+            0, 16,    // Chin corners
+            8,        // Chin center
+            36, 45,   // Eye outer corners
+            48, 54,   // Mouth corners
+            27, 30,   // Nose bridge, tip
+        ];
+
+        let landmarksInBox = 0;
+        const requiredLandmarks = 5; // At least 5 key landmarks must be in box
+
+        for (const index of keyLandmarks.slice(0, requiredLandmarks)) {
+            const landmark = landmarks[index];
+            if (landmark &&
           landmark.x >= guideBoxLeft && 
           landmark.x <= guideBoxRight &&
                 landmark.y >= guideBoxTop &&
