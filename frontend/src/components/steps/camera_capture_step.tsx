@@ -449,7 +449,8 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
                     if (detections.length > 0) {
                         const detection = detections[0];
-                        const { detection: box, landmarks } = detection;
+                        const landmarks = detection.landmarks;
+                        const box = detection.detection.box;
 
                         console.log('Face detected:', box);
                         console.log('Landmarks detected:', landmarks ? 'Yes' : 'No');
@@ -461,6 +462,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
                             height: box.height
                         };
 
+                        console.log('Calculated face position:', box);
                         setFacePosition(facePos);
 
                         // Calculate face angles from landmarks
@@ -1034,223 +1036,267 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
       if (landmark && 
           landmark.x >= guideBoxLeft && 
           landmark.x <= guideBoxRight &&
-          landmark.y >= guideBoxTop && 
+                landmark.y >= guideBoxTop &&
           landmark.y <= guideBoxBottom) {
-        landmarksInBox++;
-      }
-    }
-    
-    return landmarksInBox >= requiredLandmarks;
-  };
-
-  // Effect to handle guidance timeout
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      const timeSinceDetection = Date.now() - lastFaceDetectionTime;
-      if (timeSinceDetection > 3000 && guidanceType !== 'loading') { // 3 seconds timeout
-        setGuidanceMessage('Place your face in front of the camera');
-        setGuidanceType('detecting');
-      }
-    }, 1000);
-    
-    return () => clearTimeout(timeout);
-  }, [lastFaceDetectionTime, guidanceType]);
-
-
-  const capturePhoto = () => {
-    if (!videoRef.current || !canvasRef.current) return;
-    
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-
-    if (!ctx) return;
-    
-    // Get the original video dimensions (full resolution)
-    const originalWidth = video.videoWidth;
-    const originalHeight = video.videoHeight;
-    
-    // Log video element dimensions and styling
-    console.log('=== CAMERA CAPTURE STEP DEBUG ===');
-    console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
-    console.log('2. Video display dimensions (client):', video.clientWidth, 'x', video.clientHeight);
-    console.log('3. Video offset dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-    console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
-    console.log('5. Video CSS class:', video.className);
-    console.log('6. Video style transform:', video.style.transform);
-    console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
-    console.log('8. Video object-fit: object-contain');
-    
-    // Set canvas to original video dimensions for full resolution capture
-    canvas.width = originalWidth;
-    canvas.height = originalHeight;
-    
-    console.log('9. Canvas dimensions set to original video size:', canvas.width, 'x', canvas.height);
-    
-    // Clear canvas with white background
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, originalWidth, originalHeight);
-    
-    // Handle mirroring for front-facing camera
-    if (currentCamera === 'front') {
-      ctx.save();
-      ctx.scale(-1, 1);
-      ctx.drawImage(
-        video, 
-        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
-        -originalWidth, 0, originalWidth, originalHeight  // Destination rectangle (mirrored)
-      );
-      ctx.restore();
-      console.log('10. Applied horizontal flip for front camera');
-    } else {
-      ctx.drawImage(
-        video,
-        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
-        0, 0, originalWidth, originalHeight  // Destination rectangle (full resolution)
-      );
-      console.log('10. No flip applied for back camera');
-    }
-    
-    const imageData = canvas.toDataURL('image/jpeg', 1.0);
-    
-    // Log the captured image data
-    console.log('11. Captured image data URL length:', imageData.length);
-    console.log('12. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
-    console.log('13. Image quality: 1.0 (maximum)');
-    console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
-    console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
-    
-    setCapturedImage(imageData);
-    setCameraState('preview');
-    stopCamera();
-  };
-
-  const retakePhoto = () => {
-    setCapturedImage(null);
-    setCameraState('live');
-    startCamera();
-  };
-
-  const confirmPhoto = () => {
-    if (capturedImage) {
-      console.log('=== CONFIRM PHOTO DEBUG ===');
-      console.log('1. Image data URL length:', capturedImage.length);
-      console.log('2. Image data URL preview (first 100 chars):', capturedImage.substring(0, 100));
-      console.log('3. Image data URL preview (last 100 chars):', capturedImage.substring(capturedImage.length - 100));
-      console.log('4. Calling onNext with captured image...');
-      console.log('=== END CONFIRM PHOTO DEBUG ===');
-      
-      onNext(capturedImage);
-    }
-  };
-
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        if (imageData) {
-          setCapturedImage(imageData);
-          setCameraState('preview');
-          stopCamera();
+                landmarksInBox++;
+            }
         }
-      };
-      reader.readAsDataURL(file);
+
+        return landmarksInBox >= requiredLandmarks;
+    };
+
+    // Effect to handle guidance timeout
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            const timeSinceDetection = Date.now() - lastFaceDetectionTime;
+            if (timeSinceDetection > 3000 && guidanceType !== 'loading') { // 3 seconds timeout
+                setGuidanceMessage('Place your face in front of the camera');
+                setGuidanceType('detecting');
+            }
+        }, 1000);
+
+        return () => clearTimeout(timeout);
+    }, [lastFaceDetectionTime, guidanceType]);
+
+    const cropFaceFromImage = (imageDataUrl: string, faceBox: any): Promise<string> => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject('No canvas context');
+                    return;
+                }
+
+                // Set canvas size to face box size
+                canvas.width = faceBox.width;
+                canvas.height = faceBox.height;
+
+                // Draw the cropped face onto the canvas
+                ctx.drawImage(
+                    img,
+                    faceBox.x, faceBox.y, faceBox.width, faceBox.height, // Source rectangle
+                    0, 0, faceBox.width, faceBox.height                  // Destination rectangle
+                );
+
+                // Get the cropped image data URL
+                const croppedDataUrl = canvas.toDataURL('image/jpeg', 1.0);
+                resolve(croppedDataUrl);
+            };
+            img.onerror = (err) => {
+                reject(err);
+            };
+            img.src = imageDataUrl;
+        });
     }
-  };
 
-  const openFileDialog = () => {
-    fileInputRef.current?.click();
-  };
+    const capturePhoto = () => {
+        if (!videoRef.current || !canvasRef.current) return;
 
-  return (
-    <motion.div
-      key="camera-capture"
-      initial={{ opacity: 0, x: 20 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -20 }}
-      transition={{ duration: 0.3 }}
-      className="bg-main bg-cover bg-center h-full flex flex-col"
-    >
-      {/* Camera Content */}
-      <div className="flex-1 relative bg-black overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-            <div className="text-white text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p>Avvio fotocamera...</p>
-            </div>
-          </div>
-        )}
-        
-        {error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-            <div className="text-white text-center p-4">
-              <p className="mb-4">{error}</p>
-              <button
-                onClick={() => {
-                  setError(null);
-                  startCamera();
-                }}
-                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
-              >
-                Riprova
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {cameraState === 'live' && (
-          <div className="relative w-full h-full flex items-center justify-center bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-                display: 'block',
-                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
-              }}
-            />
-            
-            {/* Face Detection Overlay Canvas */}
-            <canvas
-              ref={overlayCanvasRef}
-              className="absolute inset-0 pointer-events-none z-10"
-              style={{
-                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
-              }}
-            />
-            
-            {/* Face guide overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
-              <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
-            </div>
-            
-            {/* Dynamic Guidance Text */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-              <div className="px-6 py-3 text-sm text-center max-w-xs transition-all duration-300 text-white footer-medium">
-                {guidanceType === 'loading' ? (
-                  <div className="flex items-center justify-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    <span>{guidanceMessage}</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-center">
-                  {guidanceMessage}
-                </div>
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) return;
+
+        // Get the original video dimensions (full resolution)
+        const originalWidth = video.videoWidth;
+        const originalHeight = video.videoHeight;
+
+        // Log video element dimensions and styling
+        console.log('=== CAMERA CAPTURE STEP DEBUG ===');
+        console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
+        console.log('2. Video display dimensions (client):', video.clientWidth, 'x', video.clientHeight);
+        console.log('3. Video offset dimensions:', video.offsetWidth, 'x', video.offsetHeight);
+        console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
+        console.log('5. Video CSS class:', video.className);
+        console.log('6. Video style transform:', video.style.transform);
+        console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
+        console.log('8. Video object-fit: object-contain');
+
+        // Clear canvas with white background
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, originalWidth, originalHeight);
+
+        var newH = originalHeight;
+        var newW = originalWidth;
+        var newx = 0; var newy = 0;
+
+        if (facePosition){
+            console.log('Face position at capture:', facePosition);
+            const scale = 1.1; // 10% margin around face
+            const marginW = facePosition.width * (scale - 1);
+            const marginH = facePosition.height * (scale - 1);
+            newx = facePosition.x + marginW;
+            newy = facePosition.y - marginH;
+            newW = facePosition.width - marginW;
+            newH = facePosition.height + marginH;
+        }
+
+        canvas.width = newW;
+        canvas.height = newH;
+
+        // Handle mirroring for front-facing camera
+        if (currentCamera === 'front') {
+            ctx.save();
+            ctx.scale(-1, 1);
+            ctx.drawImage(
+                video,
+                newx, newy, newW, newH,  // Source rectangle (face area)
+                -newW, 0, newW, newH     // Destination rectangle (mirrored)
+            );
+            ctx.restore();
+            console.log('10. Applied horizontal flip for front camera');
+        } else {
+            ctx.drawImage(
+                video,
+                newx, newy, newW, newH,  // Source rectangle (face area)
+                0, 0, newW, newH         // Destination rectangle
+            );
+            console.log('10. No flip applied for back camera');
+        }
+
+        const imageData = canvas.toDataURL('image/jpeg', 1.0);
+
+        // Log the captured image data
+        console.log('11. Captured image data URL length:', imageData.length);
+        console.log('12. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
+        console.log('13. Image quality: 1.0 (maximum)');
+        console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
+        console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
+
+        setCapturedImage(imageData);
+        setCameraState('preview');
+        stopCamera();
+    };
+
+    const retakePhoto = () => {
+        setCapturedImage(null);
+        setCameraState('live');
+        startCamera();
+    };
+
+    const confirmPhoto = () => {
+        if (capturedImage) {
+            console.log('=== CONFIRM PHOTO DEBUG ===');
+            console.log('1. Image data URL length:', capturedImage.length);
+            console.log('2. Image data URL preview (first 100 chars):', capturedImage.substring(0, 100));
+            console.log('3. Image data URL preview (last 100 chars):', capturedImage.substring(capturedImage.length - 100));
+            console.log('4. Calling onNext with captured image...');
+            console.log('=== END CONFIRM PHOTO DEBUG ===');
+
+            onNext(capturedImage);
+        }
+    };
+
+    const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const imageData = e.target?.result as string;
+                if (imageData) {
+                    setCapturedImage(imageData);
+                    setCameraState('preview');
+                    stopCamera();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const openFileDialog = () => {
+        fileInputRef.current?.click();
+    };
+
+    return (
+        <motion.div
+            key="camera-capture"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="bg-main bg-cover bg-center h-full flex flex-col"
+        >
+            {/* Camera Content */}
+            <div className="flex-1 relative bg-black overflow-hidden">
+                {isLoading && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+                        <div className="text-white text-center">
+                            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                            <p>Avvio fotocamera...</p>
+                        </div>
+                    </div>
                 )}
-              </div>
-            </div>
-            
-            {/* Camera indicator */}
-            <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
+
+                {error && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+                        <div className="text-white text-center p-4">
+                            <p className="mb-4">{error}</p>
+                            <button
+                                onClick={() => {
+                                    setError(null);
+                                    startCamera();
+                                }}
+                                className="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors"
+                            >
+                                Riprova
+                            </button>
+                        </div>
+                    </div>
+                )}
+
+                {cameraState === 'live' && (
+                    <div className="relative w-full h-full flex items-center justify-center bg-black">
+                        <video
+                            ref={videoRef}
+                            autoPlay
+                            playsInline
+                            muted
+                            className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+                            style={{
+                                maxWidth: '100%',
+                                maxHeight: '100%',
+                                width: 'auto',
+                                height: 'auto',
+                                display: 'block',
+                                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
+                            }}
+                        />
+
+                        {/* Face Detection Overlay Canvas */}
+                        <canvas
+                            ref={overlayCanvasRef}
+                            className="absolute inset-0 pointer-events-none z-10"
+                            style={{
+                                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
+                            }}
+                        />
+
+                        {/* Face guide overlay */}
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-5">
+                            <div className="w-48 h-60 border-2 border-white border-dashed rounded-lg opacity-50"></div>
+                        </div>
+
+                        {/* Dynamic Guidance Text */}
+                        <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+                            <div className="px-6 py-3 text-sm text-center max-w-xs transition-all duration-300 text-white footer-medium">
+                                {guidanceType === 'loading' ? (
+                                    <div className="flex items-center justify-center gap-2">
+                                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                                        <span>{guidanceMessage}</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center justify-center">
+                                        {guidanceMessage}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* Camera indicator */}
+                        <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm rounded-full px-3 py-1">
               <span className="text-white text-sm font-medium">
                 {currentCamera === 'front' ? 'Fotocamera Anteriore' : 'Fotocamera Posteriore'}
               </span>
