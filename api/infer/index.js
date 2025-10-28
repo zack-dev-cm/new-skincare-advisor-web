@@ -426,8 +426,11 @@ module.exports = async function (context, req) {
       // Add both "recommendations" and "recommendationData" for JavaScript compatibility
       finalResult = {
         ...enriched,
-        recommendationData: enriched.recommendations // Alias for JavaScript frontend
+        recommendationData: enriched.recommendations, // Alias for JavaScript frontend
       };
+      // Add deprecation hint
+      if (!finalResult.recommendations_meta) finalResult.recommendations_meta = {};
+      finalResult.recommendations_meta.deprecated_fields = ['recommendationData'];
     }
     
     // Save to cache if not a fallback

@@ -5,7 +5,7 @@ import { RotateCcw, Sun, Moon, CalendarDays, Palette } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify-product-fetcher';
 import { useCart } from '../CartContext';
-import { loadModuleOrderConfig, reorderRoutineSteps, findBestModuleMatch } from '../../lib/moduleOrderConfig';
+// Server now returns pre-categorized and ordered modules
 import { translateModuleName } from '../../lib/moduleTranslations';
 
 // Import components
@@ -68,7 +68,6 @@ export default function ResultsStep({
   // State for fresh product data
   const [routineSteps, setRoutineSteps] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [moduleOrderConfig, setModuleOrderConfig] = useState<any>(null);
   // UI state: expanded alternatives per step
   const [expandedAlternatives, setExpandedAlternatives] = useState<Set<string>>(new Set());
   // UI state: category selector (skincare subcategories + makeup)
@@ -99,29 +98,9 @@ export default function ResultsStep({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [activeTab]);
 
-  // Load module order configuration
-  useEffect(() => {
-    const loadConfig = async () => {
-      try {
-        const config = await loadModuleOrderConfig();
-        setModuleOrderConfig(config);
-        console.log('📋 Module order configuration loaded:', config);
-      } catch (error) {
-        console.error('Failed to load module order config:', error);
-        setModuleOrderConfig(null);
-      }
-    };
-    
-    loadConfig();
-  }, []);
-
   // Fetch products from Shopify and build routine steps
   useEffect(() => {
     const fetchRoutineProducts = async () => {
-      // Wait until config is loaded to avoid fallback build
-      if (!moduleOrderConfig) {
-        return;
-      }
       if (!analysisData?.recommendations?.skincare_routine) {
         setRoutineSteps([]);
         return;
@@ -250,53 +229,8 @@ export default function ResultsStep({
               const whyPicked = module.why_picked || module.reason || module.description || (mainProduct?.body_html ? mainProduct.body_html.replace(/<[^>]*>/g, '').substring(0, 400) : '');
               const moduleName: string = module.module || 'Skincare Step';
 
-              // Determine categories: for makeup keep 'makeup'; for skincare split into subcategories based on config lists
-              const apiCategory = (category.category || '').toLowerCase();
-              const targetCategories: string[] = [];
-
-              if (apiCategory === 'makeup') {
-                targetCategories.push('makeup');
-              } else {
-                // skincare: check in morning/evening/weekly lists, allow duplicates across multiple lists
-                if (moduleOrderConfig) {
-                  const m = moduleOrderConfig;
-                  const inMorning = findBestModuleMatch(moduleName, m.skincare_morning || []) !== null;
-                  const inEvening = findBestModuleMatch(moduleName, m.skincare_evening || []) !== null;
-                  const inWeekly = findBestModuleMatch(moduleName, m.skincare_weekly || []) !== null;
-
-                  if (inMorning) targetCategories.push('skincare_morning');
-                  if (inEvening) targetCategories.push('skincare_evening');
-                  if (inWeekly) targetCategories.push('skincare_weekly');
-
-                  // Heuristic fallback if no config match
-                  if (targetCategories.length === 0) {
-                    const nameLc = (moduleName || '').toLowerCase();
-                    
-                    if (/(night|notte|evening|sera)/.test(nameLc)) {
-                      targetCategories.push('skincare_evening');
-                    }
-                    if (/(mask|scrub|patch|weekly|settimanale)/.test(nameLc)) {
-                      targetCategories.push('skincare_weekly');
-                    }
-                    // If still none, default to morning
-                    if (targetCategories.length === 0) {
-                      targetCategories.push('skincare_morning');
-                    }
-                  }
-                } else {
-                  // If no config, use API category or default to skincare_morning
-                  if (apiCategory === 'skincare_evening' || apiCategory === 'evening') {
-                    targetCategories.push('skincare_evening');
-                  } else if (apiCategory === 'skincare_weekly' || apiCategory === 'weekly') {
-                    targetCategories.push('skincare_weekly');
-                  } else {
-                    targetCategories.push('skincare_morning');
-                  }
-                }
-              }
-
-              // Create one step per target category (duplication allowed)
-              for (const catKey of targetCategories) {
+              // Category is already decided server-side
+              const catKey = (category.category || 'skincare_morning').toLowerCase();
                 const step = {
                   stepNumber: globalStepNumber,
                   stepTitle: moduleName,
@@ -308,23 +242,15 @@ export default function ResultsStep({
                 };
                 steps.push(step);
                 globalStepNumber++;
-              }
+              
             } else {
               console.log('No main product found, skipping step');
             }
           });
         });
 
-        // Apply module order configuration if available
-        let finalSteps = steps;
-        if (moduleOrderConfig) {
-          finalSteps = reorderRoutineSteps(steps, moduleOrderConfig);
-          console.log('📋 Applied module order configuration to', finalSteps.length, 'steps');
-        } else {
-          console.log('📋 No module order configuration, using API order');
-        }
-
-        setRoutineSteps(finalSteps);
+        // Server already provides ordered modules; keep API order
+        setRoutineSteps(steps);
       } catch (error) {
         console.error('Failed to fetch routine products:', error);
         setRoutineSteps([]);
@@ -334,7 +260,7 @@ export default function ResultsStep({
     };
 
     fetchRoutineProducts();
-  }, [analysisData?.recommendations, moduleOrderConfig]);
+  }, [analysisData?.recommendations]);
 
   return (
     <motion.div

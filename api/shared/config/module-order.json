@@ -1,0 +1,39 @@
+{
+  "skincare_morning": [
+    "Cleansing",
+    "Tonic/Serum",
+    "Pimple Patches",
+    "Eye Contour",
+    "Hydration",
+    "Lip Balm",
+    "SPF"
+  ],
+  "skincare_evening": [
+    "Cleansing",
+    "Tonic/Serum",
+    "Pimple Patches",
+    "Eye Contour",
+    "Night Cream",
+    "Lip Balm"
+  ],
+  "skincare_weekly": [
+    "Face Mask/Scrub",
+    "Eye Patches",
+    "Lip Scrub"
+  ],
+  "makeup": [
+    "Eye Makeup Remover",
+    "Makeup Remover",
+    "BB Cream",
+    "Concealer",
+    "Foundation",
+    "Powder",
+    "Bronzer",
+    "Blush",
+    "Fixing Spray",
+    "Makeup Brush Disinfectant",
+    "Beauty Blender Disinfectant"
+  ]
+}
+
+
