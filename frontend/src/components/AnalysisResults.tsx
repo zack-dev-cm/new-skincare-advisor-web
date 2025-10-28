@@ -283,16 +283,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                 imageUrl={result.imageUrl}
                 analysisData={{
                   predictions: result.rawAnalysisData.predictions || [],
-                  redness: {
-                    num_polygons: result.rawAnalysisData.redness?.num_polygons || 0,
-                    polygons: result.rawAnalysisData.redness?.polygons || [],
-                    analysis_width: result.rawAnalysisData.redness?.analysis_width || 0,
-                    analysis_height: result.rawAnalysisData.redness?.analysis_height || 0,
-                    erythema: result.rawAnalysisData.redness?.erythema || false,
-                    redness_perc: result.rawAnalysisData.redness?.redness_perc || 0,
-                    scaling_factors: result.rawAnalysisData.redness?.scaling_factors || { x: 1, y: 1 },
-                    original_resolution: result.rawAnalysisData.redness?.original_resolution || { width: 0, height: 0 }
-                  },
+                  erythema: result.rawAnalysisData.redness?.erythema || false,
                   wrinkles: result.rawAnalysisData.wrinkles || undefined,
                   image: result.rawAnalysisData.image || { width: 0, height: 0 }
                 }}

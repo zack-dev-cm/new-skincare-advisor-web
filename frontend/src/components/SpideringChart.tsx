@@ -7,157 +7,206 @@ interface SpideringChartProps {
   analysisData: any;
   userAge?: number;
   userGender?: string;
+  ageRange?: string;
 }
 
 export default function SpideringChart({ 
   analysisData, 
   userAge = 30, 
-  userGender = 'female' 
+  userGender = 'female',
+  ageRange = '26-35'
 }: SpideringChartProps) {
   
-  // Helper: map severities to numeric levels
-  const severityToLevel = (severity?: string, levels: number = 4) => {
-    const map4: Record<string, number> = {
-      None: 1,
-      Mild: 2,
-      Moderate: 3,
-      Severe: 4
-    };
-    if (!severity) return 1;
-    const s = severity as keyof typeof map4;
-    const lvl = map4[s] || 1;
-    // If different scale requested, clamp
-    return Math.max(1, Math.min(levels, lvl));
-  };
-
-  // Stable random based on inference id to avoid flicker between renders
-  const seededRandoms = React.useMemo(() => {
-    const seedBase = String(analysisData?.inference_id || 'seed');
-    let h = 0;
-    for (let i = 0; i < seedBase.length; i++) {
-      h = Math.imul(31, h) + seedBase.charCodeAt(i) | 0;
+  /**
+   * Helper: converts age range to category (from JavaScript)
+   */
+  const mapAgeRangeToCategory = (ageRangeLabel: string): string => {
+    if (!ageRangeLabel) return "<30";
+    const label = ageRangeLabel.toLowerCase();
+    
+    // Map Typeform labels
+    if (label.includes("17") || label.includes("meno") || (label.includes("18") && label.includes("25"))) {
+      return "<30";
     }
-    const rand = () => {
-      // xorshift32
-      h ^= h << 13; h ^= h >>> 17; h ^= h << 5;
-      return ((h >>> 0) % 1000) / 1000;
-    };
-    return { rand };
-  }, [analysisData?.inference_id]);
-
-  const levelToPercent = (level: number, maxLevel: number) => (level / maxLevel) * 100;
-
-  // Build metrics with required vertices and scales
-  const getMetrics = () => {
-    // Acne (4 livelli) from analysisData.acne.severity
-    const acneLevels = 4;
-    const acneLevel = severityToLevel(analysisData?.acne?.severity, acneLevels);
-
-    // Dryness (5 livelli) - not available => random 1..5
-    const drynessLevels = 5;
-    const drynessLevel = Math.max(1, Math.min(drynessLevels, Math.floor(seededRandoms.rand() * drynessLevels) + 1));
-
-    // Wrinkles (4 livelli) from analysisData.wrinkles.severity
-    const wrinklesLevels = 4;
-    const wrinklesLevel = severityToLevel(analysisData?.wrinkles?.severity, wrinklesLevels);
-
-    // Dark Spots (4 livelli) - not available => random 1..4
-    const darkSpotsLevels = 4;
-    const darkSpotsLevel = Math.max(1, Math.min(darkSpotsLevels, Math.floor(seededRandoms.rand() * darkSpotsLevels) + 1));
-
-    // Large Pores (4 livelli) - not available => random 1..4
-    const poresLevels = 4;
-    const poresLevel = Math.max(1, Math.min(poresLevels, Math.floor(seededRandoms.rand() * poresLevels) + 1));
-
-    // Redness (5 livelli) from redness.redness_perc (0..100)
-    const rednessLevels = 5;
-    const rednessPerc: number = analysisData?.redness?.redness_perc ?? 0;
-    const rednessLevel = Math.max(1, Math.min(rednessLevels, Math.ceil((rednessPerc + 0.0001) / (100 / rednessLevels))));
-
-    // Skin Laxity (4 livelli) - not available => random 1..4
-    const laxityLevels = 4;
-    const laxityLevel = Math.max(1, Math.min(laxityLevels, Math.floor(seededRandoms.rand() * laxityLevels) + 1));
-
-    const metrics = [
-      { label: 'Acne', level: acneLevel, max: acneLevels, color: '#ef4444' },
-      { label: 'Secchezza', level: drynessLevel, max: drynessLevels, color: '#3b82f6' },
-      { label: 'Rughe', level: wrinklesLevel, max: wrinklesLevels, color: '#f59e0b' },
-      { label: 'Discromie', level: darkSpotsLevel, max: darkSpotsLevels, color: '#8b5cf6' },
-      { label: 'Pori', level: poresLevel, max: poresLevels, color: '#10b981' },
-      { label: 'Rossore', level: rednessLevel, max: rednessLevels, color: '#ec4899' },
-      { label: 'Lassità\nCutanea', level: laxityLevel, max: laxityLevels, color: '#06b6d4' }
-    ];
-
-    // Convert to percentage value for plotting
-    return metrics.map(m => ({
-      label: m.label,
-      level: m.level,
-      max: m.max,
-      value: levelToPercent(m.level, m.max),
-      color: m.color
-    }));
-  };
-
-  const metrics = getMetrics();
-  
-  // Reference profile based on age and gender (baseline/ideal lower is better)
-  const referenceLevels = React.useMemo(() => {
-    // Defaults
-    let ref = {
-      Acne: 1,
-      Secchezza: 2,
-      Rughe: 2,
-      'Discromie': 2,
-      'Pori': 3,
-      Rossore: 2,
-      'Lassità\nCutanea': 2,
-    } as Record<string, number>;
-
-    // Example of branching for other ages/genders in future
-    if (userGender?.toLowerCase() === 'female' && userAge === 30) {
-      // Use the provided mapping (already set in defaults)
+    if (label.includes("26") && label.includes("35")) {
+      return "30-40";
+    }
+    if (label.includes("36") && label.includes("45")) {
+      return "41-50";
+    }
+    if (label.includes("più") || label.includes("oltre") || label.includes(">") || label.includes("51")) {
+      return ">50";
     }
 
-    return ref;
-  }, [userAge, userGender]);
+    // Backward compatibility
+    if ((label.includes("26") && label.includes("30")) || (label.includes("31") && label.includes("40"))) {
+      return label.includes("26") && label.includes("30") ? "<30" : "30-40";
+    }
+    if (label.includes("41") && label.includes("50")) {
+      return "41-50";
+    }
+    
+    return "<30";
+  };
 
-  const referenceMetrics = metrics.map(m => ({
-    label: m.label,
-    level: referenceLevels[m.label] ?? Math.max(1, Math.round(m.max / 2)),
-    max: m.max,
-    value: ((referenceLevels[m.label] ?? Math.max(1, Math.round(m.max / 2))) / m.max) * 100,
-    color: '#22c55e' // green
-  }));
-  // Increase canvas and padding to avoid label clipping at the edges
+  /**
+   * Helper: normalize gender (from JavaScript)
+   */
+  const normalizeGender = (gender: string): string => {
+    if (!gender) return "non_binary";
+    const label = gender.toLowerCase();
+    if (label === "maschio" || label === "male") return "male";
+    if (label === "femmina" || label === "female") return "female";
+    return "non_binary";
+  };
+
+  /**
+   * Gets benchmark values based on age and gender (from JavaScript lines 1458-1494)
+   */
+  const getBenchmarks = (ageRangeLabel: string, gender: string) => {
+    const ageCategory = mapAgeRangeToCategory(ageRangeLabel);
+    const genderNormalized = normalizeGender(gender);
+    
+    const isMale = genderNormalized === "male";
+    
+    // Benchmark for females and non-binary
+    const femaleBenchmarks: Record<string, any> = {
+      "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1 },
+      "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5 },
+      "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2 },
+      ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3 }
+    };
+    
+    // Benchmark for males
+    const maleBenchmarks: Record<string, any> = {
+      "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1 },
+      "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5 },
+      "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2.5 },
+      ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3 }
+    };
+    
+    const benchmarks = isMale ? maleBenchmarks[ageCategory] : femaleBenchmarks[ageCategory];
+    
+    return {
+      acne: benchmarks.acne,
+      spots: benchmarks.spots,
+      dryness: benchmarks.dryness,
+      wrinkles: benchmarks.wrinkles,
+      pores: null,
+      redness: benchmarks.redness,
+      laxity: benchmarks.laxity
+    };
+  };
+
+  /**
+   * Build user metrics and benchmarks using the same logic as JavaScript (lines 1382-1440)
+   */
+  const getMetricsAndBenchmarks = () => {
+    // Use skinMetrics and skinBenchmarks from API if available
+    if (analysisData.skinMetrics && analysisData.skinBenchmarks) {
+      return {
+        userMetrics: analysisData.skinMetrics,
+        benchmarks: analysisData.skinBenchmarks
+      };
+    }
+    
+    // Fallback: calculate locally (should not happen with updated API)
+    const benchmarks = getBenchmarks(ageRange, userGender || 'female');
+    
+    // User metrics from API data
+    const userMetrics = {
+      acne: 1,
+      spots: 1,
+      dryness: 1,
+      wrinkles: 1,
+      pores: null,
+      redness: 1,
+      laxity: 1
+    };
+    
+    return { userMetrics, benchmarks };
+  };
+
+  const { userMetrics, benchmarks } = getMetricsAndBenchmarks();
+
+  // Build chart data array (6 metrics - pores excluded)
+  const chartData = [
+    { 
+      label: 'Acne', 
+      userValue: userMetrics.acne,
+      benchmarkValue: benchmarks.acne,
+      max: 4,
+      color: '#ff6b6b' 
+    },
+    { 
+      label: 'Secchezza', 
+      userValue: userMetrics.dryness,
+      benchmarkValue: benchmarks.dryness,
+      max: 5,
+      color: '#4dabf7' 
+    },
+    { 
+      label: 'Rughe', 
+      userValue: userMetrics.wrinkles,
+      benchmarkValue: benchmarks.wrinkles,
+      max: 5,
+      color: '#ff922b' 
+    },
+    { 
+      label: 'Macchie', 
+      userValue: userMetrics.spots,
+      benchmarkValue: benchmarks.spots,
+      max: 4,
+      color: '#9775fa' 
+    },
+    { 
+      label: 'Rossore', 
+      userValue: userMetrics.redness,
+      benchmarkValue: benchmarks.redness,
+      max: 5,
+      color: '#ff6b9d' 
+    },
+    { 
+      label: 'Lassità\nCutanea', 
+      userValue: userMetrics.laxity,
+      benchmarkValue: benchmarks.laxity,
+      max: 4,
+      color: '#20c997' 
+    }
+  ];
+
   const centerX = 150;
   const centerY = 150;
   const radius = 88;
 
-  // Calculate points for the polygon
-  const getPolygonPoints = () => {
-    return metrics.map((metric, index) => {
-      const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
-      const value = metric.value / 100;
-      const x = centerX + Math.cos(angle) * radius * value;
-      const y = centerY + Math.sin(angle) * radius * value;
+  // Calculate polygon points for user data
+  const getUserPolygonPoints = () => {
+    return chartData.map((metric, index) => {
+      const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+      // Normalize to 0-1 range using max=5 for all (radar chart scale)
+      const normalizedValue = metric.userValue / 5;
+      const x = centerX + Math.cos(angle) * radius * normalizedValue;
+      const y = centerY + Math.sin(angle) * radius * normalizedValue;
       return `${x},${y}`;
     }).join(' ');
   };
 
-  const getReferencePolygonPoints = () => {
-    return referenceMetrics.map((metric, index) => {
-      const angle = (index * 2 * Math.PI) / referenceMetrics.length - Math.PI / 2;
-      const value = metric.value / 100;
-      const x = centerX + Math.cos(angle) * radius * value;
-      const y = centerY + Math.sin(angle) * radius * value;
+  // Calculate polygon points for benchmark data
+  const getBenchmarkPolygonPoints = () => {
+    return chartData.map((metric, index) => {
+      const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+      // Normalize to 0-1 range using max=5 for all (radar chart scale)
+      const normalizedValue = metric.benchmarkValue / 5;
+      const x = centerX + Math.cos(angle) * radius * normalizedValue;
+      const y = centerY + Math.sin(angle) * radius * normalizedValue;
       return `${x},${y}`;
     }).join(' ');
   };
 
   // Calculate label positions
   const getLabelPosition = (index: number) => {
-    const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
-    const labelRadius = radius + 35; // extra padding for labels
+    const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+    const labelRadius = radius + 35;
     const x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
     return { x, y };
@@ -167,10 +216,22 @@ export default function SpideringChart({
     <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
       <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center">Panoramica Analisi della Pelle</h3>
       
+      {/* Legend info - Above chart */}
+      <div className="mb-4 flex items-center justify-center gap-4 text-xs sm:text-sm text-gray-500">
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-0.5 bg-purple-600"></div>
+          <span>La tua pelle</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="w-3 h-0.5 border-t-2 border-green-600 border-dashed"></div>
+          <span>Valore di riferimento</span>
+        </div>
+      </div>
+      
+      {/* Radar Chart */}
       <div className="flex items-center justify-center w-full max-w-sm sm:max-w-md mx-auto">
         <motion.svg
           width="100%"
-          height="auto"
           viewBox="0 0 300 300"
           preserveAspectRatio="xMidYMid meet"
           className="max-w-[280px] sm:max-w-none"
@@ -178,13 +239,13 @@ export default function SpideringChart({
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6 }}
         >
-          {/* Background circles */}
-          {[20, 40, 60, 80].map((r, index) => (
+          {/* Background circles (scale 0-5) */}
+          {[1, 2, 3, 4, 5].map((level, index) => (
             <circle
               key={index}
               cx={centerX}
               cy={centerY}
-              r={r}
+              r={(radius / 5) * level}
               fill="none"
               stroke="#f3f4f6"
               strokeWidth="1"
@@ -192,8 +253,8 @@ export default function SpideringChart({
           ))}
 
           {/* Axis lines */}
-          {metrics.map((_, index) => {
-            const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
+          {chartData.map((_, index) => {
+            const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
             const endX = centerX + Math.cos(angle) * radius;
             const endY = centerY + Math.sin(angle) * radius;
             return (
@@ -209,44 +270,45 @@ export default function SpideringChart({
             );
           })}
 
-          {/* Reference polygon (green) */}
+          {/* Benchmark polygon (green, dashed) */}
           <motion.polygon
-            points={getReferencePolygonPoints()}
-            fill="rgba(34,197,94,0.15)"
+            points={getBenchmarkPolygonPoints()}
+            fill="rgba(34,197,94,0.1)"
             stroke="#22c55e"
             strokeWidth="2"
+            strokeDasharray="5,5"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.8, delay: 0.1 }}
           />
 
-          {/* Data polygon */}
+          {/* User data polygon (purple) */}
           <motion.polygon
-            points={getPolygonPoints()}
-            fill="rgba(139, 92, 246, 0.2)"
-            stroke="#8b5cf6"
+            points={getUserPolygonPoints()}
+            fill="rgba(124, 58, 237, 0.2)"
+            stroke="#7C3AED"
             strokeWidth="2"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ duration: 0.8, delay: 0.2 }}
           />
 
-          {/* Data points */}
-          {metrics.map((metric, index) => {
-            const angle = (index * 2 * Math.PI) / metrics.length - Math.PI / 2;
-            const value = metric.value / 100;
-            const x = centerX + Math.cos(angle) * radius * value;
-            const y = centerY + Math.sin(angle) * radius * value;
+          {/* User data points */}
+          {chartData.map((metric, index) => {
+            const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+            const normalizedValue = metric.userValue / 5;
+            const x = centerX + Math.cos(angle) * radius * normalizedValue;
+            const y = centerY + Math.sin(angle) * radius * normalizedValue;
             
             return (
               <motion.circle
                 key={index}
                 cx={x}
                 cy={y}
-                r="3.5"
-                fill={metric.color}
+                r="4"
+                fill="#7C3AED"
                 stroke="white"
-                strokeWidth="1.5"
+                strokeWidth="2"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 + index * 0.1 }}
@@ -254,22 +316,22 @@ export default function SpideringChart({
             );
           })}
 
-          {/* Reference points */}
-          {referenceMetrics.map((metric, index) => {
-            const angle = (index * 2 * Math.PI) / referenceMetrics.length - Math.PI / 2;
-            const value = metric.value / 100;
-            const x = centerX + Math.cos(angle) * radius * value;
-            const y = centerY + Math.sin(angle) * radius * value;
+          {/* Benchmark points */}
+          {chartData.map((metric, index) => {
+            const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
+            const normalizedValue = metric.benchmarkValue / 5;
+            const x = centerX + Math.cos(angle) * radius * normalizedValue;
+            const y = centerY + Math.sin(angle) * radius * normalizedValue;
             
             return (
               <motion.circle
-                key={`ref-${index}`}
+                key={`bench-${index}`}
                 cx={x}
                 cy={y}
-                r="2.5"
+                r="3"
                 fill="#22c55e"
                 stroke="white"
-                strokeWidth="1"
+                strokeWidth="1.5"
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ duration: 0.5, delay: 0.25 + index * 0.1 }}
@@ -278,7 +340,7 @@ export default function SpideringChart({
           })}
 
           {/* Labels */}
-          {metrics.map((metric, index) => {
+          {chartData.map((metric, index) => {
             const pos = getLabelPosition(index);
             return (
               <text
@@ -296,39 +358,42 @@ export default function SpideringChart({
         </motion.svg>
       </div>
 
-      {/* Legend */}
-      <div className="mt-3 sm:mt-4 grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-3">
-        {metrics.map((metric, index) => (
-          <motion.div
-            key={index}
-            className="flex items-center space-x-2 sm:space-x-3 p-2 sm:p-3 rounded-lg border border-gray-100"
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
-          >
-            <svg width="10" height="10" viewBox="0 0 12 12" className="shrink-0 sm:w-3 sm:h-3">
-              <circle cx="6" cy="6" r="6" fill={metric.color} />
-            </svg>
-            <span className="text-xs sm:text-sm text-gray-600">{metric.label}</span>
-            <span className="ml-auto flex items-center space-x-2">
-              {metric.level <= (referenceLevels[metric.label] ?? metric.max) ? (
-                <span className="inline-flex items-center text-green-600 text-xs sm:text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 sm:w-4 sm:h-4 mr-1">
-                    <path fillRule="evenodd" d="M16.704 4.153a.75.75 0 01.143 1.052l-7.5 10.5a.75.75 0 01-1.127.075l-4.5-4.5a.75.75 0 011.06-1.06l3.894 3.893 6.973-9.764a.75.75 0 011.057-.196z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-xs sm:text-sm">Ok</span>
+      {/* Legend with Status Badges (from JavaScript renderSkinStatusList) */}
+      <div className="mt-4 sm:mt-6 space-y-2">
+        {chartData.map((metric, index) => {
+          const isOk = metric.userValue <= metric.benchmarkValue;
+          
+          return (
+            <motion.div
+              key={index}
+              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
+            >
+              {/* Left: Indicator + Label */}
+              <div className="flex items-center space-x-3">
+                <div 
+                  className="w-3 h-3 rounded-full shrink-0"
+                  style={{ backgroundColor: metric.color }}
+                />
+                <span className="text-sm sm:text-base font-medium text-gray-700">
+                  {metric.label.replace('\n', ' ')}
                 </span>
-              ) : (
-                <span className="inline-flex items-center text-amber-600 text-xs sm:text-sm">
-                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" className="w-3 h-3 sm:w-4 sm:h-4 mr-1">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.721-1.36 3.486 0l6.518 11.59c.75 1.335-.213 2.99-1.743 2.99H3.482c-1.53 0-2.492-1.655-1.743-2.99L8.257 3.1zM11 14a1 1 0 10-2 0 1 1 0 002 0zm-.25-6.75a.75.75 0 00-1.5 0v3.5a.75.75 0 001.5 0v-3.5z" clipRule="evenodd" />
-                  </svg>
-                  <span className="font-medium text-xs sm:text-sm">Da Migliorare</span>
-                </span>
-              )}
-            </span>
-          </motion.div>
-        ))}
+              </div>
+              
+              {/* Right: Status Badge */}
+              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+                isOk 
+                  ? 'bg-green-100 text-green-700' 
+                  : 'bg-amber-100 text-amber-700'
+              }`}>
+                <span className="mr-1">{isOk ? '✓' : '⚠'}</span>
+                <span>{isOk ? 'Ok' : 'Da Migliorare'}</span>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
     </div>
   );

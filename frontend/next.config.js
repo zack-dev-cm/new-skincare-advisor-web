@@ -3,6 +3,10 @@ const path = require('path');
 
 const nextConfig = {
   outputFileTracingRoot: path.join(__dirname, '..'),
+  
+  // Ottimizzazioni per performance embed
+  compress: true,
+  
   async headers() {
     return [
       {
@@ -15,6 +19,21 @@ const nextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'ALLOWALL'
+          },
+          // Cache statico aggressivo per performance
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable'
+          }
+        ]
+      },
+      {
+        // Cache breve per HTML (per aggiornamenti rapidi)
+        source: '/:path*.html',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=0, must-revalidate'
           }
         ]
       }

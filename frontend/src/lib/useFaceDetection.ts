@@ -11,7 +11,7 @@ interface FaceDetectionState {
   error: string | null;
 }
 
-export const useFaceDetection = () => {
+export const useFaceDetection = (backgroundMode: boolean = false) => {
   const [state, setState] = useState<FaceDetectionState>({
     modelsLoaded: false,
     faceApiAvailable: false,
@@ -30,9 +30,12 @@ export const useFaceDetection = () => {
     initializationInProgressRef.current = true;
     
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
+      // In background mode, NON settiamo isLoading per non bloccare UI
+      if (!backgroundMode) {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+      }
       
-      console.log('Loading face-api.js models...');
+      console.log('🔄 Loading face-api.js models in', backgroundMode ? 'BACKGROUND' : 'FOREGROUND', 'mode...');
       
       // Try to load face-api.js dynamically
       try {
@@ -55,9 +58,9 @@ export const useFaceDetection = () => {
           isLoading: false 
         }));
         
-        console.log('face-api.js models loaded successfully');
+        console.log('✅ face-api.js models loaded successfully in', backgroundMode ? 'BACKGROUND' : 'FOREGROUND');
       } catch (faceApiError) {
-        console.warn('face-api.js not available, continuing without face detection:', faceApiError);
+        console.warn('⚠️ face-api.js not available, continuing without face detection:', faceApiError);
         setState(prev => ({ 
           ...prev, 
           modelsLoaded: true, // Mark as loaded so we can continue without face detection
@@ -65,7 +68,7 @@ export const useFaceDetection = () => {
         }));
       }
     } catch (error) {
-      console.error('Error in loadModels:', error);
+      console.error('❌ Error in loadModels:', error);
       setState(prev => ({ 
         ...prev, 
         modelsLoaded: true, // Mark as loaded so we can continue
@@ -80,9 +83,16 @@ export const useFaceDetection = () => {
   // Only load models if we're not in SSR
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      loadModels();
+      if (backgroundMode) {
+        // In background mode, avvia ma non bloccare
+        loadModels();
+        console.log('🚀 Face detection loading started in background (non-blocking)');
+      } else {
+        // In foreground mode, carica normalmente
+        loadModels();
+      }
     }
-  }, []);
+  }, [backgroundMode]);
 
   return {
     ...state,

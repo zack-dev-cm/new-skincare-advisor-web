@@ -355,7 +355,7 @@ export default function ResultsStep({
                   {/* Analysis Image */}
                   <div className="relative mb-6">
                     <SkinAnalysisImage 
-                      imageUrl={capturedImage || analysisData?.image_url || ''} 
+                      imageUrl={analysisData?.base64 || capturedImage || analysisData?.image_url || ''} 
                       analysisData={analysisData}
                     />
                   </div>
@@ -372,7 +372,8 @@ export default function ResultsStep({
                         <SpideringChart 
                           analysisData={analysisData} 
                           userAge={30} 
-                          userGender="female" 
+                          userGender={analysisData?.userData?.gender || 'female'}
+                          ageRange={analysisData?.userData?.ageRange || analysisData?.userData?.age_range || '26-35'}
                         />
                       </Suspense>
                     </div>
@@ -385,19 +386,45 @@ export default function ResultsStep({
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
                           <span className="text-sm font-medium text-gray-700">Tipo di Pelle</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.skin_type || 'Normale'}</span>
+                          <span className="text-sm font-semibold text-primary-600">{analysisData.userData?.skin_type || 'Normale'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Analisi Imperfezioni</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.acne?.severity || 'Nessuna rilevata'}</span>
+                          <span className="text-sm font-medium text-gray-700">Classificazione Acne</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData['acne-classification'] || analysisData.acneFullData?.['acne-classification'] || 'Nessuna rilevata'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Severità Acne</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData['acne-severity'] || analysisData.acneFullData?.['acne-severity'] || 'Nessuna'}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
                           <span className="text-sm font-medium text-gray-700">Rossore</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.redness ? `${analysisData.redness.redness_perc}%` : 'Nessuno rilevato'}</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData.laxityRednessData?.predictions?.redness?.class || 'Non rilevato'}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
                           <span className="text-sm font-medium text-gray-700">Rughe</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.wrinkles?.severity || 'Nessuna rilevata'}</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData.wrinklesData?.wrinkleSeverity?.overall?.severity 
+                              ? `Livello ${analysisData.wrinklesData.wrinkleSeverity.overall.severity}/5`
+                              : analysisData.wrinkles?.severity || 'Nessuna rilevata'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Secchezza</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData.laxityRednessData?.predictions?.dryness?.class || 'Non rilevata'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
+                          <span className="text-sm font-medium text-gray-700">Lassità Cutanea</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {analysisData.laxityRednessData?.predictions?.laxity?.class || 'Non rilevata'}
+                          </span>
                         </div>
                         <div className="p-3 bg-gradient-to-r from-primary-100 to-primary-200 rounded-xl">
                           <span className="text-sm font-medium text-gray-700 block mb-1">Raccomandazioni</span>
@@ -405,7 +432,7 @@ export default function ResultsStep({
                             {typeof analysisData.recommendations === 'string' 
                               ? analysisData.recommendations 
                               : analysisData.recommendations?.skincare_routine 
-                                ? 'Routine personalizzata generata' 
+                                ? `${analysisData.recommendations.skincare_routine.length} categorie personalizzate` 
                                 : 'Routine personalizzata suggerita'}
                           </span>
                         </div>

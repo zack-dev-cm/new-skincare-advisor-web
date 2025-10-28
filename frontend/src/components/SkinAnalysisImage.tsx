@@ -28,19 +28,27 @@ interface WrinklesPrediction {
   points?: Array<{ x: number; y: number }>;
 }
 
-type RednessPolygon = Array<[number, number]>;
-
 interface AnalysisData {
   predictions: Prediction[];
-  redness: {
-    num_polygons: number;
-    polygons: RednessPolygon[];
-    analysis_width: number;
-    analysis_height: number;
-    erythema: boolean;
-    redness_perc: number;
-    scaling_factors: { x: number; y: number }; 
-    original_resolution: { width: number; height: number };
+  laxityRednessData?: {
+    predictions: {
+      redness?: { predictedClass: number; class: string };
+      dryness?: { predictedClass: number; class: string };
+      laxity?: { predictedClass: number; class: string };
+    };
+  };
+  erythema?: boolean;
+  wrinklesData?: {
+    predictions: WrinklesPrediction[];
+    image: { width: number; height: number };
+    wrinkleSeverity?: {
+      overall: { severity: number };
+    };
+    counts?: Record<string, number>;
+    severity?: string;
+    has_forehead_wrinkles?: boolean;
+    has_expression_lines?: boolean;
+    has_under_eye_concerns?: boolean;
   };
   wrinkles?: {
     predictions: WrinklesPrediction[];
@@ -126,7 +134,7 @@ export default function SkinAnalysisImage({
   analysisData, 
   className = '' 
 }: SkinAnalysisImageProps) {
-  const [currentView, setCurrentView] = useState<'acne' | 'redness' | 'wrinkles'>('acne');
+  const [currentView, setCurrentView] = useState<'acne' | 'wrinkles'>('acne');
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -140,7 +148,6 @@ export default function SkinAnalysisImage({
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
     { url: imageUrl, label: 'Analisi Imperfezioni', view: 'acne' as const },
-    { url: imageUrl, label: 'Analisi Rossore', view: 'redness' as const },
     { url: imageUrl, label: 'Analisi Rughe', view: 'wrinkles' as const }
   ];
 
@@ -199,56 +206,13 @@ export default function SkinAnalysisImage({
     ctx.globalAlpha = 1;
   }, [analysisData.predictions, scaleFactors, hoveredDetection]);
 
-  const drawRednessPolygons = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!analysisData.redness.polygons) return;
-
-    ctx.fillStyle = REDNESS_COLOR;
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = REDNESS_OPACITY;
-
-    analysisData.redness.polygons.forEach((polygon) => {
-      // Apply scaling factors from API
-      let adjustedPolygon = polygon;
-      if (analysisData.redness.scaling_factors && 
-          (analysisData.redness.scaling_factors.x !== 1 || analysisData.redness.scaling_factors.y !== 1)) {
-        adjustedPolygon = polygon.map(([x, y]) => [
-          x * analysisData.redness.scaling_factors.x,
-          y * analysisData.redness.scaling_factors.y
-        ]);
-      }
-
-      if (adjustedPolygon.length === 1) {
-        // Single point
-        const [x, y] = adjustedPolygon[0];
-        ctx.beginPath();
-        ctx.arc(x * scaleFactors.x, y * scaleFactors.y, 3, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-      } else if (adjustedPolygon.length >= 3) {
-        // Polygon
-        ctx.beginPath();
-        const [startX, startY] = adjustedPolygon[0];
-        ctx.moveTo(startX * scaleFactors.x, startY * scaleFactors.y);
-        
-        for (let i = 1; i < adjustedPolygon.length; i++) {
-          const [x, y] = adjustedPolygon[i];
-          ctx.lineTo(x * scaleFactors.x, y * scaleFactors.y);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-      }
-    });
-
-    ctx.globalAlpha = 1;
-  }, [analysisData.redness, scaleFactors]);
+  // Redness visualization removed - redness is now a metric from laxityRednessData.predictions
 
   const drawWrinklesDetections = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!analysisData.wrinkles?.predictions) return;
+    const wrinklesData = analysisData.wrinklesData || analysisData.wrinkles;
+    if (!wrinklesData?.predictions) return;
 
-    analysisData.wrinkles.predictions.forEach((prediction) => {
+    wrinklesData.predictions.forEach((prediction) => {
       const color = getWrinkleColor(prediction.class);
       ctx.fillStyle = color; // Use fillStyle instead of strokeStyle
       
@@ -302,15 +266,12 @@ export default function SkinAnalysisImage({
         case 'acne':
           drawAcneDetections(ctx);
           break;
-        case 'redness':
-          drawRednessPolygons(ctx);
-          break;
         case 'wrinkles':
           drawWrinklesDetections(ctx);
           break;
       }
     }
-  }, [currentView, showOverlays, imageLoaded, drawImage, drawAcneDetections, drawRednessPolygons, drawWrinklesDetections]);
+  }, [currentView, showOverlays, imageLoaded, drawImage, drawAcneDetections, drawWrinklesDetections]);
 
   // Handle canvas resize and setup
   useEffect(() => {
@@ -400,13 +361,14 @@ export default function SkinAnalysisImage({
       const img = imageRef.current;
       console.log('=== IMAGE RENDERING DEBUG ===');
       console.log('1. Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('2. Analysis dimensions from API:', analysisData.image.width, 'x', analysisData.image.height);
-      console.log('3. Redness scaling factors:', analysisData.redness.scaling_factors);
-      console.log('4. Wrinkles scaling factors:', analysisData.wrinkles?.scaling_factors);
+      console.log('2. Analysis dimensions from API:', analysisData.image?.width, 'x', analysisData.image?.height);
+      console.log('3. Redness data:', analysisData.laxityRednessData?.predictions?.redness);
+      console.log('4. Wrinkles data:', analysisData.wrinklesData || analysisData.wrinkles);
       
-      // Verify dimensions match
-      const dimensionsMatch = img.naturalWidth === analysisData.image.width && 
-                            img.naturalHeight === analysisData.image.height;
+      // Verify dimensions match (only if image data available)
+      const dimensionsMatch = analysisData.image 
+        ? (img.naturalWidth === analysisData.image.width && img.naturalHeight === analysisData.image.height)
+        : false;
       console.log('5. Dimensions match:', dimensionsMatch);
       
       if (!dimensionsMatch) {
@@ -519,13 +481,9 @@ export default function SkinAnalysisImage({
       case 'acne':
         analysisData.predictions?.forEach(p => classes.add(p.class));
         break;
-      case 'redness':
-        if (analysisData.redness.polygons && analysisData.redness.polygons.length > 0) {
-          classes.add('Redness');
-        }
-        break;
       case 'wrinkles':
-        analysisData.wrinkles?.predictions?.forEach(p => classes.add(p.class));
+        const wrinklesData = analysisData.wrinklesData || analysisData.wrinkles;
+        wrinklesData?.predictions?.forEach(p => classes.add(p.class));
         break;
     }
     
@@ -536,8 +494,6 @@ export default function SkinAnalysisImage({
     switch (currentView) {
       case 'acne':
         return getAcneColor(className);
-      case 'redness':
-        return REDNESS_COLOR;
       case 'wrinkles':
         return getWrinkleColor(className);
       default:

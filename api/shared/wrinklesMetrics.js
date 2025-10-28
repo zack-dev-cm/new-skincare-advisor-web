@@ -2,6 +2,10 @@ const { createLogger } = require('./logger');
 const logger = createLogger('WrinklesMetrics');
 
 /**
+ * @deprecated This module is deprecated. Wrinkles metrics are now provided directly by the Wrinkles Detection API.
+ * The external API returns wrinkleSeverity.overall.severity directly.
+ * This function is kept for backward compatibility only.
+ * 
  * Calcola le metriche delle rughe dalla risposta dell'API.
  * @param {Array} predictions - Array di predizioni dalle API di rilevamento rughe
  * @returns {Object} Un oggetto con metriche calcolate

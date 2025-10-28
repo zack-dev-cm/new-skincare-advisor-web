@@ -7,10 +7,8 @@ const config = require('../shared/config');
 const { createLogger } = require('../shared/logger');
 const { rateLimitMiddleware } = require('../shared/rateLimit');
 const cache = require('../shared/cache');
-const { computeAcneMetrics } = require('../shared/acneMetrics');
 const { enrichWithRecommendations } = require('../shared/recommendations');
-const { computeRednessMetrics } = require('../shared/rednessMetrics');
-const { computeWrinklesMetrics } = require('../shared/wrinklesMetrics');
+const { calculateSkinMetrics, getBenchmarks } = require('../shared/skinMetrics');
 const { v4: uuidv4 } = require('uuid');
 
 const logger = createLogger('infer');
@@ -45,8 +43,10 @@ const requestSchema = Joi.object({
     first_name: Joi.string().max(50).optional(),
     last_name: Joi.string().max(50).optional(), 
     birthdate: Joi.string().pattern(/^\d{4}-\d{2}-\d{2}$/).optional(),
-    gender: Joi.string().valid('male', 'female', 'other').optional(),
-    erythema: Joi.boolean().optional(),
+    ageRange: Joi.string().max(50).optional(),
+    gender: Joi.string().max(50).optional(),
+    skin_type: Joi.string().max(50).optional(),
+    concerns: Joi.array().items(Joi.string().max(50)).optional(),
     budget_level: Joi.string().valid('Low', 'Medium', 'High').optional(),
     shop_domain: Joi.string().max(50).optional()
   }).optional().default({}),
@@ -71,24 +71,41 @@ const inferRateLimiter = rateLimitMiddleware({
   window: '1h'
 });
 
-// Circuit breaker per Roboflow
-const roboflowBreaker = cache.createCircuitBreaker(callRoboflowAPI, {
-  timeout: config.roboflow.timeout,
+// Circuit breaker per Acne Detection Full API
+const acneBreaker = cache.createCircuitBreaker(callAcneDetectionFullAPI, {
+  timeout: config.acneDetectionFull.timeout,
   errorThresholdPercentage: 50,
   resetTimeout: 30000,
-  name: 'RoboflowAPI',
-  fallback: async (imageUrl) => {
-    logger.warn('Circuit breaker open, returning cached or default response');
-    // Prova a ritornare risultato dalla cache
-    const cached = await cache.get(`inference:${imageUrl}`);
-    if (cached) return cached;
-    
-    // Altrimenti ritorna risposta di fallback
+  name: 'AcneDetectionFullAPI',
+  fallback: async (base64Image) => {
+    logger.warn('Acne circuit breaker open, returning fallback response');
     return {
       predictions: [],
+      "spot-predictions": [],
+      "acne-classification": "no-acne",
+      "acne-severity": "None",
+      "spot-severity": "None",
       image: { width: 0, height: 0 },
-      fallback: true,
-      message: 'Servizio temporaneamente non disponibile'
+      fallback: true
+    };
+  }
+});
+
+// Circuit breaker per Laxity-Redness API
+const laxityRednessBreaker = cache.createCircuitBreaker(callLaxityRednessAPI, {
+  timeout: config.laxityRedness.timeout,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  name: 'LaxityRednessAPI',
+  fallback: async (base64Image) => {
+    logger.warn('Laxity-Redness circuit breaker open, returning fallback response');
+    return {
+      predictions: {
+        laxity: { predictedClass: 1, class: "none" },
+        redness: { predictedClass: 1, class: "none" },
+        dryness: { predictedClass: 1, class: "none" }
+      },
+      fallback: true
     };
   }
 });
@@ -101,12 +118,12 @@ const wrinklesBreaker = cache.createCircuitBreaker(callWrinklesAPI, {
   name: 'WrinklesAPI',
   fallback: async (base64Image) => {
     logger.warn('Wrinkles circuit breaker open, returning fallback response');
-    // Note: We can't cache by base64Image as it's too large, so we skip cache for fallback
     return {
       inference_id: uuidv4(),
       predictions: [],
       image: { width: 0, height: 0 },
       time: 0,
+      wrinkleSeverity: { overall: { severity: 1 } },
       fallback: true,
       message: 'Wrinkles detection service temporarily unavailable'
     };
@@ -298,73 +315,124 @@ module.exports = async function (context, req) {
       return;
     }
 
-    // Esegui chiamate a Roboflow, Redness e Wrinkles API in parallelo
+    // Esegui chiamate alle tre API in parallelo
     const base64Image = await imageUrlToBase64(imageUrl);
     
-    const [roboflowResult, rednessResult, wrinklesResult] = await Promise.all([
-      pRetry(() => roboflowBreaker.fire(imageUrl), {
-        retries: config.roboflow.maxRetries,
-        onFailedAttempt: error => logger.warn(`Roboflow attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
+    const [acneFullResp, laxityRednessResp, wrinklesResp] = await Promise.allSettled([
+      pRetry(() => acneBreaker.fire(base64Image), {
+        retries: 3,
+        onFailedAttempt: error => logger.warn(`Acne attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
       }),
-      callRednessAPI(base64Image),
+      pRetry(() => laxityRednessBreaker.fire(base64Image), {
+        retries: 3,
+        onFailedAttempt: error => logger.warn(`Laxity-Redness attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
+      }),
       pRetry(() => wrinklesBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Wrinkles attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
       })
     ]);
     
-    // Calcola metriche per acne, rossore e rughe
-    const acneMetrics = computeAcneMetrics(roboflowResult.predictions || []);
-    const rednessMetrics = computeRednessMetrics(rednessResult);
-    const wrinklesMetrics = computeWrinklesMetrics(wrinklesResult.predictions || []);
-
-    // Calcola fattori di scaling per standardizzazione risoluzioni
-    const originalWidth = roboflowResult.image?.width || 0;
-    const originalHeight = roboflowResult.image?.height || 0;
+    // Handle fulfilled/rejected responses
+    const acneFullData = acneFullResp.status === 'fulfilled' ? acneFullResp.value : {
+      predictions: [],
+      "spot-predictions": [],
+      "acne-classification": "no-acne",
+      "acne-severity": "None",
+      "spot-severity": "None",
+      image: { width: 0, height: 0 }
+    };
     
-    // Calcola fattori di scaling per redness
-    const rednessScalingFactors = {
-      x: originalWidth > 0 ? originalWidth / (rednessResult.analysis_width || 1) : 1,
-      y: originalHeight > 0 ? originalHeight / (rednessResult.analysis_height || 1) : 1
-    };
-
-    // Calcola fattori di scaling per wrinkles
-    const wrinklesScalingFactors = {
-      x: originalWidth > 0 ? originalWidth / (wrinklesResult.image?.width || 1) : 1,
-      y: originalHeight > 0 ? originalHeight / (wrinklesResult.image?.height || 1) : 1
-    };
-
-    // Aggiorna i dati utente con il rilevamento dell'eritema
-    const updatedUserData = { ...userData, erythema: rednessMetrics.erythema };
-
-    // Arricchisci il risultato con raccomandazioni se richiesto
-    let finalResult = {
-      inference_id: uuidv4(),
-      ...roboflowResult,
-      acne: acneMetrics,
-      redness: {
-        ...rednessMetrics,
-        scaling_factors: rednessScalingFactors,
-        original_resolution: { width: originalWidth, height: originalHeight }
-      },
-      wrinkles: {
-        ...wrinklesMetrics,
-        predictions: wrinklesResult.predictions || [], // Include raw wrinkles predictions for UI rendering
-        image: wrinklesResult.image || { width: 0, height: 0 },
-        time: wrinklesResult.time || 0,
-        inference_id: wrinklesResult.inference_id || null,
-        scaling_factors: wrinklesScalingFactors,
-        original_resolution: { width: originalWidth, height: originalHeight }
+    const laxityRednessData = laxityRednessResp.status === 'fulfilled' ? laxityRednessResp.value : {
+      predictions: {
+        laxity: { predictedClass: 1, class: "none" },
+        redness: { predictedClass: 1, class: "none" },
+        dryness: { predictedClass: 1, class: "none" }
       }
     };
     
-    if (includeRecommendations) {
-      finalResult = await enrichWithRecommendations(finalResult, updatedUserData);
+    // Add mapped class strings for compatibility with JavaScript frontend
+    if (laxityRednessData.predictions) {
+      if (laxityRednessData.predictions.laxity) {
+        laxityRednessData.predictions.laxity.class = mapLaxityClass(
+          laxityRednessData.predictions.laxity.predictedClass
+        );
+      }
+      if (laxityRednessData.predictions.redness) {
+        laxityRednessData.predictions.redness.class = mapRednessClass(
+          laxityRednessData.predictions.redness.predictedClass
+        );
+      }
+      if (laxityRednessData.predictions.dryness) {
+        laxityRednessData.predictions.dryness.class = mapDrynessClass(
+          laxityRednessData.predictions.dryness.predictedClass
+        );
+      }
     }
     
-    // Salva in cache se non è un fallback
-    if (!roboflowResult.fallback) {
-      await cache.set(cacheKey, finalResult, 300); // Cache per 5 minuti
+    const wrinklesData = wrinklesResp.status === 'fulfilled' ? wrinklesResp.value : {
+      predictions: [],
+      image: { width: 0, height: 0 },
+      time: 0,
+      wrinkleSeverity: { overall: { severity: 1 } }
+    };
+
+    // Calculate erythema from redness predictedClass
+    const rednessClass = laxityRednessData.predictions?.redness?.predictedClass || 1;
+    const erythema = rednessClass >= 3; // moderate or severe
+    
+    // Combine predictions and spot-predictions for detectionData
+    const detectionData = {
+      image: acneFullData.image,
+      predictions: [
+        ...(acneFullData.predictions || []),
+        ...(acneFullData["spot-predictions"] || [])
+      ]
+    };
+    
+    // Calculate skin metrics
+    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData);
+    const skinBenchmarks = getBenchmarks(userData.ageRange || '26-35', userData.gender || 'female');
+
+    // Build final result matching JavaScript structure EXACTLY
+    let finalResult = {
+      inference_id: uuidv4(),
+      // Add base64 image for frontend canvas rendering (with data URI prefix)
+      base64: `data:image/jpeg;base64,${base64Image}`,
+      // Include all acneFullData fields (predictions, spot-predictions, classifications, severities, image)
+      ...acneFullData,
+      // Add acneFullData as nested object for recommendations logic
+      acneFullData,
+      // Add detection data for backward compatibility
+      detectionData,
+      // Add laxity/redness/dryness data with mapped class strings
+      laxityRednessData,
+      // Add wrinkles data
+      wrinklesData,
+      // Add calculated erythema
+      erythema,
+      // Add skin metrics and benchmarks
+      skinMetrics,
+      skinBenchmarks,
+      // Add isNewScan flag for email/contact updates
+      isNewScan: true,
+      // Add userData for frontend access (age, gender, etc.)
+      userData: userData
+    };
+    
+    // Enrich with recommendations if requested
+    if (includeRecommendations) {
+      const enriched = await enrichWithRecommendations(finalResult, userData);
+      // Add both "recommendations" and "recommendationData" for JavaScript compatibility
+      finalResult = {
+        ...enriched,
+        recommendationData: enriched.recommendations // Alias for JavaScript frontend
+      };
+    }
+    
+    // Save to cache if not a fallback
+    if (!acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback) {
+      await cache.set(cacheKey, finalResult, 300); // Cache for 5 minutes
     }
 
     context.res = {
@@ -383,59 +451,34 @@ module.exports = async function (context, req) {
     logger.info('Inference completed', {
       imageUrl,
       duration,
-      predictionsCount: roboflowResult.predictions?.length || 0,
-      acneSeverity: acneMetrics.severity,
-      acneClassification: acneMetrics.classification,
-      rednessPercentage: rednessMetrics.redness_perc,
-      wrinklesSeverity: wrinklesMetrics.severity,
-      wrinklesPredictions: wrinklesMetrics.total_predictions,
-      wrinklesProcessingTime: wrinklesResult.time || 0,
+      predictionsCount: (acneFullData.predictions?.length || 0) + (acneFullData["spot-predictions"]?.length || 0),
+      acneClassification: acneFullData["acne-classification"],
+      acneSeverity: acneFullData["acne-severity"],
+      spotSeverity: acneFullData["spot-severity"],
+      rednessClass: rednessClass,
+      erythema: erythema,
+      wrinklesSeverity: wrinklesData.wrinkleSeverity?.overall?.severity,
+      wrinklesPredictions: wrinklesData.predictions?.length || 0,
+      wrinklesProcessingTime: wrinklesData.time || 0,
       cached: false,
       metadata: metadata || null
     });
  
     logger.trackEvent('InferenceCompleted', {
       userId,
-      predictionsCount: roboflowResult.predictions?.length || 0,
-      acneSeverity: acneMetrics.severity,
-      acneClassification: acneMetrics.classification,
-      rednessPercentage: rednessMetrics.redness_perc,
-      wrinklesSeverity: wrinklesMetrics.severity,
-      wrinklesPredictions: wrinklesMetrics.total_predictions,
-      wrinklesHasForehead: wrinklesMetrics.has_forehead_wrinkles,
-      wrinklesHasExpression: wrinklesMetrics.has_expression_lines,
-      wrinklesHasUnderEye: wrinklesMetrics.has_under_eye_concerns,
+      predictionsCount: (acneFullData.predictions?.length || 0) + (acneFullData["spot-predictions"]?.length || 0),
+      acneClassification: acneFullData["acne-classification"],
+      acneSeverity: acneFullData["acne-severity"],
+      spotSeverity: acneFullData["spot-severity"],
+      erythema: erythema,
+      wrinklesSeverity: wrinklesData.wrinkleSeverity?.overall?.severity,
+      wrinklesPredictions: wrinklesData.predictions?.length || 0,
       cached: false,
       metadata: metadata || null
     }, { duration });
 
   } catch (error) {
     logger.error('Inference failed', error);
-    
-    // Se è un errore del circuit breaker, prova a usare il fallback
-    if (error.code === 'EOPENBREAKER' && roboflowBreaker.fallback) {
-      try {
-        logger.warn('Using circuit breaker fallback');
-        const fallbackResult = await roboflowBreaker.fallback(imageUrl);
-        const acne = computeAcneMetrics(fallbackResult.predictions || []);
-        const enriched = { ...fallbackResult, acne };
-        
-        context.res = {
-          status: 200,
-          headers: { 
-            'Content-Type': 'application/json',
-            'X-Cache': 'FALLBACK',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-            'Access-Control-Allow-Headers': 'Content-Type, Authorization, x-user-id, x-forwarded-for'
-          },
-          body: enriched
-        };
-        return;
-      } catch (fallbackError) {
-        logger.error('Fallback also failed', fallbackError);
-      }
-    }
     
     context.res = {
       status: 503,
@@ -455,122 +498,83 @@ module.exports = async function (context, req) {
 };
 
 /**
- * Chiama API Roboflow (funzione wrappata dal circuit breaker)
+ * Calls Acne Detection Full API (wrapped by circuit breaker)
+ * @param {string} base64Image - Base64 encoded image
+ * @returns {Promise<Object>} Acne detection result
  */
-async function callRoboflowAPI(imageUrl) {
-  // Encode solo i caratteri che separano la query mantenendo intatti i % delle
-  // sequenze SAS già codificate.
-  function encodeForRoboflow(url) {
-    // Roboflow ha problemi con URL che contengono SAS tokens già encoded
-    // Proviamo a non fare encoding aggiuntivo se l'URL contiene già parametri SAS
-    if (url.includes('sv=') && url.includes('sig=')) {
-      // URL già contiene SAS token, non fare encoding aggiuntivo
-      return url;
-    }
-    
-    // Altrimenti fai encoding standard
-    return url
-      .replace(/\?/g, '%3F')
-      .replace(/=/g,  '%3D')
-      .replace(/&/g,  '%26')
-      .replace(/ /g,  '%20');
-  }
-
-  const apiKey = await config.roboflow.getApiKey();
-  const model = config.roboflow.getModel();
-  const version = config.roboflow.getVersion();
-  const base = `https://detect.roboflow.com/${model}/${version}`;
-
-  // Roboflow richiede che l'URL dell'immagine sia percent-encodato UNA sola volta.
-  const fullUrl = `${base}?api_key=${apiKey}` +
-                 `&image=${encodeForRoboflow(imageUrl)}` +
-                 `&confidence=10&overlap=50`;
-
-  // Test di accessibilità dell'immagine prima di chiamare Roboflow
-  try {
-    logger.info('Testing image accessibility before Roboflow call', {
-      imageUrl,
-      testUrl: imageUrl
-    });
-    
-    const testResponse = await axios.head(imageUrl, {
-      timeout: 5000,
-      validateStatus: () => true // Accetta qualsiasi status per il test
-    });
-    
-    logger.info('Image accessibility test result', {
-      status: testResponse.status,
-      headers: testResponse.headers,
-      accessible: testResponse.status === 200
-    });
-    
-    if (testResponse.status !== 200) {
-      logger.warn('Image not accessible, this might cause Roboflow to fail');
-    }
-  } catch (testError) {
-    logger.warn('Image accessibility test failed', {
-      error: testError.message,
-      imageUrl
-    });
-  }
-
-  // Log dettagliato per debugging
-  logger.info('Calling Roboflow API', {
-    originalImageUrl: imageUrl,
-    encodedImageUrl: encodeForRoboflow(imageUrl),
-    baseUrl: base,
-    fullUrl: fullUrl,
-    model,
-    version,
-    apiKeyLength: apiKey.length
-  });
+async function callAcneDetectionFullAPI(base64Image) {
+  const apiUrl = await config.acneDetectionFull.getApiUrl();
+  const apiKey = await config.acneDetectionFull.getApiKey();
+  const fullUrl = `${apiUrl}?code=${apiKey}`;
 
   const startTime = Date.now();
   
   try {
-    const response = await axios.get(fullUrl, {
-      timeout: config.roboflow.timeout,
-      headers: {
-        'User-Agent': 'Dermaself-Inference/1.0'
+    logger.info('Calling Acne Detection Full API', { url: apiUrl });
+    
+    const response = await axios.post(fullUrl, 
+      { base64image: base64Image, code: apiKey },
+      { 
+        timeout: config.acneDetectionFull.timeout,
+        headers: { 'Content-Type': 'application/json' }
       }
-    });
+    );
 
     const duration = Date.now() - startTime;
     
-    logger.info('Roboflow API success', {
+    logger.info('Acne Detection Full API success', {
       status: response.status,
       duration,
-      predictionsCount: response.data?.predictions?.length || 0
+      predictionsCount: response.data.predictions?.length || 0,
+      spotPredictionsCount: response.data["spot-predictions"]?.length || 0,
+      acneClassification: response.data["acne-classification"],
+      acneSeverity: response.data["acne-severity"],
+      spotSeverity: response.data["spot-severity"]
     });
 
     return response.data;
   } catch (error) {
     const duration = Date.now() - startTime;
     
-    logger.error('Roboflow API failed', {
+    logger.error('Acne Detection Full API failed', {
+      error: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      errorMessage: error.message,
-      responseData: error.response?.data,
-      fullUrl: fullUrl,
+      data: error.response?.data,
       duration
     });
 
-    throw error;
+    // Return fallback
+    return {
+      predictions: [],
+      "spot-predictions": [],
+      "acne-classification": "no-acne",
+      "acne-severity": "None",
+      "spot-severity": "None",
+      image: { width: 0, height: 0 },
+      error: 'Acne Detection Full API call failed'
+    };
   }
 }
 
 /**
  * Converte un'immagine da URL a stringa base64.
  * @param {string} imageUrl - L'URL dell'immagine.
- * @returns {Promise<string>} La stringa base64 dell'immagine.
+ * @returns {Promise<string>} La stringa base64 dell'immagine (senza data URI prefix).
  */
 async function imageUrlToBase64(imageUrl) {
   try {
     const response = await axios.get(imageUrl, {
       responseType: 'arraybuffer'
     });
-    return Buffer.from(response.data, 'binary').toString('base64');
+    
+    const imageBuffer = Buffer.from(response.data, 'binary');
+    
+    logger.info('Image converted to base64', {
+      sizeMB: (imageBuffer.length / (1024 * 1024)).toFixed(2)
+    });
+    
+    return imageBuffer.toString('base64');
   } catch (error) {
     logger.error('Failed to convert image URL to base64', { imageUrl, error: error.message });
     throw new Error('Could not fetch or convert image from URL.');
@@ -578,55 +582,120 @@ async function imageUrlToBase64(imageUrl) {
 }
 
 /**
- * Chiama l'API di redness detection.
- * @param {string} base64Image - L'immagine in formato base64.
- * @returns {Promise<Object>} Il risultato dall'API di redness.
+ * Maps redness predictedClass to class string
  */
-async function callRednessAPI(base64Image) {
-  const apiUrl = await config.redness.getApiUrl();
-  const apiKey = await config.redness.getApiKey();
+function mapRednessClass(predictedClass) {
+  const classNum = parseInt(predictedClass);
+  switch(classNum) {
+    case 1: return "none";
+    case 2: return "mild";
+    case 3: return "moderate";
+    case 4: return "severe";
+    case 5: return "severe";
+    default: return "none";
+  }
+}
+
+/**
+ * Maps laxity predictedClass to class string
+ */
+function mapLaxityClass(predictedClass) {
+  const classNum = parseInt(predictedClass);
+  switch(classNum) {
+    case 1: return "none";
+    case 2: return "mild";
+    case 3: return "moderate";
+    case 4: return "severe";
+    default: return "none";
+  }
+}
+
+/**
+ * Maps dryness predictedClass to class string
+ */
+function mapDrynessClass(predictedClass) {
+  const classNum = parseInt(predictedClass);
+  switch(classNum) {
+    case 1: return "none";
+    case 2: return "mild";
+    case 3: return "moderate";
+    case 4: return "severe";
+    case 5: return "severe";
+    default: return "none";
+  }
+}
+
+/**
+ * Calls Laxity-Redness-Dryness API (wrapped by circuit breaker)
+ * @param {string} base64Image - Base64 encoded image
+ * @returns {Promise<Object>} Laxity/redness/dryness detection result
+ */
+async function callLaxityRednessAPI(base64Image) {
+  const apiUrl = await config.laxityRedness.getApiUrl();
+  const apiKey = await config.laxityRedness.getApiKey();
   const fullUrl = `${apiUrl}?code=${apiKey}`;
+  
+  const startTime = Date.now();
 
   try {
+    logger.info('Calling Laxity-Redness-Dryness API', { url: apiUrl });
+    
     const response = await axios.post(fullUrl, 
-      { base64image: base64Image, code: apiKey },
+      { imageBase64: base64Image },
       { 
-        timeout: config.redness.timeout,
+        timeout: config.laxityRedness.timeout,
         headers: { 'Content-Type': 'application/json' }
       }
     );
-    logger.info('Redness API call successful');
+    
+    const duration = Date.now() - startTime;
+    
+    logger.info('Laxity-Redness-Dryness API success', {
+      status: response.status,
+      duration,
+      laxityClass: response.data.predictions?.laxity?.predictedClass,
+      rednessClass: response.data.predictions?.redness?.predictedClass,
+      drynessClass: response.data.predictions?.dryness?.predictedClass
+    });
+    
     return response.data;
   } catch (error) {
-    logger.error('Redness API call failed', { 
+    const duration = Date.now() - startTime;
+    
+    logger.error('Laxity-Redness-Dryness API failed', { 
       error: error.message,
       status: error.response?.status,
-      data: error.response?.data 
+      data: error.response?.data,
+      duration
     });
-    // Ritorna un oggetto di fallback per non bloccare il flusso principale
+    
+    // Return fallback
     return {
-      num_polygons: 0,
-      polygons: [],
-      analysis_width: 0,
-      analysis_height: 0,
-      error: 'Redness API call failed'
+      predictions: {
+        laxity: { predictedClass: 1, class: "none" },
+        redness: { predictedClass: 1, class: "none" },
+        dryness: { predictedClass: 1, class: "none" }
+      },
+      error: 'Laxity-Redness-Dryness API call failed'
     };
   }
 }
 
 /**
- * Chiama l'API di wrinkles detection.
- * @param {string} base64Image - L'immagine in formato base64.
- * @returns {Promise<Object>} Il risultato dall'API di wrinkles.
+ * Calls Wrinkles Detection API (wrapped by circuit breaker)
+ * @param {string} base64Image - Base64 encoded image
+ * @returns {Promise<Object>} Wrinkles detection result
  */
 async function callWrinklesAPI(base64Image) {
   const apiUrl = await config.wrinkles.getApiUrl();
   const apiKey = await config.wrinkles.getApiKey();
-  
-  // Construct the full URL based on Azure Function pattern
   const fullUrl = `${apiUrl}?code=${apiKey}`;
+  
+  const startTime = Date.now();
 
   try {
+    logger.info('Calling Wrinkles API', { url: apiUrl });
+    
     const response = await axios.post(fullUrl, 
       { base64image: base64Image, code: apiKey },
       { 
@@ -635,29 +704,47 @@ async function callWrinklesAPI(base64Image) {
       }
     );
     
-    logger.info('Wrinkles API call successful', {
+    const duration = Date.now() - startTime;
+    const wrinklesData = response.data;
+    
+    // Add wrinkleSeverity structure if not present
+    if (!wrinklesData.wrinkleSeverity) {
+      const severityMap = { 'None': 1, 'Mild': 2, 'Moderate': 3, 'Severe': 4 };
+      const severityNum = severityMap[wrinklesData.severity] || 1;
+      wrinklesData.wrinkleSeverity = {
+        overall: { severity: severityNum }
+      };
+    }
+    
+    logger.info('Wrinkles API success', {
       status: response.status,
-      predictionsCount: response.data.predictions?.length || 0,
-      inferenceId: response.data.inference_id,
-      processingTime: response.data.time
+      duration,
+      predictionsCount: wrinklesData.predictions?.length || 0,
+      inferenceId: wrinklesData.inference_id,
+      processingTime: wrinklesData.time,
+      severity: wrinklesData.wrinkleSeverity?.overall?.severity
     });
     
-    return response.data;
+    return wrinklesData;
   } catch (error) {
-    logger.error('Wrinkles API call failed', { 
+    const duration = Date.now() - startTime;
+    
+    logger.error('Wrinkles API failed', { 
       error: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      url: fullUrl
+      url: fullUrl,
+      duration
     });
     
-    // Return fallback object to not block main flow
+    // Return fallback
     return {
       inference_id: uuidv4(),
       predictions: [],
       image: { width: 0, height: 0 },
       time: 0,
+      wrinkleSeverity: { overall: { severity: 1 } },
       error: 'Wrinkles API call failed'
     };
   }

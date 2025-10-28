@@ -60,6 +60,15 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const faceApiAvailable = faceDetection?.faceApiAvailable ?? false;
   const faceapi = faceDetection?.faceapi ?? null;
 
+  // Log face detection readiness per debugging
+  useEffect(() => {
+    console.log('📸 Camera step - Face detection status:', {
+      modelsLoaded,
+      faceApiAvailable,
+      hasFaceapi: !!faceapi
+    });
+  }, [modelsLoaded, faceApiAvailable, faceapi]);
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null); // Add overlay canvas ref

@@ -103,7 +103,7 @@ export default function SkinAnalysis() {
     <div className="w-full">
       {/* Branded header for analysis flow */}
       <div className="px-4 py-3 flex items-center justify-center border-b border-gray-200 bg-[#e9d5ff] mb-4">
-        <Image src={LogoWhite} alt="Dermaself" className="h-8 w-auto" priority />
+        <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
       </div>
       <AnimatePresence key="skin-analysis-steps" mode="wait">
         {step === 'upload' && (

@@ -42,6 +42,7 @@ interface SkinAnalysisModalProps {
   onClose: () => void;
   embedded?: boolean;
   onReady?: () => void;
+  fastMode?: boolean; // Modalità ultra-veloce per embed (no preloading bloccante)
 }
 
 type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
@@ -83,9 +84,32 @@ const getProducts = async (): Promise<Product[]> => {
   return [];
 };
 
-export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false }: SkinAnalysisModalProps) {
   // Initialize face detection models when modal opens
-  const faceDetection = useFaceDetection();
+  // In fastMode, questo carica in BACKGROUND senza bloccare
+  const faceDetection = useFaceDetection(fastMode);
+
+  // Helper functions to map user selections to API format
+  const mapAgeToAgeRange = (ageSelection: string): string => {
+    switch (ageSelection) {
+      case '18-24': return '18 - 25';
+      case '25-34': return '26 - 35';
+      case '35-44': return '36 - 45';
+      case '45-54': return 'Più di 45';
+      case '55+': return 'Più di 45';
+      default: return '26 - 35';
+    }
+  };
+
+  const mapGenderToApiFormat = (genderSelection: string): string => {
+    switch (genderSelection) {
+      case 'woman': return 'female';
+      case 'man': return 'male';
+      case 'non-binary': return 'non_binary';
+      case 'prefer-not-to-specify': return 'non_binary';
+      default: return 'female';
+    }
+  };
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
@@ -159,12 +183,30 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   }, [isOpen, onReady]);
 
+  // In fastMode, avvia background loading appena il modal si apre
+  useEffect(() => {
+    if (isOpen && fastMode && typeof window !== 'undefined') {
+      // Import background loader solo quando serve
+      import('../lib/backgroundLoader').then(({ startBackgroundLoading }) => {
+        startBackgroundLoading();
+      });
+    }
+  }, [isOpen, fastMode]);
+
   // Step navigation
   const handleNext = () => {
     const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
-      setCurrentStep(stepOrder[currentIndex + 1]);
+      const nextStep = stepOrder[currentIndex + 1];
+      setCurrentStep(nextStep);
+      
+      // In fastMode, precarica immagini per il PROSSIMO step in background
+      if (fastMode && typeof window !== 'undefined') {
+        import('../lib/progressiveImageLoader').then(({ preloadForStep }) => {
+          preloadForStep(nextStep);
+        });
+      }
     }
   };
 
@@ -226,12 +268,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
     // Trigger analysis immediately with user data and recommendations
     try {
-      // Prepare user data from skin type selection
+      // Prepare user data from user selections in steps
       const userData = {
         first_name: 'User',
         last_name: 'Test',
-        birthdate: '1990-01-01', // Default birthdate
-        gender: 'female' as const, // Default for now, can be enhanced with gender selection
+        ageRange: mapAgeToAgeRange(selectedAge),
+        gender: mapGenderToApiFormat(selectedGender),
+        skin_type: selectedSkinType || 'Normale',
+        concerns: selectedConcerns,
         budget_level: 'High' as const
       };
       
@@ -309,7 +353,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 src={LogoWhite}
                 alt="Dermaself"
                 priority
-                className="inline-block h-8 w-auto"
+                className="inline-block h-12 w-auto"
               />
             </div>
           </div>
