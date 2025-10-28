@@ -17,6 +17,7 @@ import { startBackgroundLoading } from '@/lib/backgroundLoader';
  */
 export default function FastEmbedPage() {
   const [showModal, setShowModal] = useState(true);
+  const [storeData, setStoreData] = useState<any>(null);
 
   // Avvia background loading NON BLOCCANTE
   useEffect(() => {
@@ -25,6 +26,17 @@ export default function FastEmbedPage() {
     startBackgroundLoading();
     
     console.log('🚀 Fast embed: Modal opened immediately, background loading started');
+    
+    // Also try to read query parameters (fallback for old implementations)
+    const urlParams = new URLSearchParams(window.location.search);
+    const shop = urlParams.get('shop');
+    const locale = urlParams.get('locale');
+    const currency = urlParams.get('currency');
+    
+    if (shop || locale || currency) {
+      setStoreData({ shop, locale, currency });
+      console.log('Store data from URL params:', { shop, locale, currency });
+    }
   }, []);
 
   // Listen for messages from parent Shopify page
@@ -36,6 +48,10 @@ export default function FastEmbedPage() {
         startBackgroundLoading();
       } else if (event.data.type === 'CLOSE_SKIN_ANALYSIS') {
         setShowModal(false);
+      } else if (event.data.type === 'SHOPIFY_STORE_DATA') {
+        // Receive store data via postMessage (preferred method to avoid query param issues)
+        setStoreData(event.data.payload);
+        console.log('Store data received via postMessage:', event.data.payload);
       }
     };
 

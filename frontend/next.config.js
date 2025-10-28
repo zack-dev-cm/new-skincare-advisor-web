@@ -7,6 +7,12 @@ const nextConfig = {
   // Ottimizzazioni per performance embed
   compress: true,
   
+  // Ensure proper trailing slash handling
+  trailingSlash: false,
+  
+  // Don't use basePath or assetPrefix to avoid issues with Azure Static Web Apps
+  // The app should work from the root of the domain
+  
   async headers() {
     return [
       {
@@ -19,8 +25,13 @@ const nextConfig = {
           {
             key: 'X-Frame-Options',
             value: 'ALLOWALL'
-          },
-          // Cache statico aggressivo per performance
+          }
+        ]
+      },
+      {
+        // Cache statico aggressivo per performance per assets
+        source: '/_next/static/(.*)',
+        headers: [
           {
             key: 'Cache-Control',
             value: 'public, max-age=31536000, immutable'

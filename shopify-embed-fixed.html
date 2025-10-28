@@ -1,0 +1,185 @@
+<!-- Enhanced Skin Analysis Button with Immediate Feedback -->
+<!-- FIXED VERSION: Uses postMessage instead of query parameters to avoid routing issues -->
+<div class="skin-analysis-container">
+    <button id="skinAnalysisBtn" onclick="openSkinAnalysis()" class="skin-analysis-btn">
+        <span class="btn-text">🧴 Get Personalized Skincare Recommendations</span>
+        <span class="btn-loading" style="display: none;">
+            <div class="loading-spinner"></div>
+            <span>Loading...</span>
+        </span>
+    </button>
+</div>
+
+<script>
+let currentIframe = null;
+let storeData = null;
+
+function openSkinAnalysis() {
+    const btn = document.getElementById('skinAnalysisBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    // Immediate visual feedback
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'flex';
+    
+    // Store data from Liquid template
+    const shop = '{{ shop.permanent_domain }}';                // es. mystore.myshopify.com
+    const locale = '{{ request.locale.iso_code }}';            // opzionale
+    const currency = '{{ shop.currency }}';                    // opzionale
+    
+    // Save store data for later
+    storeData = { shop, locale, currency };
+    
+    // Create iframe - NO query parameters in URL to avoid routing issues
+    const iframe = document.createElement('iframe');
+    const baseUrl = 'https://proud-sand-065a1dc03.2.azurestaticapps.net/embed-fast';
+    
+    // Load without query parameters first to ensure JS chunks load correctly
+    iframe.src = baseUrl;
+    
+    iframe.allow = 'camera; microphone; geolocation';
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:transparent;';
+    
+    // Add loading event listener
+    iframe.onload = function() {
+        console.log('Iframe loaded successfully');
+        
+        // Once iframe is loaded, send store data via postMessage
+        // This avoids query parameter routing issues
+        if (storeData) {
+            iframe.contentWindow.postMessage({
+                type: 'SHOPIFY_STORE_DATA',
+                payload: storeData
+            }, baseUrl);
+            console.log('Store data sent to iframe:', storeData);
+        }
+    };
+    
+    iframe.onerror = function() {
+        console.error('Iframe failed to load');
+        resetButton();
+    };
+    
+    document.body.appendChild(iframe);
+    currentIframe = iframe;
+    
+    // Listen for messages from iframe
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'SKIN_ANALYSIS_CLOSED') {
+            if (currentIframe && document.body.contains(currentIframe)) {
+                document.body.removeChild(currentIframe);
+            }
+            currentIframe = null;
+            resetButton();
+        }
+    });
+    
+    // Fallback timeout to reset button if iframe doesn't load
+    setTimeout(() => {
+        if (btn.disabled) {
+            console.warn('Iframe loading timeout - resetting button');
+            resetButton();
+        }
+    }, 10000); // 10 second timeout
+}
+
+function resetButton() {
+    const btn = document.getElementById('skinAnalysisBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    btnText.style.display = 'block';
+    btnLoading.style.display = 'none';
+}
+</script>
+
+<style>
+.skin-analysis-container {
+    text-align: center;
+    margin: 20px auto;
+    padding: 0 20px;
+    max-width: 500px;
+}
+
+.skin-analysis-btn {
+    background: linear-gradient(135deg, #000000 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.skin-analysis-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.skin-analysis-btn:active:not(:disabled) {
+    transform: translateY(0);
+    transition: transform 0.1s ease;
+}
+
+.skin-analysis-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.8;
+}
+
+.skin-analysis-btn.loading {
+    background: linear-gradient(135deg, #000000 0%, #764ba2 100%);
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.loading-spinner {
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top: 2px solid white;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.02);
+    }
+}
+
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+    .skin-analysis-btn {
+        padding: 12px 30px;
+        font-size: 14px;
+    }
+    
+    .skin-analysis-container {
+        padding: 0 15px;
+    }
+}
+</style>
+
