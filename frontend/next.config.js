@@ -2,6 +2,9 @@
 const path = require('path');
 
 const nextConfig = {
+  // Let Azure Static Web Apps auto-detect Next.js configuration
+  // No explicit output mode - Azure will handle it
+  
   outputFileTracingRoot: path.join(__dirname, '..'),
   
   // Ottimizzazioni per performance embed
@@ -13,43 +16,6 @@ const nextConfig = {
   // Don't use basePath or assetPrefix to avoid issues with Azure Static Web Apps
   // The app should work from the root of the domain
   
-  async headers() {
-    return [
-      {
-        source: '/(.*)',
-        headers: [
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=*, microphone=*, geolocation=*'
-          },
-          {
-            key: 'X-Frame-Options',
-            value: 'ALLOWALL'
-          }
-        ]
-      },
-      {
-        // Cache statico aggressivo per performance per assets
-        source: '/_next/static/(.*)',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable'
-          }
-        ]
-      },
-      {
-        // Cache breve per HTML (per aggiornamenti rapidi)
-        source: '/:path*.html',
-        headers: [
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=0, must-revalidate'
-          }
-        ]
-      }
-    ];
-  },
   webpack: (config, { isServer }) => {
     if (!isServer) {
       // Don't resolve 'fs' module on the client to prevent this error on build
