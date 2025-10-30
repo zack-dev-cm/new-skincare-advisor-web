@@ -5,14 +5,26 @@
 /* Background image utilities */
 .bg-main {
   background-image: var(--bg-main);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100%;
 }
 
 .bg-bg1 {
   background-image: var(--bg-1);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100%;
 }
 
 .bg-bg2 {
   background-image: var(--bg-2);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  min-height: 100%;
 }
 
 /* Embed-specific styles */
@@ -35,16 +47,17 @@
   --bg-main: url('/assets/images/backgrounds/bg-main.jpg');
   --bg-1: url('/assets/images/backgrounds/bg-1.jpg');
   --bg-2: url('/assets/images/backgrounds/bg-2.jpg');
-  --primary-50: #eff6ff;
-  --primary-100: #dbeafe;
-  --primary-200: #bfdbfe;
-  --primary-300: #93c5fd;
-  --primary-400: #60a5fa;
-  --primary-500: #3b82f6;
-  --primary-600: #2563eb;
-  --primary-700: #1d4ed8;
-  --primary-800: #1e40af;
-  --primary-900: #1e3a8a;
+  /* Purple/Violet Brand Colors - from reference image */
+  --primary-50: #faf5ff;
+  --primary-100: #f5f3ff;
+  --primary-200: #ede9fe;
+  --primary-300: #ddd6fe;
+  --primary-400: #c4b5fd;
+  --primary-500: #353535;
+  --primary-600: #2e2e2e;
+  --primary-700: #222222;
+  --primary-800: #202020;
+  --primary-900: #161616;
 }
 
 /* Base Styles */
@@ -63,7 +76,6 @@ body {
 .btn-primary:hover {
   border: none !important;
   outline: none !important;
-  background-color: #ff4d79;
 }
 
 .btn-primary:focus {
@@ -75,14 +87,14 @@ body {
   @apply text-white font-medium py-3 px-6 border-0 outline-none shadow-sm;
   border: none !important;
   outline: none !important;
-  background-color: #ff4d79;
+  background-color: #8b5cf6;
   transition: background-color 0.3s ease-in-out;
 }
 
 .btn-secondary:hover {
   border: none !important;
   outline: none !important;
-  background-color: #ff6b8a;
+  background-color: #7c3aed;
 }
 
 .btn-secondary:focus {
@@ -148,7 +160,7 @@ body {
 .answer.selected {
   border-width: 2px;
   border-style: solid;
-  border-image: linear-gradient(90deg, #ff4d79, #ff7e5f) 1;
+  border-image: linear-gradient(90deg, #8b5cf6, #a78bfa) 1;
   box-shadow: 0 0 0 2px #fff;
 }
 
@@ -206,8 +218,14 @@ body {
   @apply flex;
 }
 
+/* Make icons white by default for dark backgrounds */
+.routine-btns img {
+  filter: brightness(0) invert(1);
+}
+
 .active-btn {
-  @apply bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-semibold;
+  @apply text-white px-4 py-2 rounded-lg text-sm font-semibold;
+  background-color: #8b5cf6;
 }
 
 .inactive-btn {
@@ -308,7 +326,12 @@ body {
 }
 
 .add-to-bag-btn {
-  @apply bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  @apply text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  background-color: #8b5cf6;
+}
+
+.add-to-bag-btn:hover {
+  background-color: #7c3aed;
 }
 
 .step-separator {
@@ -316,7 +339,12 @@ body {
 }
 
 .add-all-to-bag {
-  @apply w-full bg-primary-600 text-white py-4 px-6 rounded-lg font-semibold hover:bg-primary-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4;
+  @apply w-full text-white py-4 px-6 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4;
+  background-color: #8b5cf6;
+}
+
+.add-all-to-bag:hover {
+  background-color: #7c3aed;
 }
 
 /* Responsive Design */
@@ -463,25 +491,25 @@ body {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #ff6b9d;
+  border-top: 4px solid #8b5cf6;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
 /* Dermaself Design System */
 :root {
-  /* Dermaself Color Palette */
-  --dermaself-primary: #ff6b9d;
-  --dermaself-primary-light: #ff8fab;
-  --dermaself-primary-dark: #e55a8a;
-  --dermaself-secondary: #2c2c2c;
-  --dermaself-accent: #ffb3d1;
+  /* Purple/Violet Color Palette - from reference design */
+  --dermaself-primary: #8b5cf6;
+  --dermaself-primary-light: #a78bfa;
+  --dermaself-primary-dark: #7c3aed;
+  --dermaself-secondary: #000000;
+  --dermaself-accent: #ddd6fe;
   --dermaself-background: #ffffff;
-  --dermaself-surface: #fafafa;
-  --dermaself-border: #e0e0e0;
-  --dermaself-text-primary: #2c2c2c;
-  --dermaself-text-secondary: #666666;
-  --dermaself-text-light: #999999;
+  --dermaself-surface: #faf5ff;
+  --dermaself-border: #ede9fe;
+  --dermaself-text-primary: #000000;
+  --dermaself-text-secondary: #4b5563;
+  --dermaself-text-light: #9ca3af;
   
   /* Typography */
   --dermaself-font-family: 'Dermaself', 'Helvetica Neue', 'Arial', sans-serif;
@@ -545,7 +573,7 @@ body {
 }
 
 .kiko-modal-header {
-  background: linear-gradient(135deg, var(--kiko-primary) 0%, var(--kiko-primary-light) 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
   padding: var(--kiko-space-6);
   text-align: center;
@@ -580,7 +608,7 @@ body {
 }
 
 .kiko-button {
-  background: var(--kiko-primary);
+  background: #8b5cf6;
   color: white;
   border: none;
   border-radius: var(--kiko-radius-md);
@@ -596,13 +624,13 @@ body {
 }
 
 .kiko-button:hover {
-  background: var(--kiko-primary-dark);
+  background: #7c3aed;
   transform: translateY(-1px);
   box-shadow: var(--kiko-shadow-lg);
 }
 
 .kiko-button:disabled {
-  background: var(--kiko-text-light);
+  background: #9ca3af;
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -610,12 +638,12 @@ body {
 
 .kiko-button-secondary {
   background: transparent;
-  color: var(--kiko-primary);
-  border: 2px solid var(--kiko-primary);
+  color: #8b5cf6;
+  border: 2px solid #8b5cf6;
 }
 
 .kiko-button-secondary:hover {
-  background: var(--kiko-primary);
+  background: #8b5cf6;
   color: white;
 }
 
@@ -634,12 +662,12 @@ body {
 }
 
 .kiko-progress-dot.active {
-  background: var(--kiko-primary);
+  background: #8b5cf6;
   transform: scale(1.2);
 }
 
 .kiko-progress-dot.completed {
-  background: var(--kiko-primary);
+  background: #8b5cf6;
 }
 
 .derma-step-content {
@@ -671,8 +699,8 @@ body {
 
 .kiko-form-input:focus {
   outline: none;
-  border-color: var(--kiko-primary);
-  box-shadow: 0 0 0 3px rgba(255, 107, 157, 0.1);
+  border-color: #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
 }
 
 .kiko-option-grid {
@@ -693,14 +721,14 @@ body {
 }
 
 .kiko-option-card:hover {
-  border-color: var(--kiko-primary);
+  border-color: #8b5cf6;
   transform: translateY(-2px);
   box-shadow: var(--kiko-shadow-md);
 }
 
 .kiko-option-card.selected {
-  border-color: var(--kiko-primary);
-  background: rgba(255, 107, 157, 0.05);
+  border-color: #8b5cf6;
+  background: rgba(139, 92, 246, 0.05);
 }
 
 .kiko-option-icon {
@@ -721,7 +749,7 @@ body {
 }
 
 .kiko-results-section {
-  background: linear-gradient(135deg, var(--kiko-primary) 0%, var(--kiko-primary-light) 100%);
+  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
   color: white;
   padding: var(--kiko-space-8);
   margin: var(--kiko-space-6) 0;
@@ -768,7 +796,7 @@ body {
 .kiko-product-price {
   font-size: var(--kiko-font-size-lg);
   font-weight: 700;
-  color: var(--kiko-primary);
+  color: #8b5cf6;
 }
 
 .loading-pulse {

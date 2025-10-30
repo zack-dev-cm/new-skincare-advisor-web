@@ -6,7 +6,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://new-skinca
 // Axios instance pre-configured for our API
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 30000,
+  timeout: 60000, // Increased to 60s to match Azure Functions processing time
   headers: { 'Content-Type': 'application/json' },
 });
 
@@ -157,8 +157,10 @@ export interface UserData {
   first_name?: string;
   last_name?: string;
   birthdate?: string;
-  gender?: 'male' | 'female' | 'other';
-  erythema?: boolean;
+  ageRange?: string;
+  gender?: string;
+  skin_type?: string;
+  concerns?: string[];
   budget_level?: 'Low' | 'Medium' | 'High';
   shop_domain?: string;
 }
@@ -251,26 +253,96 @@ export async function uploadImageFile(file: File): Promise<string> {
 }
 
 /**
+ * Resize image ONLY if file size >2MB (match JavaScript logic EXACTLY)
+ */
+async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    // Convert data URL to blob to check file size
+    fetch(imageDataUrl)
+      .then(res => res.blob())
+      .then(blob => {
+        const MAX_SIZE_MB = 2;
+        const sizeMB = blob.size / (1024 * 1024);
+        
+        console.log(`Image file size: ${sizeMB.toFixed(2)}MB`);
+        
+        // Match JavaScript: resize ONLY if file size > 2MB
+        if (blob.size <= MAX_SIZE_MB * 1024 * 1024) {
+          console.log('File size ≤ 2MB, no resize needed (match JavaScript logic)');
+          resolve(imageDataUrl);
+          return;
+        }
+        
+        console.log(`File size > 2MB, resizing to 1024x1024 @ 80% quality...`);
+        
+        // Now we need to resize
+        const img = new Image();
+        img.src = imageDataUrl;
+        
+        img.onload = () => {
+              try {
+                const originalWidth = img.naturalWidth;
+                const originalHeight = img.naturalHeight;
+                
+                // Calculate new dimensions maintaining aspect ratio (max 1024x1024)
+                const maxWidth = 1024;
+                const maxHeight = 1024;
+                const ratio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight, 1);
+                const newWidth = Math.round(originalWidth * ratio);
+                const newHeight = Math.round(originalHeight * ratio);
+                
+                console.log(`Resizing image: ${originalWidth}x${originalHeight} → ${newWidth}x${newHeight}`);
+                
+                // Create canvas and resize
+                const canvas = document.createElement('canvas');
+                canvas.width = newWidth;
+                canvas.height = newHeight;
+                const ctx = canvas.getContext('2d');
+                
+                if (!ctx) {
+                  reject(new Error('Could not get canvas context'));
+                  return;
+                }
+                
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, 0, 0, newWidth, newHeight);
+                
+                // Convert to base64 with 80% quality (match JavaScript)
+                const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                console.log('Image resized successfully');
+                resolve(resizedDataUrl);
+              } catch (error) {
+                console.error('Error resizing image:', error);
+                reject(error);
+              }
+            };
+            
+            img.onerror = () => {
+              reject(new Error('Failed to load image for resizing'));
+            };
+          })
+      .catch(error => {
+        console.error('Error checking file size:', error);
+        reject(error);
+      });
+  });
+}
+
+/**
  * Upload base64 image to blob storage
  */
 export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
   try {
-    // Log the input data URL size
-    console.log('Uploading base64 image - data URL length:', imageDataUrl.length);
-    console.log('Estimated input size in KB:', Math.round(imageDataUrl.length * 0.75 / 1024));
+    // Resize image if file size > 2MB (match JavaScript logic EXACTLY)
+    const resizedDataUrl = await resizeImageIfNeeded(imageDataUrl);
     
-    // Extract image dimensions from data URL
-    const img = new Image();
-    img.src = imageDataUrl;
-    await new Promise((resolve) => {
-      img.onload = () => {
-        console.log('API Upload - Image dimensions from data URL:', img.naturalWidth, 'x', img.naturalHeight);
-        resolve(null);
-      };
-    });
+    // Log the data URL size
+    console.log('Uploading base64 image - data URL length:', resizedDataUrl.length);
+    console.log('Estimated size in KB:', Math.round(resizedDataUrl.length * 0.75 / 1024));
     
     // Convert data URL to blob
-    const response = await fetch(imageDataUrl);
+    const response = await fetch(resizedDataUrl);
     const blob = await response.blob();
     
     // Log the blob size

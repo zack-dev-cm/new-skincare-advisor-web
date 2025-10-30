@@ -1,7 +1,11 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
+
+// Import face detection hook
+import { useFaceDetection } from '../lib/useFaceDetection';
 
 // Import step components
 import {
@@ -20,6 +24,9 @@ import ImagePreloader from './ImagePreloader';
 
 import dynamic from 'next/dynamic';
 
+// Brand logo
+import LogoWhite from '../app/RGB_Logo_White.png';
+
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
   loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
   ssr: false,
@@ -35,6 +42,7 @@ interface SkinAnalysisModalProps {
   onClose: () => void;
   embedded?: boolean;
   onReady?: () => void;
+  fastMode?: boolean; // Modalità ultra-veloce per embed (no preloading bloccante)
 }
 
 type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
@@ -76,7 +84,33 @@ const getProducts = async (): Promise<Product[]> => {
   return [];
 };
 
-export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false }: SkinAnalysisModalProps) {
+  // Initialize face detection models when modal opens
+  // In fastMode, questo carica in BACKGROUND senza bloccare
+  const faceDetection = useFaceDetection(fastMode);
+
+  // Helper functions to map user selections to API format
+  const mapAgeToAgeRange = (ageSelection: string): string => {
+    switch (ageSelection) {
+      case '18-24': return '18 - 25';
+      case '25-34': return '26 - 35';
+      case '35-44': return '36 - 45';
+      case '45-54': return 'Più di 45';
+      case '55+': return 'Più di 45';
+      default: return '26 - 35';
+    }
+  };
+
+  const mapGenderToApiFormat = (genderSelection: string): string => {
+    switch (genderSelection) {
+      case 'woman': return 'female';
+      case 'man': return 'male';
+      case 'non-binary': return 'non_binary';
+      case 'prefer-not-to-specify': return 'non_binary';
+      default: return 'female';
+    }
+  };
+
   // Prevent body scrolling when modal is open
   useEffect(() => {
     if (isOpen) {
@@ -149,12 +183,30 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   }, [isOpen, onReady]);
 
+  // In fastMode, avvia background loading appena il modal si apre
+  useEffect(() => {
+    if (isOpen && fastMode && typeof window !== 'undefined') {
+      // Import background loader solo quando serve
+      import('../lib/backgroundLoader').then(({ startBackgroundLoading }) => {
+        startBackgroundLoading();
+      });
+    }
+  }, [isOpen, fastMode]);
+
   // Step navigation
   const handleNext = () => {
     const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
-      setCurrentStep(stepOrder[currentIndex + 1]);
+      const nextStep = stepOrder[currentIndex + 1];
+      setCurrentStep(nextStep);
+      
+      // In fastMode, precarica immagini per il PROSSIMO step in background
+      if (fastMode && typeof window !== 'undefined') {
+        import('../lib/progressiveImageLoader').then(({ preloadForStep }) => {
+          preloadForStep(nextStep);
+        });
+      }
     }
   };
 
@@ -216,12 +268,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
     // Trigger analysis immediately with user data and recommendations
     try {
-      // Prepare user data from skin type selection
+      // Prepare user data from user selections in steps
       const userData = {
         first_name: 'User',
         last_name: 'Test',
-        birthdate: '1990-01-01', // Default birthdate
-        gender: 'female' as const, // Default for now, can be enhanced with gender selection
+        ageRange: mapAgeToAgeRange(selectedAge),
+        gender: mapGenderToApiFormat(selectedGender),
+        skin_type: selectedSkinType || 'Normale',
+        concerns: selectedConcerns,
         budget_level: 'High' as const
       };
       
@@ -253,66 +307,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   };
 
-  // Cart handlers
-  const handleAddToCart = async (product: Product) => {
-    if (!isShopify) return;
-    
-    setCartLoading(prev => ({ ...prev, [product.id]: true }));
-    
-    try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: product.shopifyProductId,
-          variantId: product.shopifyVariantId,
-          quantity: 1
-        })
-      });
-      
-      if (response.ok) {
-        setCartItems(prev => ({
-          ...prev,
-          [product.id]: (prev[product.id] || 0) + 1
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to add to cart:', error);
-    } finally {
-      setCartLoading(prev => ({ ...prev, [product.id]: false }));
-    }
-  };
-
-  const handleRemoveFromCart = async (productId: string) => {
-    if (!isShopify) return;
-    
-    setCartLoading(prev => ({ ...prev, [productId]: true }));
-    
-    try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ productId })
-      });
-      
-      if (response.ok) {
-        setCartItems(prev => {
-          const newItems = { ...prev };
-          if (newItems[productId] > 1) {
-            newItems[productId] -= 1;
-          } else {
-            delete newItems[productId];
-          }
-          return newItems;
-        });
-      }
-    } catch (error) {
-      console.error('Failed to remove from cart:', error);
-    } finally {
-      setCartLoading(prev => ({ ...prev, [productId]: false }));
-    }
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -335,13 +329,13 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Fixed Header inside Modal */}
-        <div className="bg-black px-4 py-3 flex items-center justify-between border-b border-gray-700">
+        <div className="bg-primary-800 px-4 py-3 flex items-center justify-between border-b border-primary-200/70">
           {/* Back Button */}
           <div className="flex items-center">
             {currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
-                className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
                 aria-label="Go back"
                 title="Go back"
               >
@@ -352,18 +346,23 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             )}
           </div>
 
-          {/* Centered Title */}
-          <div className="flex-1 text-center">
-            <h2 className={`text-lg font-semibold text-white ${currentStep === 'onboarding' && 'pl-8'}`}>
-              Dermaself x Kiko
-            </h2>
+          {/* Centered Brand Logo */}
+          <div className="flex-1 text-center flex items-center justify-center">
+            <div className={`${currentStep === 'onboarding' ? 'pl-8' : ''}`}>
+              <Image
+                src={LogoWhite}
+                alt="Dermaself"
+                priority
+                className="inline-block h-12 w-auto"
+              />
+            </div>
           </div>
 
           {/* Close Button */}
           <div className="flex items-center">
-            <button
+              <button
               onClick={handleClose}
-              className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center hover:bg-white/30 transition-colors"
+                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
               aria-label="Close modal"
               title="Close modal"
             >
@@ -435,6 +434,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <CameraCaptureStep
                 onNext={handleImageCapture}
                 onBack={handleBack}
+                faceDetection={faceDetection}
               />
             )}
 

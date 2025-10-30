@@ -219,7 +219,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             !isVariantAvailable(selectedVariant) ||
             state.loading
           }
-          className="w-full bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors duration-200"
+          className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 transition-colors duration-200"
         >
           {isAddingToCart || state.loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />

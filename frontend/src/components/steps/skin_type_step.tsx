@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+/* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
@@ -21,10 +22,10 @@ const skinTypes: SkinType[] = [
   {
     name: 'Normale',
     image: ASSETS.images.skinTypes.normal,
-    description: 'Tessuto cutaneo regolare senza problemi significativi'
+    description: 'Equilibrata e senza problemi'
   },
   {
-    name: 'Seca',
+    name: 'Secca',
     image: ASSETS.images.skinTypes.dry,
     description: 'Opaca, a volte tesa e irritata'
   },
@@ -36,7 +37,7 @@ const skinTypes: SkinType[] = [
   {
     name: 'Mista',
     image: ASSETS.images.skinTypes.combination,
-    description: 'Grassa nella zona T (fronte, naso e mento) e secca o normale sulle guance.'
+    description: 'Grassa in zona T, normale sulle guance'
   },
   {
     name: 'Non lo so',
@@ -66,10 +67,11 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
         
         <div className="grid grid-cols-2 gap-3 items-stretch">
           {skinTypes.map((type) => (
+            // eslint-disable-next-line jsx-a11y/aria-proptypes
             <div 
               key={type.name} 
               role="radio"
-              aria-checked={selectedSkinType === type.name ? 'true' : 'false'}
+              aria-checked={selectedSkinType === type.name}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
                 selectedSkinType === type.name 
@@ -80,8 +82,8 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
             >
               <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
                 selectedSkinType === type.name
-                  ? 'border-pink-500 shadow-lg shadow-pink-100'
-                  : 'border-transparent hover:border-pink-300'
+                  ? 'border-primary-500 shadow-lg shadow-primary-100'
+                  : 'border-transparent hover:border-primary-300'
               }`}>
                 <div className="flex h-16 md:h-full bg-white">
                   <div className="w-16 overflow-hidden flex-shrink-0">
@@ -110,7 +112,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
           <motion.button
             onClick={onNext}
             disabled={!selectedSkinType}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-pink-600 text-white hover:bg-pink-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

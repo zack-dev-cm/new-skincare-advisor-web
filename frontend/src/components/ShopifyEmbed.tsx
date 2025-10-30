@@ -103,7 +103,7 @@ export default function ShopifyEmbed({
         className="min-h-screen bg-white"
       >
         {/* Compact header for embedded view */}
-        <div className="bg-gradient-to-r from-primary-500 to-purple-600 text-white p-4">
+        <div className="bg-gradient-to-r from-primary-600 to-primary-700 text-white p-4">
           <div className="flex items-center justify-center space-x-3">
             <div className="w-8 h-8 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">

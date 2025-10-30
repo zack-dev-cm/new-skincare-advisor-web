@@ -3,6 +3,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Info, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
+import { getLegendLabel } from '@/lib/legendLabels';
 
 // Test comment to verify compilation
 interface Prediction {
@@ -27,19 +28,27 @@ interface WrinklesPrediction {
   points?: Array<{ x: number; y: number }>;
 }
 
-type RednessPolygon = Array<[number, number]>;
-
 interface AnalysisData {
   predictions: Prediction[];
-  redness: {
-    num_polygons: number;
-    polygons: RednessPolygon[];
-    analysis_width: number;
-    analysis_height: number;
-    erythema: boolean;
-    redness_perc: number;
-    scaling_factors: { x: number; y: number }; 
-    original_resolution: { width: number; height: number };
+  laxityRednessData?: {
+    predictions: {
+      redness?: { predictedClass: number; class: string };
+      dryness?: { predictedClass: number; class: string };
+      laxity?: { predictedClass: number; class: string };
+    };
+  };
+  erythema?: boolean;
+  wrinklesData?: {
+    predictions: WrinklesPrediction[];
+    image: { width: number; height: number };
+    wrinkleSeverity?: {
+      overall: { severity: number };
+    };
+    counts?: Record<string, number>;
+    severity?: string;
+    has_forehead_wrinkles?: boolean;
+    has_expression_lines?: boolean;
+    has_under_eye_concerns?: boolean;
   };
   wrinkles?: {
     predictions: WrinklesPrediction[];
@@ -77,24 +86,25 @@ const ACNE_COLORS = {
   "Nodules": "#ff914d",
   "Freckles": "green",
   "Cysts": "#ff7875",
+  "Spot": "#ff6b9d",
 };
 
 const REDNESS_COLOR = '#FF4757';
 const REDNESS_OPACITY = 0.8;
 
-// NEW: Wrinkles color mapping
+// NEW: Wrinkles color mapping with transparency (66 = ~40% opacity)
 const WRINKLES_COLORS = {
-  'forehead': '#9900ff',
-  'crows_feet': '#ff6600', 
-  'nasolabial_fold': '#00ccff',
-  'frown': '#ff0066',
-  'tear_through': '#66ff00',
-  'mental_crease': '#ffcc00',
-  'bunny_line': '#ff9900',
-  'droppy_eyelid': '#cc00ff',
-  'marionette_line': '#00ffcc',
-  'neck_lines': '#ffff00',
-  'purse_string': '#ff00cc'
+  'forehead': '#9900ff66',
+  'crows_feet': '#ff660066', 
+  'nasolabial_fold': '#00ccff66',
+  'frown': '#ff006666',
+  'tear_through': '#66ff0066',
+  'mental_crease': '#ffcc0066',
+  'bunny_line': '#ff990066',
+  'droppy_eyelid': '#cc00ff66',
+  'marionette_line': '#00ffcc66',
+  'neck_lines': '#ffff0066',
+  'purse_string': '#ff00cc66'
 };
 
 const getWrinkleColor = (className: string) => {
@@ -124,7 +134,7 @@ export default function SkinAnalysisImage({
   analysisData, 
   className = '' 
 }: SkinAnalysisImageProps) {
-  const [currentView, setCurrentView] = useState<'acne' | 'redness' | 'wrinkles'>('acne');
+  const [currentView, setCurrentView] = useState<'acne' | 'wrinkles'>('acne');
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -137,8 +147,7 @@ export default function SkinAnalysisImage({
 
   // Create multiple images for carousel (analysis versions only)
   const carouselImages = [
-    { url: imageUrl, label: 'Analisi Acne', view: 'acne' as const },
-    { url: imageUrl, label: 'Analisi Rossore', view: 'redness' as const },
+    { url: imageUrl, label: 'Analisi Imperfezioni', view: 'acne' as const },
     { url: imageUrl, label: 'Analisi Rughe', view: 'wrinkles' as const }
   ];
 
@@ -197,64 +206,18 @@ export default function SkinAnalysisImage({
     ctx.globalAlpha = 1;
   }, [analysisData.predictions, scaleFactors, hoveredDetection]);
 
-  const drawRednessPolygons = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!analysisData.redness.polygons) return;
-
-    ctx.fillStyle = REDNESS_COLOR;
-    ctx.strokeStyle = 'white';
-    ctx.lineWidth = 1;
-    ctx.globalAlpha = REDNESS_OPACITY;
-
-    analysisData.redness.polygons.forEach((polygon) => {
-      // Apply scaling factors from API
-      let adjustedPolygon = polygon;
-      if (analysisData.redness.scaling_factors && 
-          (analysisData.redness.scaling_factors.x !== 1 || analysisData.redness.scaling_factors.y !== 1)) {
-        adjustedPolygon = polygon.map(([x, y]) => [
-          x * analysisData.redness.scaling_factors.x,
-          y * analysisData.redness.scaling_factors.y
-        ]);
-      }
-
-      if (adjustedPolygon.length === 1) {
-        // Single point
-        const [x, y] = adjustedPolygon[0];
-        ctx.beginPath();
-        ctx.arc(x * scaleFactors.x, y * scaleFactors.y, 3, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-      } else if (adjustedPolygon.length >= 3) {
-        // Polygon
-        ctx.beginPath();
-        const [startX, startY] = adjustedPolygon[0];
-        ctx.moveTo(startX * scaleFactors.x, startY * scaleFactors.y);
-        
-        for (let i = 1; i < adjustedPolygon.length; i++) {
-          const [x, y] = adjustedPolygon[i];
-          ctx.lineTo(x * scaleFactors.x, y * scaleFactors.y);
-        }
-        
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-      }
-    });
-
-    ctx.globalAlpha = 1;
-  }, [analysisData.redness, scaleFactors]);
+  // Redness visualization removed - redness is now a metric from laxityRednessData.predictions
 
   const drawWrinklesDetections = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!analysisData.wrinkles?.predictions) return;
+    const wrinklesData = analysisData.wrinklesData || analysisData.wrinkles;
+    if (!wrinklesData?.predictions) return;
 
-    analysisData.wrinkles.predictions.forEach((prediction, index) => {
+    wrinklesData.predictions.forEach((prediction) => {
       const color = getWrinkleColor(prediction.class);
-      ctx.strokeStyle = color;
-      ctx.lineWidth = 2;
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-
-      if (prediction.points && prediction.points.length > 0) {
-        // Draw detailed wrinkle lines using points
+      ctx.fillStyle = color; // Use fillStyle instead of strokeStyle
+      
+      if (prediction.points && prediction.points.length >= 2) {
+        // Draw filled polygon areas using points
         let adjustedPoints = prediction.points;
         if (analysisData.wrinkles?.scaling_factors && 
             (analysisData.wrinkles.scaling_factors.x !== 1 || analysisData.wrinkles.scaling_factors.y !== 1)) {
@@ -273,19 +236,16 @@ export default function SkinAnalysisImage({
           ctx.lineTo(point.x * scaleFactors.x, point.y * scaleFactors.y);
         }
         
-        ctx.stroke();
+        ctx.closePath(); // Close the polygon
+        ctx.fill();      // Fill the area instead of stroking
       } else {
-        // Fallback: render bounding box
+        // Fallback: render filled bounding box
         const x = (prediction.x - prediction.width / 2) * scaleFactors.x;
         const y = (prediction.y - prediction.height / 2) * scaleFactors.y;
         const width = prediction.width * scaleFactors.x;
         const height = prediction.height * scaleFactors.y;
-
-        ctx.setLineDash([5, 5]);
-        ctx.globalAlpha = 0.8;
-        ctx.strokeRect(x, y, width, height);
-        ctx.setLineDash([]);
-        ctx.globalAlpha = 1;
+        
+        ctx.fillRect(x, y, width, height);
       }
     });
   }, [analysisData.wrinkles, scaleFactors]);
@@ -306,15 +266,12 @@ export default function SkinAnalysisImage({
         case 'acne':
           drawAcneDetections(ctx);
           break;
-        case 'redness':
-          drawRednessPolygons(ctx);
-          break;
         case 'wrinkles':
           drawWrinklesDetections(ctx);
           break;
       }
     }
-  }, [currentView, showOverlays, imageLoaded, drawImage, drawAcneDetections, drawRednessPolygons, drawWrinklesDetections]);
+  }, [currentView, showOverlays, imageLoaded, drawImage, drawAcneDetections, drawWrinklesDetections]);
 
   // Handle canvas resize and setup
   useEffect(() => {
@@ -404,13 +361,14 @@ export default function SkinAnalysisImage({
       const img = imageRef.current;
       console.log('=== IMAGE RENDERING DEBUG ===');
       console.log('1. Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('2. Analysis dimensions from API:', analysisData.image.width, 'x', analysisData.image.height);
-      console.log('3. Redness scaling factors:', analysisData.redness.scaling_factors);
-      console.log('4. Wrinkles scaling factors:', analysisData.wrinkles?.scaling_factors);
+      console.log('2. Analysis dimensions from API:', analysisData.image?.width, 'x', analysisData.image?.height);
+      console.log('3. Redness data:', analysisData.laxityRednessData?.predictions?.redness);
+      console.log('4. Wrinkles data:', analysisData.wrinklesData || analysisData.wrinkles);
       
-      // Verify dimensions match
-      const dimensionsMatch = img.naturalWidth === analysisData.image.width && 
-                            img.naturalHeight === analysisData.image.height;
+      // Verify dimensions match (only if image data available)
+      const dimensionsMatch = analysisData.image 
+        ? (img.naturalWidth === analysisData.image.width && img.naturalHeight === analysisData.image.height)
+        : false;
       console.log('5. Dimensions match:', dimensionsMatch);
       
       if (!dimensionsMatch) {
@@ -523,13 +481,9 @@ export default function SkinAnalysisImage({
       case 'acne':
         analysisData.predictions?.forEach(p => classes.add(p.class));
         break;
-      case 'redness':
-        if (analysisData.redness.polygons && analysisData.redness.polygons.length > 0) {
-          classes.add('Redness');
-        }
-        break;
       case 'wrinkles':
-        analysisData.wrinkles?.predictions?.forEach(p => classes.add(p.class));
+        const wrinklesData = analysisData.wrinklesData || analysisData.wrinkles;
+        wrinklesData?.predictions?.forEach(p => classes.add(p.class));
         break;
     }
     
@@ -540,13 +494,35 @@ export default function SkinAnalysisImage({
     switch (currentView) {
       case 'acne':
         return getAcneColor(className);
-      case 'redness':
-        return REDNESS_COLOR;
       case 'wrinkles':
         return getWrinkleColor(className);
       default:
         return '#666666';
     }
+  };
+
+  // Helper function to convert snake_case class names to human-readable format
+  const getReadableClassName = (className: string): string => {
+    // Handle special cases first
+    const specialCases: Record<string, string> = {
+      'crows_feet': 'Crow\'s feet',
+      'marionette_line': 'Marionette line',
+      'droppy_eyelid': 'Droopy eyelid',
+      'tear_through': 'Tear through',
+      'mental_crease': 'Mental crease',
+      'purse_string': 'Purse string lines',
+      'neck_lines': 'Neck lines'
+    };
+
+    if (specialCases[className]) {
+      return specialCases[className];
+    }
+
+    return className
+      .split('_')
+      .join(' ')
+      .toLowerCase()
+      .replace(/^./, match => match.toUpperCase());
   };
 
   return (
@@ -638,15 +614,15 @@ export default function SkinAnalysisImage({
 
         {/* View Toggle Buttons */}
         <div className="flex justify-center mb-4 mt-8">
-          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-pink-100">
+          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-primary-100">
             {carouselImages.map((image, index) => (
               <button
                 key={index}
                 onClick={() => goToImage(index)}
                 className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
                   currentImageIndex === index
-                    ? 'bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow'
-                    : 'text-gray-700 hover:bg-pink-50 hover:text-pink-700'
+                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow'
+                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
                 }`}
               >
                 {image.label}
@@ -656,25 +632,26 @@ export default function SkinAnalysisImage({
         </div>
 
         {/* Color Legend Bar */}
-        <div className="bg-white rounded-lg p-4 shadow-sm border hidden">
+        <div className="bg-white rounded-lg p-4 shadow-sm border">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
-            {carouselImages[currentImageIndex].label} - Color Legend
+            {carouselImages[currentImageIndex].label} - Legenda
           </h3>
           <div className="flex flex-wrap gap-2 align-center justify-center">
             {getUniqueClasses().map((className) => {
               const color = getClassColor(className);
               const textColor = getTextColor(color);
+              const translated = getLegendLabel(currentView, className, 'it');
               
               return (
                 <div
                   key={className}
-                  className="px-3 py-1 rounded text-sm font-medium transition-all hover:opacity-80"
+                  className="px-3 py-1 rounded rounded-full text-sm font-medium transition-all hover:opacity-80"
                   style={{
                     backgroundColor: color,
                     color: textColor
                   }}
                 >
-                  {className}
+                  {translated}
                 </div>
               );
             })}

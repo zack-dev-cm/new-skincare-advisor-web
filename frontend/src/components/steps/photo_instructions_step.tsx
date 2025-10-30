@@ -86,7 +86,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
         <div className="flex flex-col gap-3 justify-center items-center">
           <motion.button
             onClick={onNext}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-pink-600 text-white hover:bg-pink-700 shadow-lg w-full md:w-48 flex items-center justify-center"
+            className="py-3 px-8 rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 shadow-lg w-full md:w-48 flex items-center justify-center"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

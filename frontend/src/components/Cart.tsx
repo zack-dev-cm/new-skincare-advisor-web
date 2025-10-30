@@ -50,7 +50,7 @@ export default function Cart() {
     <div className="bg-white rounded-lg shadow-lg p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+          <div className="w-10 h-10 bg-primary-600 rounded-lg flex items-center justify-center">
             <ShoppingCart className="w-6 h-6 text-white" />
           </div>
           <div>
@@ -184,7 +184,7 @@ export default function Cart() {
         <button
           onClick={handleCheckout}
           disabled={loading}
-          className="w-full mt-4 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center space-x-2"
+          className="w-full mt-4 bg-primary-600 text-white py-3 px-4 rounded-lg hover:bg-primary-700 disabled:opacity-50 flex items-center justify-center space-x-2"
         >
           {loading ? (
             <Loader2 className="w-5 h-5 animate-spin" />

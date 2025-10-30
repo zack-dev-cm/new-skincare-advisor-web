@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <title>Dermaself Fast Embed - Codice Shopify</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 40px auto;
+            padding: 20px;
+            background: #f7fafc;
+        }
+        .code-block {
+            background: #2d3748;
+            color: #e2e8f0;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+        .highlight {
+            background: #4a5568;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+        .comment {
+            color: #68d391;
+        }
+        h1 {
+            color: #1a202c;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+        }
+        .warning {
+            background: #fff5f5;
+            border-left: 4px solid #f56565;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .success {
+            background: #f0fff4;
+            border-left: 4px solid #48bb78;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        .copy-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .copy-btn:hover {
+            background: #5a67d8;
+        }
+    </style>
+</head>
+<body>
+    <h1>🚀 Dermaself Fast Embed - Codice per Shopify</h1>
+    
+    <div class="success">
+        <strong>✅ Codice Pronto per l'Uso</strong><br>
+        Copia-incolla questo codice nel tuo tema Shopify per un embed ultra-veloce (0.3-0.8s apertura)
+    </div>
+
+    <h2>📋 Codice Completo (Copia Tutto)</h2>
+    
+    <div class="code-block" id="fullCode"><!-- Dermaself AI Skin Analysis - Fast Embed -->
+<!-- Apertura: 0.3-0.8 secondi (vs 3-5s versione standard) -->
+
+&lt;div class="dermaself-widget-container"&gt;
+    &lt;button id="dermaSelfBtn" onclick="openDermaSelfAnalysis()" class="dermaself-btn"&gt;
+        &lt;span class="btn-text"&gt;🧴 Scopri la Tua Routine Perfetta&lt;/span&gt;
+        &lt;span class="btn-loading" style="display: none;"&gt;
+            &lt;div class="spinner"&gt;&lt;/div&gt;
+            &lt;span&gt;Caricamento...&lt;/span&gt;
+        &lt;/span&gt;
+    &lt;/button&gt;
+&lt;/div&gt;
+
+&lt;script&gt;
+function openDermaSelfAnalysis() {
+    const btn = document.getElementById('dermaSelfBtn');
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    <span class="comment">// Feedback visivo immediato</span>
+    btn.disabled = true;
+    btn.classList.add('loading');
+    btnText.style.display = 'none';
+    btnLoading.style.display = 'flex';
+    
+    <span class="comment">// Crea iframe</span>
+    const iframe = document.createElement('iframe');
+    
+    <span class="comment">// ⚡ USA ENDPOINT VELOCE (embed-fast)</span>
+    const baseUrl = '<span class="highlight">https://YOUR-DOMAIN.com/embed-fast</span>';
+    
+    <span class="comment">// Parametri Shopify (opzionali)</span>
+    const shop = '{{ shop.permanent_domain }}';
+    const locale = '{{ request.locale.iso_code }}' || 'it';
+    const currency = '{{ shop.currency }}' || 'EUR';
+    
+    const params = new URLSearchParams({ shop, locale, currency });
+    iframe.src = `${baseUrl}?${params.toString()}`;
+    
+    <span class="comment">// Permessi necessari</span>
+    iframe.allow = 'camera; microphone; geolocation';
+    
+    <span class="comment">// Stile fullscreen</span>
+    iframe.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9999;border:none;background:white;';
+    
+    <span class="comment">// Ottimizzazioni caricamento</span>
+    iframe.loading = 'eager';
+    iframe.fetchPriority = 'high';
+    
+    <span class="comment">// Event handlers</span>
+    iframe.onload = function() {
+        console.log('✅ Dermaself loaded');
+        setTimeout(() => resetButton(), 200);
+    };
+    
+    iframe.onerror = function() {
+        console.error('❌ Dermaself failed to load');
+        resetButton();
+        alert('Errore caricamento. Riprova.');
+    };
+    
+    <span class="comment">// Aggiungi al DOM</span>
+    document.body.appendChild(iframe);
+    
+    <span class="comment">// Listen per chiusura</span>
+    window.addEventListener('message', function(event) {
+        if (event.data.type === 'SKIN_ANALYSIS_CLOSED') {
+            document.body.removeChild(iframe);
+            resetButton();
+        }
+    });
+}
+
+function resetButton() {
+    const btn = document.getElementById('dermaSelfBtn');
+    if (!btn) return;
+    
+    const btnText = btn.querySelector('.btn-text');
+    const btnLoading = btn.querySelector('.btn-loading');
+    
+    btn.disabled = false;
+    btn.classList.remove('loading');
+    if (btnText) btnText.style.display = 'flex';
+    if (btnLoading) btnLoading.style.display = 'none';
+}
+&lt;/script&gt;
+
+&lt;style&gt;
+.dermaself-widget-container {
+    text-align: center;
+    margin: 30px auto;
+    padding: 0 20px;
+    max-width: 600px;
+}
+
+.dermaself-btn {
+    background: linear-gradient(135deg, #000000 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    padding: 18px 45px;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    width: 100%;
+    max-width: 400px;
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+}
+
+.dermaself-btn:hover:not(:disabled) {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(102, 126, 234, 0.5);
+}
+
+.dermaself-btn:active:not(:disabled) {
+    transform: translateY(-1px);
+}
+
+.dermaself-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.75;
+}
+
+.dermaself-btn.loading {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+.btn-text, .btn-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.spinner {
+    width: 18px;
+    height: 18px;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-top-color: white;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.03); }
+}
+
+<span class="comment">/* Mobile responsive */</span>
+@media (max-width: 480px) {
+    .dermaself-btn {
+        padding: 15px 35px;
+        font-size: 15px;
+    }
+}
+&lt;/style&gt;</div>
+
+    <button class="copy-btn" onclick="copyCode()">📋 Copia Codice</button>
+
+    <div class="warning">
+        <strong>⚠️ IMPORTANTE:</strong> Ricordati di sostituire <code>YOUR-DOMAIN.com</code> con il tuo dominio effettivo!<br>
+        Esempio: <code>proud-sand-065a1dc03.2.azurestaticapps.net</code>
+    </div>
+
+    <h2>🎯 Dove Inserire il Codice</h2>
+    
+    <h3>Opzione 1: Product Page (Consigliato)</h3>
+    <p>Inserisci in <code>product.liquid</code> o <code>product-template.liquid</code>:</p>
+    <div class="code-block">{% comment %} Dopo il product form {% endcomment %}
+{{ product-form }}
+
+{% comment %} INSERISCI QUI IL CODICE DERMASELF {% endcomment %}
+[... codice sopra ...]</div>
+
+    <h3>Opzione 2: Homepage</h3>
+    <p>Inserisci in <code>index.liquid</code> o crea una section custom:</p>
+    <div class="code-block">{% section 'hero' %}
+
+{% comment %} INSERISCI QUI IL CODICE DERMASELF {% endcomment %}
+[... codice sopra ...]
+
+{% section 'featured-products' %}</div>
+
+    <h3>Opzione 3: Custom Section (Professionale)</h3>
+    <p>Crea <code>sections/dermaself-widget.liquid</code>:</p>
+    <div class="code-block">{% schema %}
+{
+  "name": "Dermaself AI Widget",
+  "settings": [
+    {
+      "type": "text",
+      "id": "button_text",
+      "label": "Button Text",
+      "default": "🧴 Scopri la Tua Routine Perfetta"
+    }
+  ]
+}
+{% endschema %}
+
+[... codice sopra con {{ section.settings.button_text }} ...]</div>
+
+    <h2>✅ Verifiche Post-Integrazione</h2>
+    
+    <ol>
+        <li>✅ Bottone visibile sulla pagina</li>
+        <li>✅ Click apre modal in < 1 secondo</li>
+        <li>✅ Modal è responsive (mobile/desktop)</li>
+        <li>✅ Camera funziona (permessi OK)</li>
+        <li>✅ Face detection attiva (dopo 2-3s)</li>
+        <li>✅ Results mostrano prodotti Shopify</li>
+        <li>✅ Add to cart funziona</li>
+        <li>✅ Chiusura modal funziona</li>
+    </ol>
+
+    <div class="success">
+        <strong>🎉 Setup Completato!</strong><br>
+        Il tuo embed ultra-veloce è pronto. Tempo di apertura: <strong>0.3-0.8 secondi</strong>!
+    </div>
+
+    <h2>🆘 Supporto</h2>
+    <p>Problemi? Controlla:</p>
+    <ul>
+        <li>Console browser (F12) per errori</li>
+        <li>Network tab per vedere cosa carica</li>
+        <li>Verifica URL: deve essere <code>/embed-fast</code></li>
+        <li>Verifica permessi camera in <code>iframe.allow</code></li>
+    </ul>
+
+    <script>
+    function copyCode() {
+        const code = document.getElementById('fullCode').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            alert('✅ Codice copiato! Ora incollalo nel tuo tema Shopify.');
+        }).catch(() => {
+            alert('❌ Errore copia. Seleziona e copia manualmente.');
+        });
+    }
+    </script>
+</body>
+</html>
+

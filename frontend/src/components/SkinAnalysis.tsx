@@ -1,5 +1,7 @@
 'use client';
 import React, { useState, useRef, useCallback } from 'react';
+import Image from 'next/image';
+import LogoWhite from '../app/RGB_Logo_White.png';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, Upload, X, CheckCircle, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import dynamic from 'next/dynamic';
@@ -99,6 +101,10 @@ export default function SkinAnalysis() {
 
   return (
     <div className="w-full">
+      {/* Branded header for analysis flow */}
+      <div className="px-4 py-3 flex items-center justify-center border-b border-gray-200 bg-[#e9d5ff] mb-4">
+        <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+      </div>
       <AnimatePresence key="skin-analysis-steps" mode="wait">
         {step === 'upload' && (
           <motion.div
@@ -257,8 +263,8 @@ export default function SkinAnalysis() {
                   <span>Image Processing</span>
                 </div>
                 <div className="text-center">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-2">
-                    <Loader2 className="w-4 h-4 text-purple-600 animate-spin" />
+                  <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
+                    <Loader2 className="w-4 h-4 text-primary-600 animate-spin" />
                   </div>
                   <span>AI Analysis</span>
                 </div>

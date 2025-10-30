@@ -1,3 +1,8 @@
+/**
+ * @deprecated This module is deprecated. Acne metrics are now provided directly by the Acne Detection Full API.
+ * The external API returns acne-classification, acne-severity, and spot-severity directly.
+ * This function is kept for backward compatibility only.
+ */
 function computeAcneMetrics(predictions = []) {
   const unwanted = new Set(["Freckles", "Mole", "Post-Acne Scar", "Post-Acne Spot"]);
   const acneClasses = [
@@ -7,6 +12,7 @@ function computeAcneMetrics(predictions = []) {
     "Nodules",
     "Papules",
     "Pustules",
+    "Spot",
   ];
 
   const filtered = predictions.filter((p) => !unwanted.has(p.class));

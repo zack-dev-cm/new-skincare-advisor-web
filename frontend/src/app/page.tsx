@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, Suspense, lazy } from 'react';
+import Image from 'next/image';
+import LogoWhite from './RGB_Logo_White.png';
 
 // Lazy load the modal to reduce initial bundle size
 const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
@@ -117,8 +119,11 @@ export default function Home() {
 
   // For standalone mode, show a simple trigger button
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center">
-      <div className="text-center">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-white">
+      <div className="bg-[#e9d5ff] border-b border-primary-200/70 flex items-center justify-center py-2">
+        <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+      </div>
+      <div className="text-center flex flex-col items-center gap-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
           Dermaself - AI Skin Analysis
         </h1>
@@ -127,6 +132,7 @@ export default function Home() {
           skincare recommendations. Get professional insights from the comfort of your home.
         </p>
         <button
+          suppressHydrationWarning
           onClick={() => setShowModal(true)}
           className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
         >

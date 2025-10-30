@@ -817,7 +817,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 setError(null);
                 startCamera();
               }}
-              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
               Riprova Fotocamera
             </button>
@@ -1020,14 +1020,6 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 }}
                 onLoad={(e) => {
                   const img = e.target as HTMLImageElement;
-                  console.log('=== PREVIEW DEBUG ===');
-                  console.log('1. Image natural dimensions:', img.naturalWidth, 'x', img.naturalHeight);
-                  console.log('2. Image display dimensions:', img.offsetWidth, 'x', img.offsetHeight);
-                  console.log('3. Image client dimensions:', img.clientWidth, 'x', img.clientHeight);
-                  console.log('4. Image aspect ratio:', (img.naturalWidth / img.naturalHeight).toFixed(3));
-                  console.log('5. Image display aspect ratio:', (img.offsetWidth / img.offsetHeight).toFixed(3));
-                  console.log('6. Container dimensions:', img.parentElement?.offsetWidth, 'x', img.parentElement?.offsetHeight);
-                  console.log('=== END PREVIEW DEBUG ===');
                 }}
               />
             </div>
@@ -1087,13 +1079,13 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 onClick={retakePhoto}
                 className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors rounded-xl font-semibold text-sm"
               >
-                Rifai
+                Retake
               </button>
               <button
                 onClick={confirmPhoto}
                 className="flex-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold text-sm"
               >
-                Usa Foto
+                Send
               </button>
             </div>
           )}

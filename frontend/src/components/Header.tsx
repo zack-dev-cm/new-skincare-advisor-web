@@ -1,21 +1,18 @@
 'use client';
 
-import { Camera, Sparkles, Heart } from 'lucide-react';
+import Image from 'next/image';
+import { Sparkles, Heart } from 'lucide-react';
 import CartIcon from './CartIcon';
+import LogoWhite from '../app/RGB_Logo_White.png';
 
 export default function Header() {
   return (
-    <header className="bg-white shadow-sm border-b border-gray-200">
-      <div className="container mx-auto px-4 py-4">
+    <header className="bg-white/80 backdrop-blur-sm border-b border-gray-200">
+      <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 to-purple-600 rounded-lg">
-              <Camera className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-900">Dermaself</h1>
-              <p className="text-sm text-gray-500">Analisi della Pelle AI</p>
-            </div>
+          <div className="flex items-center gap-3">
+            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+            <span className="sr-only">Dermaself</span>
           </div>
           
           <nav className="hidden md:flex items-center space-x-8">

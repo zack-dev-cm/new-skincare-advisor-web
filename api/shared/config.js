@@ -56,22 +56,25 @@ const config = {
       container: process.env.AZURE_STORAGE_CONTAINER || 'selfies'
     }
   },
-  roboflow: {
-    getApiKey: () => getSecret('RoboflowApiKey', 'ROBOFLOW_API_KEY'),
-    getModel: () => process.env.ROBOFLOW_MODEL,
-    getVersion: () => process.env.ROBOFLOW_VERSION || '1',
-    timeout: parseInt(process.env.ROBOFLOW_TIMEOUT || '10000'),
-    maxRetries: parseInt(process.env.ROBOFLOW_MAX_RETRIES || '3')
+  acneDetectionFull: {
+    getApiUrl: () => getSecret('AcneDetectionFullApiUrl', 'ACNE_DETECTION_FULL_API_URL'),
+    getApiKey: () => getSecret('AcneDetectionFullApiKey', 'ACNE_DETECTION_FULL_API_KEY'),
+    timeout: parseInt(process.env.ACNE_DETECTION_FULL_TIMEOUT || '45000')
   },
-  redness: {
-    getApiUrl: () => getSecret('RednessApiUrl', 'REDNESS_API_URL'),
-    getApiKey: () => getSecret('RednessApiKey', 'REDNESS_API_KEY'),
-    timeout: parseInt(process.env.REDNESS_API_TIMEOUT || '15000')
+  laxityRedness: {
+    getApiUrl: () => getSecret('LaxityRednessApiUrl', 'LAXITY_REDNESS_DRYNESS_API_URL'),
+    getApiKey: () => getSecret('LaxityRednessApiKey', 'LAXITY_REDNESS_DRYNESS_API_KEY'),
+    timeout: parseInt(process.env.LAXITY_REDNESS_TIMEOUT || '30000')
   },
   wrinkles: {
     getApiUrl: () => getSecret('WrinklesApiUrl', 'WRINKLES_API_URL'),
     getApiKey: () => getSecret('WrinklesApiKey', 'WRINKLES_API_KEY'),
     timeout: parseInt(process.env.WRINKLES_API_TIMEOUT || '15000')
+  },
+  recommendations: {
+    acneApiUrl: 'https://azure-products-recommendation-api-ekbsh3gzhug3cecv.westeurope-01.azurewebsites.net/api/RecommendationFunction',
+    skinApiUrl: 'https://azure-products-recommendation-api-ekbsh3gzhug3cecv.westeurope-01.azurewebsites.net/api/SkinRecommendationFunction',
+    timeout: parseInt(process.env.RECOMMENDATIONS_TIMEOUT || '30000')
   },
   redis: {
     getConnectionString: () => getSecret('RedisConnection', 'REDIS_CONNECTION_STRING')
