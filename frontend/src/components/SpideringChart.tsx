@@ -132,7 +132,7 @@ export default function SpideringChart({
   // Build chart data array (6 metrics - pores excluded)
   const chartData = [
     { 
-      label: 'Acne', 
+      label: 'Brufoli', 
       userValue: userMetrics.acne,
       benchmarkValue: benchmarks.acne,
       max: 4,
@@ -207,8 +207,10 @@ export default function SpideringChart({
   const getLabelPosition = (index: number) => {
     const angle = (index * 2 * Math.PI) / chartData.length - Math.PI / 2;
     const labelRadius = radius + 35;
-    const x = centerX + Math.cos(angle) * labelRadius;
+    let x = centerX + Math.cos(angle) * labelRadius;
     const y = centerY + Math.sin(angle) * labelRadius;
+    // Fix for "Lassità Cutanea" label that gets cut off on desktop
+    if (index === 5) x += 15;
     return { x, y };
   };
 

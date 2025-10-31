@@ -315,13 +315,13 @@ export default function ResultsStep({
                           <span className="text-sm font-semibold text-primary-600">{analysisData.userData?.skin_type || 'Normale'}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Classificazione Acne</span>
+                          <span className="text-sm font-medium text-gray-700">Classificazione Brufoli</span>
                           <span className="text-sm font-semibold text-primary-600">
                             {analysisData['acne-classification'] || analysisData.acneFullData?.['acne-classification'] || 'Nessuna rilevata'}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Severità Acne</span>
+                          <span className="text-sm font-medium text-gray-700">Severità Brufoli</span>
                           <span className="text-sm font-semibold text-primary-600">
                             {analysisData['acne-severity'] || analysisData.acneFullData?.['acne-severity'] || 'Nessuna'}
                           </span>
