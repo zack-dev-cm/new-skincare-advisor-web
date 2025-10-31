@@ -20,4 +20,4 @@ Remove-Item -Path "*.spec.js" -Force -ErrorAction SilentlyContinue
 Write-Host "☁️ Deploying to Azure..." -ForegroundColor Blue
 func azure functionapp publish $FunctionAppName --build remote --javascript
 
-Write-Host "✅ Deployment completed!" -ForegroundColor Green
+Write-Host "Deployment completed!" -ForegroundColor Green
