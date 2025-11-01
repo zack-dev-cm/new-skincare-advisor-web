@@ -402,11 +402,15 @@ export default function SkinAnalysisImage({
     
     if (imageRef.current) {
       const img = imageRef.current;
-      console.log('=== IMAGE RENDERING DEBUG ===');
-      console.log('1. Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
-      console.log('2. Analysis dimensions from API:', analysisData.image.width, 'x', analysisData.image.height);
-      console.log('3. Redness scaling factors:', analysisData.redness.scaling_factors);
-      console.log('4. Wrinkles scaling factors:', analysisData.wrinkles?.scaling_factors);
+      try {
+        console.log('=== IMAGE RENDERING DEBUG ===');
+        console.log('1. Captured dimensions (natural):', img.naturalWidth, 'x', img.naturalHeight);
+        console.log('2. Analysis dimensions from API:', analysisData.image.width, 'x', analysisData.image.height);
+        console.log('3. Redness scaling factors:', analysisData.redness.scaling_factors);
+        console.log('4. Wrinkles scaling factors:', analysisData.wrinkles?.scaling_factors);
+      }catch (e : TypeError | ReferenceError) {
+        console.error('Error during image load logging:', e);
+      }
       
       // Verify dimensions match
       const dimensionsMatch = img.naturalWidth === analysisData.image.width && 
@@ -683,4 +687,4 @@ export default function SkinAnalysisImage({
       </div>
     </div>
   );
-} 
+}

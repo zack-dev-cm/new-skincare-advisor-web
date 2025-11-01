@@ -13,7 +13,7 @@ let faceapi: any = null;
 // }
 
 interface CameraCaptureStepProps {
-  onNext: (imageData: string) => void;
+  onNext: (imgUri : string) => void;
   onBack: () => void;
 }
 
@@ -36,6 +36,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
     const [error, setError] = useState<string | null>(null);
     const [stream, setStream] = useState<MediaStream | null>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
+    const [capturedBitmap, setCapturedBitmap] = useState<ImageData | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [currentCamera, setCurrentCamera] = useState<'front' | 'back'>('front');
     const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
@@ -1193,6 +1194,15 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         });
     }
 
+    const get_centered_face_box = (): any => {
+        if (!facePosition){
+            return null;
+        }
+        const newx = facePosition.x + facePosition.width / 2 ;
+        const newy = facePosition.y + facePosition.height / 2 ;
+        return [newx, newy];
+    }
+
     const capturePhoto = () => {
         if (!videoRef.current || !canvasRef.current) return;
 
@@ -1227,13 +1237,14 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
 
         if (facePosition){
             console.log('Face position at capture:', facePosition);
-            const scale = 1.1; // 10% margin around face
+            const [facex, facey] = get_centered_face_box();
+            const scale = 1.8; // 10% margin around face
             const marginW = facePosition.width * (scale - 1);
             const marginH = facePosition.height * (scale - 1);
-            newx = facePosition.x + marginW;
-            newy = facePosition.y - marginH;
-            newW = facePosition.width - marginW;
-            newH = facePosition.height + marginH;
+            newx = Math.max(0, facePosition.x - marginW / 2);
+            newy = Math.max(0, facePosition.y - marginH / 2);
+            newW = Math.min(originalWidth,  facePosition.width + marginW);
+            newH = Math.min(originalHeight, facePosition.height + marginH);
         }
 
         canvas.width = newW;
@@ -1259,7 +1270,11 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             console.log('10. No flip applied for back camera');
         }
 
+        const bitmap = ctx.getImageData(0, 0, newW, newH, {colorSpace: "srgb"});
+
         const imageData = canvas.toDataURL('image/jpeg', 1.0);
+        const img = new Image();
+        img.src = imageData;
 
         // Log the captured image data
         console.log('11. Captured image data URL length:', imageData.length);
@@ -1268,6 +1283,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
         console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
 
+        setCapturedBitmap(bitmap)
         setCapturedImage(imageData);
         setCameraState('preview');
         stopCamera();
@@ -1288,7 +1304,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             console.log('4. Calling onNext with captured image...');
             console.log('=== END CONFIRM PHOTO DEBUG ===');
 
-            onNext(capturedImage);
+            onNext(capturedImage!);
         }
     };
 

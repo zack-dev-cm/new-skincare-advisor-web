@@ -19,9 +19,15 @@ import {
 import ImagePreloader from './ImagePreloader';
 
 import dynamic from 'next/dynamic';
+import {ImageData} from "canvas";
 
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
   loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
+  ssr: false,
+});
+
+const ProcessingStep = dynamic(() => import('./steps/processing_step'), {
+  // loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
   ssr: false,
 });
 
@@ -37,7 +43,7 @@ interface SkinAnalysisModalProps {
   onReady?: () => void;
 }
 
-type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
+type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' |'image-processing' | 'scan' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -97,6 +103,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [selectedAge, setSelectedAge] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedImageData, setCapturedImageData] = useState<ImageData | null>(null);
   const [imageMetadata, setImageMetadata] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [showCamera, setShowCamera] = useState(false);
@@ -151,7 +158,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Step navigation
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'image-processing', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       setCurrentStep(stepOrder[currentIndex + 1]);
@@ -165,6 +172,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     if (currentStep === 'results') {
       setCurrentStep('camera-capture');
       return;
+    }
+    if (currentStep === 'image-processing') {
+        setCurrentStep('camera-capture');
+        return;
     }
     
     if (currentIndex > 0) {
@@ -192,12 +203,21 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Get current step number for progress indicator
   const getCurrentStepNumber = () => {
-    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
+    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'image-processing', 'scan', 'results'];
     return stepOrder.indexOf(currentStep) + 1;
   };
 
-  // Image capture handler
+  //image capture handler
   const handleImageCapture = async (imageData: string) => {
+    setLoading(true)
+    setCapturedImage(imageData);
+    setShowCamera(false);
+    setCurrentStep('image-processing');
+    setLoading(false)
+  }
+
+  // Image preprocessing done handler
+  const handlePreprocessingDone = async (imageData: string) => {
     setCapturedImage(imageData);
     setImageMetadata({ timestamp: new Date().toISOString() }); // Default metadata
     setShowCamera(false);
@@ -438,10 +458,18 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
+              {currentStep === 'image-processing' && (
+                  <ProcessingStep
+                    capturedImageUri={capturedImage!}
+                    onNext={handlePreprocessingDone}
+                    onBack={handleBack}
+                  />
+              )}
+
             {currentStep === 'scan' && (
               <ScanStep
                 onBack={handleBack}
-                onImageCapture={handleImageCapture}
+                onImageCapture={handlePreprocessingDone}
               />
             )}
 
