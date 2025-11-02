@@ -4,7 +4,7 @@ import {motion} from 'framer-motion';
 import {Camera, CheckCircle, Move, SwitchCameraIcon, Upload} from 'lucide-react';
 
 // // Dynamic import to avoid SSR issues
-let faceapi: any = null;
+let faceapi = null;
 // if (typeof window !== 'undefined') {
 //     // Only import on client side
 //     import('@vladmandic/face-api').then(module => {
@@ -891,7 +891,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         // Get sanitized face box coordinates
-        let sanitizedFaceBox = getSanitizedFaceBox(faceBox, canvas, ctx, video);
+        const sanitizedFaceBox = getSanitizedFaceBox(faceBox, canvas, ctx, video);
         if (!sanitizedFaceBox) {
             console.log('Lighting: Could not sanitize face box');
             return { needsImprovement: false, message: '' };
@@ -1231,21 +1231,32 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         ctx.fillStyle = '#FFFFFF';
         ctx.fillRect(0, 0, originalWidth, originalHeight);
 
-        var newH = originalHeight;
-        var newW = originalWidth;
-        var newx = 0; var newy = 0;
+        let newH = originalHeight;
+        let newW = originalWidth;
+        let newx = 0; let newy = 0;
 
-        if (facePosition){
+        if (facePosition) {
             console.log('Face position at capture:', facePosition);
-            const [facex, facey] = get_centered_face_box();
-            const scale = 1.8; // 10% margin around face
-            const marginW = facePosition.width * (scale - 1);
-            const marginH = facePosition.height * (scale - 1);
-            newx = Math.max(0, facePosition.x - marginW / 2);
-            newy = Math.max(0, facePosition.y - marginH / 2);
-            newW = Math.min(originalWidth,  facePosition.width + marginW);
-            newH = Math.min(originalHeight, facePosition.height + marginH);
+
+            const [facex, facey] = get_centered_face_box(); // Center of face
+
+            // Make a square that fits the face + margin
+            const scale = 1.8; // for margin
+            const faceSize = Math.max(facePosition.width, facePosition.height);
+            const boxSize = Math.round(faceSize * scale);
+
+            // Center square around face center
+            newW = boxSize;
+            newH = boxSize;
+
+            newx = Math.round(facex - boxSize / 2);
+            newy = Math.round(facey - boxSize / 2);
+
+            // Clamp if near image edge
+            newx = Math.max(0, Math.min(newx, originalWidth - boxSize));
+            newy = Math.max(0, Math.min(newy, originalHeight - boxSize));
         }
+
 
         canvas.width = newW;
         canvas.height = newH;
