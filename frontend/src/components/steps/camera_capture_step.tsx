@@ -31,6 +31,33 @@ const isMobileDevice = () => {
          window.innerWidth <= 768;
 };
 
+const BrightnessBar: React.FC<{ value: number }> = ({ value }) => {
+  const bars = [0, 25, 50, 75, 100];
+  const activeCount = Math.ceil((value / 100) * bars.length);
+
+  return (
+    <div className="flex items-center justify-center gap-1 mt-2">
+      {bars.map((_, i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0.4 }}
+          animate={{
+            opacity: i < activeCount ? 1 : 0.3,
+            scaleY: i < activeCount ? 1.05 : 1.0,
+          }}
+          style={{
+            boxShadow:
+              '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
+            filter: 'brightness(1.2)',
+          }}
+          transition={{ duration: 0.25 }}
+          className="w-4 h-4 bg-white rounded-sm"
+        />
+      ))}
+    </div>
+  );
+};
+
 export default function CameraCaptureStep({ onNext, onBack, faceDetection }: CameraCaptureStepProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +72,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
   const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
+  const [brightness, setBrightness] = useState<number>(0);
   const detectedFacesRef = useRef<any[]>([]);
   const [guidanceMessage, setGuidanceMessage] = useState<string>(
     faceDetection?.isLoading ? 'Loading face detection...' : ''
@@ -400,6 +428,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           pixelCount++;
         }
         const avgLuminance = pixelCount > 0 ? totalLuminance / pixelCount : 0;
+        setBrightness(Math.round(avgLuminance * 100));
         // Always update guidance message and type
         let brightnessMsg = '';
         if (avgLuminance < 0.20) {
@@ -952,7 +981,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
             
             {/* Face guide overlay */}
             {
-              guidanceType === "positioning" && guidanceMessage !== 'Center your face in the guide box' && (
+              guidanceMessage !== 'Center your face in the guide box' && (
                 <AnimatePresence>
                   <motion.div
                     key="guide-overlay"
@@ -990,7 +1019,19 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               )
             }
             
-            
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+              <span 
+                className="text-xs text-white mb-1"
+                style={{
+                  textShadow:
+                    '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
+                  filter: 'brightness(1.2)',
+                }}
+              >
+                Lighting
+              </span>
+              <BrightnessBar value={brightness} />
+            </div>
             {/* Dynamic Guidance Text */}
             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
               <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
@@ -1016,6 +1057,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                       transition={{ duration: 0.25, ease: 'easeOut' }}
                       className="flex items-center justify-center"
                     >
+                      
                       {guidanceMessage}
                     </motion.div>
                   )}
