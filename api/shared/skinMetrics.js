@@ -67,6 +67,22 @@ function mapAgeToCategory(ageRange) {
 }
 
 /**
+ * Helper: checks if ageRange corresponds to a young user (<=35)
+ * Accepts ranges: under 18 ("17"/"meno"), 18-25, 26-35
+ * Returns false otherwise
+ * @param {string} ageRange
+ * @returns {boolean}
+ */
+function isYoungAgeRange(ageRange) {
+  if (!ageRange) return true; // default to young when missing
+  const label = ageRange.toLowerCase();
+  if (label.includes("17") || label.includes("meno")) return true;
+  if (label.includes("18") && label.includes("25")) return true;
+  if (label.includes("26") && label.includes("35")) return true;
+  return false;
+}
+
+/**
  * Calculates all skin metrics from analysis data
  * @param {Object} acneFullData - Acne detection results
  * @param {Object} laxityRednessData - Laxity/redness/dryness results
@@ -183,19 +199,19 @@ function normalizeGender(gender) {
 }
 
 /**
- * Verifies if user is young (<30) with acne
+ * Verifies if user is young (<=35) with acne
  * @param {string} ageRange - Age range string
  * @param {string} acneClassification - Acne classification
  * @returns {boolean}
  */
 function isYoungWithAcne(ageRange, acneClassification) {
-  const ageCategory = mapAgeToCategory(ageRange);
   const hasAcne = acneClassification && acneClassification.toLowerCase() !== "no-acne";
-  const result = ageCategory === "<30" && hasAcne;
+  const young = isYoungAgeRange(ageRange);
+  const result = young && hasAcne;
   
-  logger.info('isYoungWithAcne check', {
+  logger.info('isYoungWithAcne check (<=35)', {
     ageRange,
-    ageCategory,
+    young,
     acneClassification,
     hasAcne,
     result
