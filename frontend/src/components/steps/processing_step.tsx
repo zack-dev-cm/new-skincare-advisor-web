@@ -4,6 +4,7 @@ import {motion} from 'framer-motion';
 import {CheckCircle} from 'lucide-react';
 import * as ort from 'onnxruntime-web';
 import {pipeline, RawImage} from "@huggingface/transformers";
+import {getGPUTier, TierResult} from "detect-gpu";
 
 interface ProcessingStepProps {
     capturedImageUri: string;
@@ -26,6 +27,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
     const [processState, setProcessState] = useState<'processing' | 'done'>('processing');
     const [workCanvas, setWorkCanvas] = useState<HTMLCanvasElement | null>(null);
     const [workCtx, setWorkCtx] = useState<CanvasRenderingContext2D | null>(null);
+    const [gpuTier, setGpuTier] = useState< TierResult| null>(null);
 
     const inputsize_model = 512;
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -41,9 +43,13 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             canvasRef.current.width / canvasRef.current.height,
             ')'
         )
+        getGPUTier().then((tier) => {
+            setGpuTier(tier);
+            console.log('Detected GPU Tier:', tier);
+        });
         setImageUri(capturedImageUri) //fallback to this if processing fails
         processingPipeline();
-    }, [canvasRef]); // Run once on component mount
+    }, [canvasRef]);
 
     async function loadImage(uri: string): Promise<HTMLImageElement> {
         return new Promise((resolve, reject) => {
@@ -115,16 +121,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         ctx.putImageData(upscaledImageData, 0, 0);
     }
 
-
-    const upscaleimage2x = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-        if (!ctx || !canvas) return;
-        console.log('Upscaling image started...');
-        if (true){
-            console.log('naive upscaling on mobile device for performance');
-            await naiveUpscale(ctx, canvas);
-            return;
-        }
-        const {width: w, height: h} = canvas;
+    const model_enhancement = async (canvas: HTMLCanvasElement, isMobileGpu: boolean): Promise<RawImage | null> => {
         // Define a promise that auto-rejects after 5 seconds
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error("Upscale timed out after 5s")), 5000)
@@ -136,7 +133,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
                 'image-to-image',
                 'twn39/swin2SR-lightweight-x2-64-ONNX',
                 {
-                    device: isMobileDevice() ? 'wasm' : 'webgpu',
+                    device: isMobileGpu ? 'wasm' : 'wasm',
                     dtype: "q4"
                 });
             let result = await model(canvas);
@@ -151,10 +148,51 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         } catch (err) {
             console.error(err);
             alert("Image upscaling took too long or failed.");
-            model.abort();
-            return;
+            return null;
+        }
+        return result as RawImage;
+    }
+
+
+
+    const upscaleimage2x = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+        if (!ctx || !canvas) return;
+        console.log('Upscaling image started...');
+        if (!gpuTier){
+            //try again eventually default to no gpu
+            try{
+                const tier = await getGPUTier();
+                setGpuTier(tier);
+                console.log('Detected GPU Tier:', tier);
+            } catch (err) {
+                console.log('GPU detection failed, using naive upscaling for performance - ', err);
+                await naiveUpscale(ctx, canvas);
+                return;
+            }
         }
 
+
+        switch (gpuTier?.tier) {
+            case 0: // no gpu
+                console.log('No GPU detected, using naive upscaling for performance');
+                await naiveUpscale(ctx, canvas);
+                return;
+            case 1: // low-end gpu
+                console.log('Low-endGPU detected, using naive upscaling for performance');
+                await naiveUpscale(ctx, canvas);
+                return;
+            default: break
+        }
+
+
+        const {width: w, height: h} = canvas;
+        // Use model enhancement for upscaling
+        const result = await model_enhancement(canvas, gpuTier?.isMobile || false);
+        if (!result || !result.data || result.data.length === 0) {
+            console.log('Model enhancement failed, using naive upscaling for performance');
+            await naiveUpscale(ctx, canvas);
+            return;
+        }
         const upscaledImg = await loadImage(result.data[0]);
 
         // Resize canvas to new dimensions
@@ -162,6 +200,135 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         canvas.height = h * 2;
         ctx.drawImage(upscaledImg, 0, 0);
     }
+
+    function tensorToImageData(tensor, shape) {
+        // shape example: [1, 3, H, W]
+        const [batch, channels, height, width] = shape;
+        const data = tensor;
+        const imageDataArray = new Uint8ClampedArray(height * width * 4); // RGBA
+
+        let idx = 0;
+        for (let h = 0; h < height; h++) {
+            for (let w = 0; w < width; w++) {
+                // Get R, G, B channels
+                let r = data[0 * height * width + h * width + w];
+                let g = data[1 * height * width + h * width + w];
+                let b = data[2 * height * width + h * width + w];
+
+                // Normalize from [0, 1] to [0, 255]
+                r = Math.min(255, Math.max(0, Math.round(r * 255)));
+                g = Math.min(255, Math.max(0, Math.round(g * 255)));
+                b = Math.min(255, Math.max(0, Math.round(b * 255)));
+
+                // Set RGBA values
+                imageDataArray[idx++] = r;     // R
+                imageDataArray[idx++] = g;     // G
+                imageDataArray[idx++] = b;     // B
+                imageDataArray[idx++] = 255;   // A
+            }
+        }
+
+        // Create ImageData for canvas
+        return new ImageData(imageDataArray, width, height);
+    }
+
+    const illuminant_balance = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+        if (!ctx || !canvas) return;
+        console.log('Illuminant balance started with onnx model...');
+        ort.env.wasm.simd = true;
+        ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4; // Multi-threading
+        //start nnx runtime
+        const session = await ort.InferenceSession.create('./assets/models/preprocessing/IAT_exp.onnx', {
+            executionProviders: ['wasm'],
+        });
+
+        const {width: w, height: h} = canvas;
+        const inputTensor = new ort.Tensor('float32', new Float32Array(w * h * 3), [1, 3, h, w]);
+        // Fill input tensor with image data
+        const imageData = ctx.getImageData(0, 0, w, h);
+        for (let i = 0; i < w * h; i++) {
+            inputTensor.data[i] = imageData.data[i * 4] / 255.0;         // R
+            inputTensor.data[i + w * h] = imageData.data[i * 4 + 1] / 255.0; // G
+            inputTensor.data[i + 2 * w * h] = imageData.data[i * 4 + 2] / 255.0; // B
+        }
+        const feed = {'img_low': inputTensor};
+
+        const result = await session.run(feed);
+
+        console.log('Illuminant balance result:', result);
+        const outputTensor = result['permute_42'] as ort.Tensor;
+
+        // Create new ImageData for output
+        const outputImageData = tensorToImageData(outputTensor.data, [1, 3, h, w]);
+        // Put adjusted image data back to canvas
+        ctx.putImageData(outputImageData, 0, 0);
+    }
+
+    async function grayedgeWB(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+        if (!ctx || !canvas) return;
+        const {width: w, height: h} = canvas;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+
+        // Calcola gradienti per ogni canale
+        let gradR = 0, gradG = 0, gradB = 0, count = 0;
+        for (let y = 1; y < h - 1; y++) {
+            for (let x = 1; x < w - 1; x++) {
+                const idx = (y * w + x) * 4;
+                // Derivata orizzontale
+                const idxLeft = (y * w + (x - 1)) * 4;
+                const idxRight = (y * w + (x + 1)) * 4;
+                gradR += Math.abs(data[idxRight] - data[idxLeft]);
+                gradG += Math.abs(data[idxRight + 1] - data[idxLeft + 1]);
+                gradB += Math.abs(data[idxRight + 2] - data[idxLeft + 2]);
+                count++;
+            }
+        }
+        // Media dei gradienti
+        gradR /= count;
+        gradG /= count;
+        gradB /= count;
+
+        // Stima illuminante
+        const illuminant = [gradR, gradG, gradB];
+        const maxIll = Math.max(...illuminant);
+
+        // Normalizza i colori
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.min(255, data[i] * (maxIll / (illuminant[0] || 1)));
+            data[i + 1] = Math.min(255, data[i + 1] * (maxIll / (illuminant[1] || 1)));
+            data[i + 2] = Math.min(255, data[i + 2] * (maxIll / (illuminant[2] || 1)));
+        }
+
+        ctx.putImageData(imageData, 0, 0);
+    }
+
+    async function grayWorldWB(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
+        if (!ctx || !canvas) return;
+        const {width: w, height: h} = canvas;
+        const imageData = ctx.getImageData(0, 0, w, h);
+        const data = imageData.data;
+
+        let sumR = 0, sumG = 0, sumB = 0, count = 0;
+        for (let i = 0; i < data.length; i += 4) {
+            sumR += data[i];
+            sumG += data[i + 1];
+            sumB += data[i + 2];
+            count++;
+        }
+        const avgR = sumR / count;
+        const avgG = sumG / count;
+        const avgB = sumB / count;
+        const avgGray = (avgR + avgG + avgB) / 3;
+
+        for (let i = 0; i < data.length; i += 4) {
+            data[i] = Math.min(255, data[i] * (avgGray / (avgR || 1)));
+            data[i + 1] = Math.min(255, data[i + 1] * (avgGray / (avgG || 1)));
+            data[i + 2] = Math.min(255, data[i + 2] * (avgGray / (avgB || 1)));
+        }
+        ctx.putImageData(imageData, 0, 0);
+    }
+
 
     const processingPipeline = async () => {
         try {
@@ -192,14 +359,19 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             //simulate working time
             //await new Promise((resolve) => setTimeout(resolve, 2000));
             //get back image from model
-            if (isMobileDevice()) {
-                //on mobile devices skip upscaling for performance
-                console.log('Skipping upscaling on mobile device for performance');
-            }else {
-                await upscaleimage2x(ctx, canvas);
-            }
-            console.log('Image upscaled. ', canvas!.width, 'x', canvas!.height);
+            // if (isMobileDevice()) {
+            //     //on mobile devices skip upscaling for performance
+            //     console.log('Skipping upscaling on mobile device for performance');
+            // }else {
+            //     await upscaleimage2x(ctx, canvas);
+            // }
+            // console.log('Image upscaled. ', canvas!.width, 'x', canvas!.height);
             //set final image
+            try{
+                await grayWorldWB(ctx, canvas);
+            }catch (err) {
+                console.log('Illuminant balance failed, proceeding without it - ', err);
+            }
             setImageUri(canvas.toDataURL());
         }catch (err) {
             console.log('Processing error:', err);

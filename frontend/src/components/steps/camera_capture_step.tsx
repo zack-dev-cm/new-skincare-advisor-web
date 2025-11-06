@@ -922,7 +922,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
                     needsImprovement: true,
                     message: 'Move away from bright light - lighting is too bright'
                 };
-            } else if (luminance < 0.35) {
+            } else if (luminance < 0.30) {
                 console.log('Lighting: Poor lighting');
                 return {
                     needsImprovement: true,
@@ -1241,7 +1241,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             const [facex, facey] = get_centered_face_box(); // Center of face
 
             // Make a square that fits the face + margin
-            const scale = 1.8; // for margin
+            const scale = 1.0; // for margin
             const faceSize = Math.max(facePosition.width, facePosition.height);
             const boxSize = Math.round(faceSize * scale);
 
@@ -1250,7 +1250,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
             newH = boxSize;
 
             newx = Math.round(facex - boxSize / 2);
-            newy = Math.round(facey - boxSize / 2);
+            newy = Math.round(facey - boxSize / 2)- 40; // slight upward offset
 
             // Clamp if near image edge
             newx = Math.max(0, Math.min(newx, originalWidth - boxSize));
@@ -1292,6 +1292,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         console.log('12. Estimated image size in KB:', Math.round(imageData.length * 0.75 / 1024));
         console.log('13. Image quality: 1.0 (maximum)');
         console.log('14. Captured full resolution image:', originalWidth, 'x', originalHeight);
+        console.log('15. Captured cropped image:', newW, 'x', newH);
         console.log('=== END CAMERA CAPTURE STEP DEBUG ===');
 
         setCapturedBitmap(bitmap)
