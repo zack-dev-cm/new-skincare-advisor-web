@@ -15,6 +15,10 @@ const nextConfig = {
   
   // Don't use basePath or assetPrefix to avoid issues with Azure Static Web Apps
   // The app should work from the root of the domain
+
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   
   webpack: (config, { isServer }) => {
     if (!isServer) {

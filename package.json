@@ -13,6 +13,6 @@
     "lint": "cd api && npm run lint"
   },
   "engines": {
-    "node": ">=20.0.0"
+    "node": ">=20.9.0"
   }
 }
