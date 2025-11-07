@@ -5,6 +5,7 @@ import { Camera, SwitchCameraIcon, CheckCircle, Upload, CheckCircle2, Redo, Redo
 import { v4 as uuidv4 } from 'uuid';
 import { QRCodeSVG } from 'qrcode.react';
 import DesktopPhotoReceiver from './DesktopPhotoReceiver';
+import { ensureTfBackendReady } from '@/lib/tfBackend';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -307,7 +308,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     }
   };
 
-  const startFaceDetection = () => {
+  const startFaceDetection = async () => {
     if (!videoRef.current) {
       console.log('Cannot start face detection - no video element');
       return;
@@ -320,6 +321,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       console.log('Waiting for models to load before starting face detection...');
       return;
     }
+    // Ensure TFJS backend ready (in case this runs before shared loader)
+    try {
+      await ensureTfBackendReady();
+    } catch {}
     
     // Add a small delay to ensure video is fully loaded
     setTimeout(() => {

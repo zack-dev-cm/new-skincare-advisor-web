@@ -3,14 +3,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Camera, X, Upload, SwitchCameraIcon, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
 import ImageUpload from './ImageUpload';
-// Dynamic import to avoid SSR issues
+import { ensureTfBackendReady } from '@/lib/tfBackend';
+// Dynamic face-api holder (assigned after init)
 let faceapi: any = null;
-if (typeof window !== 'undefined') {
-  // Only import on client side
-  import('face-api.js').then(module => {
-    faceapi = module;
-  });
-}
 
 interface CameraCaptureProps {
   onCapture: (imageData: string) => void;
@@ -79,8 +74,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       try {
         console.log('Loading face-api.js models...');
         
-        // Try to load face-api.js dynamically
+        // Ensure TFJS backend, then load face-api.js dynamically
         try {
+          await ensureTfBackendReady();
           const module = await import('face-api.js');
           faceapi = module;
           setFaceApiAvailable(true);

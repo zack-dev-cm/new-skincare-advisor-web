@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect, useRef } from 'react';
+import { ensureTfBackendReady } from './tfBackend';
 
 // Dynamic import to avoid SSR issues
 let faceapi: any = null;
@@ -37,8 +38,9 @@ export const useFaceDetection = (backgroundMode: boolean = false) => {
       
       console.log('🔄 Loading face-api.js models in', backgroundMode ? 'BACKGROUND' : 'FOREGROUND', 'mode...');
       
-      // Try to load face-api.js dynamically
+      // Ensure TFJS backend is ready, then load face-api.js dynamically
       try {
+        await ensureTfBackendReady();
         const module = await import('face-api.js');
         faceapi = module;
         setState(prev => ({ ...prev, faceApiAvailable: true }));

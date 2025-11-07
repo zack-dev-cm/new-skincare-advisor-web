@@ -30,16 +30,17 @@ const requestSchema = Joi.object({
 });
 
 // Rate limiter specifico per upload
-const uploadRateLimiter = rateLimitMiddleware({
-  limit: 20, // 20 upload per ora
-  window: '1h',
-  keyGenerator: (context) => {
-    // Usa user ID se autenticato, altrimenti IP
-    return context.req.headers['x-user-id'] || 
-           context.req.headers['x-forwarded-for'] || 
-           'anonymous';
-  }
-});
+// Rate limiter per upload - DISABILITATO per test di carico
+// const uploadRateLimiter = rateLimitMiddleware({
+//   limit: 20, // 20 upload per ora
+//   window: '1h',
+//   keyGenerator: (context) => {
+//     // Usa user ID se autenticato, altrimenti IP
+//     return context.req.headers['x-user-id'] || 
+//            context.req.headers['x-forwarded-for'] || 
+//            'anonymous';
+//   }
+// });
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
@@ -62,8 +63,9 @@ module.exports = async function (context, req) {
   
   try {
     // Rate limiting
-    const rateLimitPassed = await uploadRateLimiter(context);
-    if (!rateLimitPassed) return; // Response già impostata dal middleware
+    // Rate limiting - DISABILITATO per test di carico
+    // const rateLimitPassed = await uploadRateLimiter(context);
+    // if (!rateLimitPassed) return; // Response già impostata dal middleware
 
     // Validazione input
     const { error, value } = requestSchema.validate(req.body);

@@ -6,6 +6,7 @@
  */
 
 import { ASSETS } from './assets';
+import { ensureTfBackendReady } from './tfBackend';
 
 // Stato globale del background loading
 let faceApiLoadingStarted = false;
@@ -30,6 +31,8 @@ export function startFaceApiBackgroundLoading(): void {
   // Fire-and-forget - non aspettiamo
   faceApiPromise = (async () => {
     try {
+      // Ensure TFJS backend is initialized before face-api usage
+      await ensureTfBackendReady();
       // Dynamic import non bloccante
       const module = await import('face-api.js');
       cachedFaceApi = module;

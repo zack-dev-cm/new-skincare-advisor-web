@@ -65,11 +65,11 @@ const requestSchema = Joi.object({
   }).optional()
 });
 
-// Rate limiter per inferenze
-const inferRateLimiter = rateLimitMiddleware({
-  limit: 50, // 50 inferenze per ora
-  window: '1h'
-});
+// Rate limiter per inferenze - DISABILITATO per test di carico
+// const inferRateLimiter = rateLimitMiddleware({
+//   limit: 50, // 50 inferenze per ora
+//   window: '1h'
+// });
 
 // Circuit breaker per Acne Detection Full API
 const acneBreaker = cache.createCircuitBreaker(callAcneDetectionFullAPI, {
@@ -165,9 +165,9 @@ module.exports = async function (context, req) {
   }
   
   try {
-    // Rate limiting
-    const rateLimitPassed = await inferRateLimiter(context);
-    if (!rateLimitPassed) return;
+    // Rate limiting - DISABILITATO per test di carico
+    // const rateLimitPassed = await inferRateLimiter(context);
+    // if (!rateLimitPassed) return;
 
     // Validazione schema
     const { error, value } = requestSchema.validate(req.body);
