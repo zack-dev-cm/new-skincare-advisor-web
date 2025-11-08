@@ -13,6 +13,9 @@ const { v4: uuidv4 } = require('uuid');
 
 const logger = createLogger('infer');
 
+const disableCache =
+  (process.env.DISABLE_INFER_CACHE || '').toLowerCase() === 'true';
+
 // Schema di validazione robusto
 const requestSchema = Joi.object({
   imageUrl: Joi.string()
@@ -299,9 +302,13 @@ module.exports = async function (context, req) {
     const cacheKey = `inference:${imageUrl}`;
     
     // Controlla cache
-    const cached = await cache.get(cacheKey);
+    if (disableCache) {
+      logger.info('Cache bypassed via DISABLE_INFER_CACHE flag', { imageUrl });
+    }
+
+    const cached = !disableCache ? await cache.get(cacheKey) : null;
     if (cached) {
-      logger.info('Cache hit for inference', { imageUrl });
+      logger.info('Cache hit for inference', { imageUrl, cacheDisabled: disableCache });
       context.res = {
         headers: { 
           'Content-Type': 'application/json',
@@ -334,6 +341,10 @@ module.exports = async function (context, req) {
     ]);
     
     // Handle fulfilled/rejected responses
+    logApiOutcome('AcneDetectionFullAPI', acneFullResp);
+    logApiOutcome('LaxityRednessAPI', laxityRednessResp);
+    logApiOutcome('WrinklesAPI', wrinklesResp);
+
     const acneFullData = acneFullResp.status === 'fulfilled' ? acneFullResp.value : {
       predictions: [],
       "spot-predictions": [],
@@ -434,7 +445,7 @@ module.exports = async function (context, req) {
     }
     
     // Save to cache if not a fallback
-    if (!acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback) {
+    if (!disableCache && !acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback) {
       await cache.set(cacheKey, finalResult, 300); // Cache for 5 minutes
     }
 
@@ -528,11 +539,7 @@ async function callAcneDetectionFullAPI(base64Image) {
     logger.info('Acne Detection Full API success', {
       status: response.status,
       duration,
-      predictionsCount: response.data.predictions?.length || 0,
-      spotPredictionsCount: response.data["spot-predictions"]?.length || 0,
-      acneClassification: response.data["acne-classification"],
-      acneSeverity: response.data["acne-severity"],
-      spotSeverity: response.data["spot-severity"]
+      payload: sanitizeForLogging(response.data)
     });
 
     return response.data;
@@ -543,7 +550,7 @@ async function callAcneDetectionFullAPI(base64Image) {
       error: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      data: error.response?.data,
+      payload: sanitizeForLogging(error.response?.data),
       duration
     });
 
@@ -656,9 +663,7 @@ async function callLaxityRednessAPI(base64Image) {
     logger.info('Laxity-Redness-Dryness API success', {
       status: response.status,
       duration,
-      laxityClass: response.data.predictions?.laxity?.predictedClass,
-      rednessClass: response.data.predictions?.redness?.predictedClass,
-      drynessClass: response.data.predictions?.dryness?.predictedClass
+      payload: sanitizeForLogging(response.data)
     });
     
     return response.data;
@@ -668,7 +673,7 @@ async function callLaxityRednessAPI(base64Image) {
     logger.error('Laxity-Redness-Dryness API failed', { 
       error: error.message,
       status: error.response?.status,
-      data: error.response?.data,
+      payload: sanitizeForLogging(error.response?.data),
       duration
     });
     
@@ -722,10 +727,7 @@ async function callWrinklesAPI(base64Image) {
     logger.info('Wrinkles API success', {
       status: response.status,
       duration,
-      predictionsCount: wrinklesData.predictions?.length || 0,
-      inferenceId: wrinklesData.inference_id,
-      processingTime: wrinklesData.time,
-      severity: wrinklesData.wrinkleSeverity?.overall?.severity
+      payload: sanitizeForLogging(wrinklesData)
     });
     
     return wrinklesData;
@@ -736,7 +738,7 @@ async function callWrinklesAPI(base64Image) {
       error: error.message,
       status: error.response?.status,
       statusText: error.response?.statusText,
-      data: error.response?.data,
+      payload: sanitizeForLogging(error.response?.data),
       url: fullUrl,
       duration
     });
@@ -761,6 +763,38 @@ function validateSasPermissions(url) {
   const urlObj = new URL(url);
   const sp = urlObj.searchParams.get('sp');
   return !sp || sp.includes('r');
+}
+
+function logApiOutcome(apiName, result) {
+  if (result.status === 'fulfilled') {
+    logger.info(`${apiName} settled`, {
+      outcome: 'fulfilled',
+      payload: sanitizeForLogging(result.value)
+    });
+  } else {
+    logger.warn(`${apiName} settled`, {
+      outcome: 'rejected',
+      reason: result.reason?.message || result.reason,
+      payload: sanitizeForLogging(result.reason?.response?.data)
+    });
+  }
+}
+
+function sanitizeForLogging(data) {
+  if (!data) return null;
+  try {
+    const cloned = JSON.parse(JSON.stringify(data));
+    if (cloned.base64) {
+      cloned.base64 = '[trimmed base64]';
+    }
+    if (Array.isArray(cloned.predictions) && cloned.predictions.length > 20) {
+      cloned.predictions = cloned.predictions.slice(0, 20);
+      cloned.predictions_truncated = true;
+    }
+    return cloned;
+  } catch (error) {
+    return '[unserializable payload]';
+  }
 }
 
 /**

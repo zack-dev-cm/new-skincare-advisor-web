@@ -8,7 +8,6 @@ dist/
 frontend/dist/
 api/dist/
 build/
-tests/
 
 # Environment variables and secrets
 .env

@@ -1,9 +1,13 @@
 const appInsights = require('applicationinsights');
 const config = require('./config');
 
-// Inizializza Application Insights
-if (config.monitoring.appInsightsConnectionString) {
-  appInsights.setup(config.monitoring.appInsightsConnectionString)
+const connectionString = config.monitoring.appInsightsConnectionString;
+const instrumentationKey = config.monitoring.appInsightsInstrumentationKey;
+
+// Inizializza Application Insights (preferisce instrumentation key per schema legacy)
+const appInsightsConfigValue = instrumentationKey || connectionString;
+if (appInsightsConfigValue) {
+  appInsights.setup(appInsightsConfigValue)
     .setAutoDependencyCorrelation(true)
     .setAutoCollectRequests(true)
     .setAutoCollectPerformance(true, true)
@@ -14,6 +18,10 @@ if (config.monitoring.appInsightsConnectionString) {
     .setSendLiveMetrics(true)
     .setDistributedTracingMode(appInsights.DistributedTracingModes.AI_AND_W3C)
     .start();
+
+  if (instrumentationKey) {
+    appInsights.defaultClient.config.instrumentationKey = instrumentationKey;
+  }
 }
 
 // Client personalizzato per logging

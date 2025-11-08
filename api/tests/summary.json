@@ -1,0 +1,136 @@
+{
+  "startTime": "2025-11-08T13:47:20.430Z",
+  "metrics": {
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "avg": 5682.011891783229,
+        "min": 32.4457,
+        "med": 979.52495,
+        "p(90)": 15458.356800000007,
+        "p(95)": 23471.390729999985,
+        "p(99)": 33621.08447199999,
+        "max": 52957.7473
+      },
+      "thresholds": {
+        "p(95)<5000": {
+          "ok": false
+        }
+      }
+    },
+    "http_req_failed": {
+      "thresholds": {
+        "rate<0.05": {
+          "ok": true
+        }
+      },
+      "type": "rate",
+      "contains": "default",
+      "values": {
+        "rate": 0,
+        "passes": 0,
+        "fails": 1144
+      }
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 1144,
+        "rate": 8.125538934449198
+      }
+    },
+    "upload_url_duration": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "p(99)": 8239.354179999997,
+        "max": 10070.7709,
+        "avg": 1669.5400674540683,
+        "min": 32.4457,
+        "med": 214.5598,
+        "p(90)": 5894.5296,
+        "p(95)": 6799.2821
+      }
+    },
+    "upload_put_duration": {
+      "values": {
+        "max": 2564.2759,
+        "avg": 733.5244191601047,
+        "min": 215.198,
+        "med": 557.7425,
+        "p(90)": 1559.0044,
+        "p(95)": 1949.0905,
+        "p(99)": 2340.44956
+      },
+      "type": "trend",
+      "contains": "default"
+    },
+    "infer_duration": {
+      "type": "trend",
+      "contains": "default",
+      "values": {
+        "min": 2596.4552,
+        "med": 12429.8924,
+        "p(90)": 28929.5213,
+        "p(95)": 31996.2987,
+        "p(99)": 37549.5702,
+        "max": 52957.7473,
+        "avg": 14657.134230708662
+      }
+    },
+    "e2e_flow_ok": {
+      "values": {
+        "rate": 1,
+        "passes": 381,
+        "fails": 0
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "infer_ok": {
+      "contains": "default",
+      "values": {
+        "rate": 1,
+        "passes": 381,
+        "fails": 0
+      },
+      "type": "rate"
+    },
+    "infer_reqs": {
+      "contains": "default",
+      "values": {
+        "count": 381,
+        "rate": 2.7061453968751263
+      },
+      "type": "counter"
+    },
+    "infer_status_429": {
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "infer_status_503": {
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      },
+      "type": "counter",
+      "contains": "default"
+    }
+  }
+}

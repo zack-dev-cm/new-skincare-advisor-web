@@ -11,8 +11,8 @@ Write-Host '📦 Installing production dependencies...' -ForegroundColor Yellow
 npm ci --only=production
 
 # Remove dev dependencies and test files
-Write-Host '🧹 Cleaning up...' -ForegroundColor Yellow
-Remove-Item -Path "tests" -Recurse -Force -ErrorAction SilentlyContinue
+Write-Host '🧹 Cleaning up (escludo script di test)...' -ForegroundColor Yellow
+# Manteniamo la cartella tests per poter rieseguire i load test post-deploy
 Remove-Item -Path "*.test.js" -Force -ErrorAction SilentlyContinue
 Remove-Item -Path "*.spec.js" -Force -ErrorAction SilentlyContinue
 

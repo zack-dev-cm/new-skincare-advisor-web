@@ -91,7 +91,12 @@ const config = {
     rateLimitPerHour: parseInt(process.env.RATE_LIMIT_PER_HOUR || '100')
   },
   monitoring: {
-    appInsightsConnectionString: process.env.APPLICATION_INSIGHTS_CONNECTION_STRING
+    appInsightsConnectionString:
+      process.env.APPLICATION_INSIGHTS_CONNECTION_STRING ||
+      process.env.APPLICATIONINSIGHTS_CONNECTION_STRING,
+    appInsightsInstrumentationKey:
+      process.env.APPINSIGHTS_INSTRUMENTATIONKEY ||
+      process.env.APPLICATION_INSIGHTS_INSTRUMENTATION_KEY
   }
 };
 
