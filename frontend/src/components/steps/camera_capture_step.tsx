@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Camera, SwitchCameraIcon, CheckCircle, Upload, CheckCircle2, Redo, Redo2 } from 'lucide-react';
+import { Camera, SwitchCameraIcon, Upload, CheckCircle2, Redo2 } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { QRCodeSVG } from 'qrcode.react';
 import DesktopPhotoReceiver from './DesktopPhotoReceiver';
@@ -29,7 +29,7 @@ interface FacePosition {
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-         window.innerWidth <= 768;
+    window.innerWidth <= 768;
 };
 
 const BrightnessBar: React.FC<{ value: number }> = ({ value }) => {
@@ -70,11 +70,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showDesktopGate, setShowDesktopGate] = useState<boolean>(false);
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
-  const [detectionInterval, setDetectionInterval] = useState<NodeJS.Timeout | null>(null);
-  const [faceAngle, setFaceAngle] = useState<{x: number, y: number, z: number} | null>(null);
+  const [faceAngle, setFaceAngle] = useState<{ x: number, y: number, z: number } | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const [brightness, setBrightness] = useState<number>(0);
-  const detectedFacesRef = useRef<any[]>([]);
   const [guidanceMessage, setGuidanceMessage] = useState<string>(
     faceDetection?.isLoading ? 'Loading face detection...' : ''
   );
@@ -84,12 +82,47 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [lastFaceDetectionTime, setLastFaceDetectionTime] = useState<number>(0);
   const [session, setSession] = useState<string>('');
 
-  // Use face detection state from props or fallback to local state
+  // from props
   const modelsLoaded = faceDetection?.modelsLoaded ?? false;
   const faceApiAvailable = faceDetection?.faceApiAvailable ?? false;
   const faceapi = faceDetection?.faceapi ?? null;
 
-  // Log face detection readiness per debugging
+  // refs
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const overlayCanvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const isMountedRef = useRef(true);
+  const initializationInProgressRef = useRef(false);
+
+  // detection loop control
+  const detectionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const detectingRef = useRef<boolean>(false);
+  const brightnessCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const detectedFacesRef = useRef<any[]>([]);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    const mobile = isMobileDevice();
+    setIsMobile(mobile);
+    if (typeof window !== 'undefined' && !mobile) {
+      setShowDesktopGate(true);
+      setSession(uuidv4());
+    } else {
+      startCamera();
+    }
+    return () => {
+      isMountedRef.current = false;
+      stopCamera();
+      if (detectionTimerRef.current) {
+        clearInterval(detectionTimerRef.current);
+        detectionTimerRef.current = null;
+      }
+      detectingRef.current = false;
+    };
+  }, []);
+
+  // log readiness
   useEffect(() => {
     console.log('📸 Camera step - Face detection status:', {
       modelsLoaded,
@@ -98,59 +131,26 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     });
   }, [modelsLoaded, faceApiAvailable, faceapi]);
 
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const overlayCanvasRef = useRef<HTMLCanvasElement>(null); // Add overlay canvas ref
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const isMountedRef = useRef(true);
-  const initializationInProgressRef = useRef(false);
-
+  // restart detection when models loaded
   useEffect(() => {
-    isMountedRef.current = true;
-    const mobile = isMobileDevice();
-    setIsMobile(mobile);
-    if (typeof window !== 'undefined' && !mobile) {
-      setShowDesktopGate(true);
-      // Generate unique session and QR code for desktop
-      const newSession = uuidv4();
-      setSession(newSession);
-    } else {
-      startCamera();
-    }
-    return () => {
-      isMountedRef.current = false;
-      stopCamera();
-    };
-  }, []);
-
-  // Restart face detection when models are loaded
-  useEffect(() => {
-    if (modelsLoaded && isCameraActive && !detectionInterval) {
-      console.log('Models loaded, restarting face detection...');
+    if (modelsLoaded && isCameraActive && !detectionTimerRef.current) {
       startFaceDetection();
     }
   }, [modelsLoaded, isCameraActive]);
 
   const startCamera = async (desiredFacing?: 'front' | 'back') => {
-    if (initializationInProgressRef.current || !isMountedRef.current) {
-      return;
-    }
-    
+    if (initializationInProgressRef.current || !isMountedRef.current) return;
     initializationInProgressRef.current = true;
-    
+
     try {
       setIsLoading(true);
       setError(null);
-      
-      // Stop existing stream
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-      }
-      
+
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+
       const facingMode = desiredFacing || currentCamera;
-      
-      // Get camera constraints based on device
-      const constraints = {
+
+      const constraints: MediaStreamConstraints = {
         video: {
           facingMode: facingMode === 'front' ? 'user' : 'environment',
           width: { ideal: 1920 },
@@ -158,117 +158,91 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         },
         audio: false
       };
-      
-      console.log('Requesting camera with constraints:', constraints);
-      
+
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
-      
       if (!isMountedRef.current) {
-        newStream.getTracks().forEach(track => track.stop());
+        newStream.getTracks().forEach((t) => t.stop());
         return;
       }
-      
+
       setStream(newStream);
-      
+
       if (videoRef.current) {
         const video = videoRef.current;
         video.srcObject = null;
         video.srcObject = newStream;
-        
-        // Wait for video to be ready
+
         await new Promise<void>((resolve, reject) => {
           const timeout = setTimeout(() => reject(new Error('Video timeout')), 5000);
-          
           const onLoadedMetadata = () => {
             clearTimeout(timeout);
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
             video.removeEventListener('error', onError);
             resolve();
           };
-          
           const onError = (e: Event) => {
             clearTimeout(timeout);
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
             video.removeEventListener('error', onError);
             reject(e);
           };
-          
           video.addEventListener('loadedmetadata', onLoadedMetadata);
           video.addEventListener('error', onError);
         });
-        
+
         await video.play();
         setIsCameraActive(true);
         setIsLoading(false);
-        
-        // Start face detection after a delay
+
+        // small delay then start detection (if models are ready)
         setTimeout(() => {
-          if (modelsLoaded && isMountedRef.current) {
-            startFaceDetection();
-          }
-        }, 1000);
-        
+          if (modelsLoaded && isMountedRef.current) startFaceDetection();
+        }, 800);
       }
-      
     } catch (err) {
       console.error('Camera error:', err);
-      
-      if (err instanceof Error && err.name === 'AbortError') {
-        return;
-      }
-      
-      // Try fallback with minimal constraints
+      if (err instanceof Error && err.name === 'AbortError') return;
+
+      // Fallback
       try {
-        const fallbackStream = await navigator.mediaDevices.getUserMedia({ 
-          video: true, 
-          audio: false 
-        });
-        
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         if (!isMountedRef.current) {
-          fallbackStream.getTracks().forEach(track => track.stop());
+          fallbackStream.getTracks().forEach((t) => t.stop());
           return;
         }
-        
         setStream(fallbackStream);
-        
+
         if (videoRef.current) {
           const video = videoRef.current;
           video.srcObject = null;
           video.srcObject = fallbackStream;
-          
+
           await new Promise<void>((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error('Fallback timeout')), 5000);
-            
             const onLoadedMetadata = () => {
               clearTimeout(timeout);
               video.removeEventListener('loadedmetadata', onLoadedMetadata);
               video.removeEventListener('error', onError);
               resolve();
             };
-            
             const onError = (e: Event) => {
               clearTimeout(timeout);
               video.removeEventListener('loadedmetadata', onLoadedMetadata);
               video.removeEventListener('error', onError);
               reject(e);
             };
-            
             video.addEventListener('loadedmetadata', onLoadedMetadata);
             video.addEventListener('error', onError);
           });
-          
+
           await video.play();
           setIsCameraActive(true);
           setIsLoading(false);
-          
-          // Start face detection after a delay
+
           setTimeout(() => {
-            if (modelsLoaded && isMountedRef.current) {
-              startFaceDetection();
-            }
-          }, 100);
+            if (modelsLoaded && isMountedRef.current) startFaceDetection();
+          }, 400);
         }
-        
       } catch (fallbackErr) {
         console.error('Fallback camera error:', fallbackErr);
         setError('Could not access camera. Please check permissions and try again.');
@@ -277,6 +251,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     } finally {
       initializationInProgressRef.current = false;
     }
+
+    function onError(e: Event) { /* noop helper for above */ }
   };
 
   const stopCamera = () => {
@@ -284,137 +260,91 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       stream.getTracks().forEach(track => track.stop());
       setStream(null);
     }
-    
-    if (detectionInterval) {
-      clearInterval(detectionInterval);
-      setDetectionInterval(null);
+    if (detectionTimerRef.current) {
+      clearInterval(detectionTimerRef.current);
+      detectionTimerRef.current = null;
     }
-    
     setIsCameraActive(false);
     initializationInProgressRef.current = false;
+    detectingRef.current = false;
   };
 
   const switchCamera = () => {
     const newCamera = currentCamera === 'front' ? 'back' : 'front';
     setCurrentCamera(newCamera);
-    
     if (isCameraActive) {
       stopCamera();
-      setTimeout(() => {
-        if (isMountedRef.current) {
-          startCamera(newCamera);
-        }
-      }, 100);
+      setTimeout(() => { if (isMountedRef.current) startCamera(newCamera); }, 100);
     }
   };
 
   const startFaceDetection = async () => {
-    if (!videoRef.current) {
-      console.log('Cannot start face detection - no video element');
-      return;
+    if (!videoRef.current) return;
+    if (!modelsLoaded) return;
+    try { await ensureTfBackendReady(); } catch { /* ignore */ }
+
+    if (detectionTimerRef.current) {
+      clearInterval(detectionTimerRef.current);
+      detectionTimerRef.current = null;
     }
-    
-    console.log('Starting face detection (face-api.js:', !!modelsLoaded, ')');
-    
-    // Wait for models to be loaded before starting detection
-    if (!modelsLoaded) {
-      console.log('Waiting for models to load before starting face detection...');
-      return;
-    }
-    // Ensure TFJS backend ready (in case this runs before shared loader)
-    try {
-      await ensureTfBackendReady();
-    } catch {}
-    
-    // Add a small delay to ensure video is fully loaded
-    setTimeout(() => {
-      if (!videoRef.current || !isMountedRef.current) return;
-      
-      const interval = setInterval(async () => {
-        if (!videoRef.current || !isMountedRef.current) {
-          clearInterval(interval);
-          return;
-        }
-        
-        await detectFacePosition();
-      }, 100); // Faster detection for better responsiveness
-      
-      setDetectionInterval(interval);
-    }, 1000); // Increased delay to ensure video is ready
+
+    // run every 250ms to avoid overlap / race
+    detectionTimerRef.current = setInterval(() => {
+      detectFacePosition();
+    }, 250);
   };
-
-
-  // removed unused isFaceInPosition and getLuminosityStatus
 
   const calculateFaceAngle = (landmarks: any) => {
     if (!landmarks || !landmarks.positions) {
       return { yaw: 0, pitch: 0, roll: 0 };
     }
-
     const points = landmarks.positions;
-    
-    // Key landmark points for angle calculation
-    const noseTip = points[30];        // Nose tip
-    const leftEye = points[36];        // Left eye outer corner
-    const rightEye = points[45];       // Right eye outer corner
-    const leftMouth = points[48];      // Left mouth corner
-    const rightMouth = points[54];     // Right mouth corner
-    const chin = points[8];            // Chin center
-    const leftCheek = points[1];       // Left face contour
-    const rightCheek = points[15];     // Right face contour
+    const noseTip = points[30];
+    const leftEye = points[36];
+    const rightEye = points[45];
+    const leftMouth = points[48];
+    const rightMouth = points[54];
+    const chin = points[8];
 
-    // Calculate yaw (left-right rotation)
-    const eyeVector = {
-      x: rightEye.x - leftEye.x,
-      y: rightEye.y - leftEye.y
-    };
-    const mouthVector = {
-      x: rightMouth.x - leftMouth.x,
-      y: rightMouth.y - leftMouth.y
-    };
-    
-    // Average the vectors for more stable yaw calculation
-    const avgHorizontalVector = {
-      x: (eyeVector.x + mouthVector.x) / 2,
-      y: (eyeVector.y + mouthVector.y) / 2
-    };
-    
+    const eyeVector = { x: rightEye.x - leftEye.x, y: rightEye.y - leftEye.y };
+    const mouthVector = { x: rightMouth.x - leftMouth.x, y: rightMouth.y - leftMouth.y };
+    const avgHorizontalVector = { x: (eyeVector.x + mouthVector.x) / 2, y: (eyeVector.y + mouthVector.y) / 2 };
     const yaw = Math.atan2(avgHorizontalVector.y, avgHorizontalVector.x) * (180 / Math.PI);
 
-    // Calculate pitch (up-down rotation)
     const faceHeight = Math.abs(chin.y - ((leftEye.y + rightEye.y) / 2));
     const noseToEyeDistance = Math.abs(noseTip.y - ((leftEye.y + rightEye.y) / 2));
-    const pitchRatio = noseToEyeDistance / faceHeight;
-    const pitch = (pitchRatio - 0.3) * 90; // Normalize to degrees
+    const pitchRatio = faceHeight ? noseToEyeDistance / faceHeight : 0;
+    const pitch = (pitchRatio - 0.3) * 90;
 
-    // Calculate roll (tilt rotation)
     const roll = Math.atan2(eyeVector.y, eyeVector.x) * (180 / Math.PI);
 
     return {
-      yaw: Math.max(-45, Math.min(45, yaw)),      // Clamp between -45 and 45 degrees
-      pitch: Math.max(-30, Math.min(30, pitch)), // Clamp between -30 and 30 degrees
-      roll: Math.max(-30, Math.min(30, roll))    // Clamp between -30 and 30 degrees
+      yaw: Math.max(-45, Math.min(45, yaw)),
+      pitch: Math.max(-30, Math.min(30, pitch)),
+      roll: Math.max(-30, Math.min(30, roll))
     };
   };
 
   const detectFacePosition = async () => {
-    if (!videoRef.current) {
-      console.log('Face detection skipped - no video element');
-      return;
-    }
-    
+    // prevent parallel runs
+    if (detectingRef.current) return;
+    detectingRef.current = true;
+
     try {
+      if (!videoRef.current) { detectingRef.current = false; return; }
       const video = videoRef.current;
-      
-      // Only process if video is ready
-      if (video.readyState < 2) {
-        console.log('Video not ready, skipping face detection');
+
+      // video must be ready
+      if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+        detectingRef.current = false;
         return;
       }
-      
-      // --- Brightness Guidance First ---
-      // Analyze overall frame brightness before face detection
-      const tempCanvas = document.createElement('canvas');
+
+      // --- Brightness analysis (reused canvas) ---
+      if (!brightnessCanvasRef.current) {
+        brightnessCanvasRef.current = document.createElement('canvas');
+      }
+      const tempCanvas = brightnessCanvasRef.current;
       tempCanvas.width = video.videoWidth;
       tempCanvas.height = video.videoHeight;
       const tempCtx = tempCanvas.getContext('2d');
@@ -425,134 +355,93 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         let pixelCount = 0;
         const data = frameData.data;
         for (let i = 0; i < data.length; i += 16) {
-          const r = data[i];
-          const g = data[i + 1];
-          const b = data[i + 2];
-          const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-          totalLuminance += luminance;
+          const r = data[i], g = data[i + 1], b = data[i + 2];
+          totalLuminance += (0.299 * r + 0.587 * g + 0.114 * b) / 255;
           pixelCount++;
         }
         const avgLuminance = pixelCount > 0 ? totalLuminance / pixelCount : 0;
         setBrightness(Math.round(avgLuminance * 100));
-        // Always update guidance message and type
+
         let brightnessMsg = '';
-        if (avgLuminance < 0.20) {
-          brightnessMsg = 'Face toward a light source - lighting is too dark';
-        } else if (avgLuminance > 0.80) {
-          brightnessMsg = 'Move away from bright light - lighting is too bright';
-        } else if (avgLuminance < 0.35) {
-          brightnessMsg = 'Turn toward more light for better visibility';
-        } else {
-          brightnessMsg = '';
-        }
+        if (avgLuminance < 0.20) brightnessMsg = 'Face toward a light source - lighting is too dark';
+        else if (avgLuminance > 0.80) brightnessMsg = 'Move away from bright light - lighting is too bright';
+        else if (avgLuminance < 0.35) brightnessMsg = 'Turn toward more light for better visibility';
+
         if (brightnessMsg) {
           setGuidanceMessage(brightnessMsg);
-          return;
-        } else {
           setGuidanceType('positioning');
-          clearOverlayCanvas();
-          setDetectedFaces([]);
-          setFaceAngle(null);
-
-          clearOverlayCanvas();
-          
-
-          try {
-            // Detect faces with landmarks for angle calculation
-            const detections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
-              inputSize: 224,
-              scoreThreshold: 0.5
-            })).withFaceLandmarks();
-            
-            console.log('Face detection results:', detections.length, 'faces detected');
-            if (detections.length > 0) {
-              console.log('First face detection with landmarks:', detections[0]);
-            } else {
-              console.log('No faces detected - this is the issue!');
-              // Let's try with more relaxed settings
-              console.log('Trying with more relaxed detection settings...');
-              const relaxedDetections = await faceapi.detectAllFaces(video, new faceapi.TinyFaceDetectorOptions({
-                inputSize: 320,
-                scoreThreshold: 0.3
-              })).withFaceLandmarks();
-              console.log('Relaxed detection results:', relaxedDetections.length, 'faces detected');
-            }
-            
-            detectedFacesRef.current = detections;
-            setDetectedFaces(detections);
-                        
-            if (detections.length > 0) {
-              const detection = detections[0];
-              const { detection: box, landmarks } = detection;
-              
-              const normalized = normalizeFaceBox(box);
-              const facePos = normalized ? {
-                x: normalized.x,
-                y: normalized.y,
-                width: normalized.width,
-                height: normalized.height
-              } : null;
-              
-              setFacePosition(facePos);
-              
-              // Calculate face angles from landmarks
-              if (landmarks) {
-                const angles = calculateFaceAngle(landmarks);
-                console.log('Calculated face angles:', angles);
-                setFaceAngle(angles as any);
-              } else {
-                setFaceAngle({ x: 0, y: 0, z: 0 });
-              }
-              
-              // Update guidance based on detection results (including angles)
-              updateGuidance(detections);
-            } else {
-              console.log('- No face detected -');
-              setFaceAngle(null);
-              
-              // Update guidance for no face detected
-              updateGuidance([]);
-            }
-          } catch (faceApiError) {
-            console.error('face-api.js face detection error:', faceApiError);
-          }
+          // end early but release the lock
+          detectingRef.current = false;
           return;
         }
       }
 
-      // Clear overlay canvas first
-      
-      // If models are loaded and face-api.js is available, use it
-      if (modelsLoaded && faceApiAvailable && faceapi) {
-        console.log('=== FACE DETECTION DEBUG ===');
-        console.log('Models loaded:', modelsLoaded);
-        console.log('Face API available:', faceApiAvailable);
-        console.log('Face API object:', !!faceapi);
-        console.log('Video ready state:', video.readyState);
-        console.log('Video dimensions:', video.videoWidth, 'x', video.videoHeight);
-        console.log('Video client dimensions:', video.clientWidth, 'x', video.clientHeight);
-        
-        
-      } else {
-        console.log('face-api.js not ready - Models loaded:', modelsLoaded, 'API available:', faceApiAvailable);
+      setGuidanceType('positioning');
+      clearOverlayCanvas();
+      setDetectedFaces([]);
+      setFaceAngle(null);
+
+      // --- Face detection (no configurable options for @vladmandic builds) ---
+      if (!modelsLoaded || !faceApiAvailable || !faceapi) {
+        // wait for models
+        setGuidanceMessage('Loading recognition models...');
+        setGuidanceType('loading');
+        detectingRef.current = false;
+        return;
       }
-      
-    } catch (error) {
-      console.error('Face detection error:', error);
+
+      // Create default options object — do NOT set inputSize/scoreThreshold in this build
+      const options = new faceapi.TinyFaceDetectorOptions();
+
+      const detections = await faceapi
+        .detectAllFaces(video, options)
+        .withFaceLandmarks();
+
+      detectedFacesRef.current = detections;
+      setDetectedFaces(detections);
+
+      if (detections.length > 0) {
+        const detection = detections[0];
+        const { detection: box, landmarks } = detection;
+
+        const normalized = normalizeFaceBox(box);
+        const facePos = normalized ? {
+          x: normalized.x,
+          y: normalized.y,
+          width: normalized.width,
+          height: normalized.height
+        } : null;
+
+        setFacePosition(facePos);
+
+        if (landmarks) {
+          const angles = calculateFaceAngle(landmarks);
+          setFaceAngle(angles as any);
+        } else {
+          setFaceAngle({ x: 0, y: 0, z: 0 });
+        }
+
+        updateGuidance(detections);
+      } else {
+        setFaceAngle(null);
+        updateGuidance([]);
+      }
+    } catch (err) {
+      console.error('face-api.js face detection error:', err);
+    } finally {
+      // ALWAYS release lock
+      detectingRef.current = false;
     }
   };
 
-  // Add visualization functions
   const clearOverlayCanvas = () => {
     if (!overlayCanvasRef.current) return;
     const ctx = overlayCanvasRef.current.getContext('2d');
     if (!ctx) return;
-    
     ctx.clearRect(0, 0, overlayCanvasRef.current.width, overlayCanvasRef.current.height);
   };
 
   const updateGuidance = (detections: any[]) => {
-    // If face detection is not available, show loading
     if (!faceApiAvailable) {
       const newMessage = 'Loading recognition models...';
       if (guidanceMessage !== newMessage) {
@@ -561,12 +450,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       }
       return;
     }
-    
-    // Update last detection time
-    const now = Date.now();
-    setLastFaceDetectionTime(now);
-    
-    // If no faces detected
+
+    setLastFaceDetectionTime(Date.now());
+
     if (detections.length === 0) {
       const newMessage = '';
       if (guidanceMessage !== newMessage) {
@@ -579,15 +465,11 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const detection = detections[0];
     const { detection: box, landmarks } = detection;
     const normalizedBox = normalizeFaceBox(box);
-    if (!normalizedBox) {
-      console.log('Normalized box invalid, skipping guidance');
-      return;
-    }
+    if (!normalizedBox) return;
 
-    // 2) Position in guide box
     if (landmarks && landmarks.positions.length > 0) {
-      const allLandmarksInBox = areLandmarksInGuideBox(landmarks.positions, normalizedBox);
-      if (!allLandmarksInBox) {
+      const allInBox = areLandmarksInGuideBox(landmarks.positions, normalizedBox);
+      if (!allInBox) {
         const newMessage = 'Center your face in the guide box';
         if (guidanceMessage !== newMessage) {
           setGuidanceMessage(newMessage);
@@ -597,7 +479,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       }
     }
 
-    // 3) Distance from camera
     const distanceGuidance = getDistanceGuidance(normalizedBox);
     if (distanceGuidance.needsAdjustment) {
       if (guidanceMessage !== distanceGuidance.message) {
@@ -607,7 +488,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       return;
     }
 
-    // 4) Face angle
     if (landmarks && landmarks.positions.length > 0) {
       const angleGuidance = getAngleGuidance(landmarks.positions, normalizedBox);
       if (angleGuidance.shouldCorrect) {
@@ -619,7 +499,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       }
     }
 
-    // All checks passed
     const newMessage = 'Perfect! Keep this position';
     if (guidanceMessage !== newMessage) {
       setGuidanceMessage(newMessage);
@@ -644,187 +523,120 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     if (!videoRef.current || !faceBox) {
       return { needsAdjustment: false, message: '' };
     }
-
     const video = videoRef.current;
-
-    // Use video natural size; fallback to client size if unavailable
     const frameWidth = video.videoWidth || video.clientWidth || 0;
     const frameHeight = video.videoHeight || video.clientHeight || 0;
     if (!frameWidth || !frameHeight) {
       return { needsAdjustment: false, message: '' };
     }
-
     const faceArea = Math.max(1, Number(faceBox.width)) * Math.max(1, Number(faceBox.height));
     const frameArea = frameWidth * frameHeight;
-    const faceAreaRatio = faceArea / frameArea; // 0..1
+    const faceAreaRatio = faceArea / frameArea;
 
-    // Heuristics:
-    // - Too far: face occupies less than ~6% of frame
-    // - Too close: face occupies more than ~25% of frame
     if (faceAreaRatio < 0.1) {
       return { needsAdjustment: true, message: 'Move closer to the camera' };
     }
     if (faceAreaRatio > 0.25) {
       return { needsAdjustment: true, message: 'Move a bit farther from the camera' };
     }
-
     return { needsAdjustment: false, message: '' };
   };
 
   const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
-    if (!landmarks || landmarks.length < 68) {
-      return { shouldCorrect: false, message: '' };
+    if (!landmarks || landmarks.length < 68) return { shouldCorrect: false, message: '' };
+    const leftCheek = landmarks[0];
+    const rightCheek = landmarks[16];
+    const noseTip = landmarks[30];
+    const noseBridge = landmarks[27];
+    if (!leftCheek || !rightCheek || !noseTip || !noseBridge) return { shouldCorrect: false, message: '' };
+
+    const leftDistance = Math.hypot(leftCheek.x - noseTip.x, leftCheek.y - noseTip.y);
+    const rightDistance = Math.hypot(rightCheek.x - noseTip.x, rightCheek.y - noseTip.y);
+    const asym = Math.abs(leftDistance - rightDistance);
+    const avg = (leftDistance + rightDistance) / 2;
+    const ratio = avg > 0 ? asym / avg : 0;
+
+    if (ratio > 0.25) {
+      if (leftDistance > rightDistance) return { shouldCorrect: true, message: 'Turn your head slightly right' };
+      return { shouldCorrect: true, message: 'Turn your head slightly left' };
     }
-
-    // Get key landmarks
-    const leftCheek = landmarks[0];    // Left face contour (leftmost point)
-    const rightCheek = landmarks[16]; // Right face contour (rightmost point)
-    const noseTip = landmarks[30];    // Nose tip
-    const noseBridge = landmarks[27]; // Nose bridge
-
-    // Check if landmarks are valid
-    if (!leftCheek || !rightCheek || !noseTip || !noseBridge) {
-      return { shouldCorrect: false, message: '' };
-    }
-
-    // Calculate distances from nose tip to each cheek
-    const leftDistance = Math.sqrt(
-      Math.pow(leftCheek.x - noseTip.x, 2) + Math.pow(leftCheek.y - noseTip.y, 2)
-    );
-    
-    const rightDistance = Math.sqrt(
-      Math.pow(rightCheek.x - noseTip.x, 2) + Math.pow(rightCheek.y - noseTip.y, 2)
-    );
-
-    // Calculate asymmetry (difference in distances)
-    const asymmetry = Math.abs(leftDistance - rightDistance);
-    const avgDistance = (leftDistance + rightDistance) / 2;
-    const asymmetryRatio = avgDistance > 0 ? asymmetry / avgDistance : 0;
-
-    // If asymmetry is significant (more than 25% difference), guide user to turn
-    if (asymmetryRatio > 0.25) {
-      if (leftDistance > rightDistance) {
-        // Left cheek is farther than right, user needs to turn right
-        return { 
-          shouldCorrect: true, 
-          message: 'Turn your head slightly right' 
-        };
-      } else {
-        // Right cheek is farther than left, user needs to turn left
-        return { 
-          shouldCorrect: true, 
-          message: 'Turn your head slightly left' 
-        };
-      }
-    }
-
     return { shouldCorrect: false, message: '' };
   };
 
   const areLandmarksInGuideBox = (landmarks: any[], faceBox: any): boolean => {
     if (!videoRef.current) return false;
-    
     const video = videoRef.current;
-    
-    // Calculate guide box dimensions (the white dashed rectangle)
-    const guideBoxWidth = 192; // 12rem = 48 * 4 = 192px
-    const guideBoxHeight = 240; // 15rem = 60 * 4 = 240px
-    
-    // Calculate guide box center position in video coordinates
+
+    const guideBoxWidth = 192; // w-48
+    const guideBoxHeight = 240; // h-60
+
     const videoCenterX = video.clientWidth / 2;
     const videoCenterY = video.clientHeight / 2;
-    
-    // Calculate scale factors
+
     const scaleX = video.clientWidth / video.videoWidth;
     const scaleY = video.clientHeight / video.videoHeight;
-    
-    // Map guide box to video coordinates
-    const guideBoxLeft = (videoCenterX - 96) / scaleX; // Half guide box width
-    const guideBoxRight = (videoCenterX + 96) / scaleX;
-    const guideBoxTop = (videoCenterY - 120) / scaleY; // Half guide box height
-    const guideBoxBottom = (videoCenterY + 120) / scaleY;
-    
-    // Check if key landmarks are within the guide box
-    const keyLandmarks = [
-      0, 16,    // Chin corners
-      8,        // Chin center
-      36, 45,   // Eye outer corners
-      48, 54,   // Mouth corners
-      27, 30,   // Nose bridge, tip
-    ];
-    
+
+    const guideBoxLeft = (videoCenterX - guideBoxWidth / 2) / scaleX;
+    const guideBoxRight = (videoCenterX + guideBoxWidth / 2) / scaleX;
+    const guideBoxTop = (videoCenterY - guideBoxHeight / 2) / scaleY;
+    const guideBoxBottom = (videoCenterY + guideBoxHeight / 2) / scaleY;
+
+    const keyLandmarks = [0, 16, 8, 36, 45, 48, 54, 27, 30];
     let landmarksInBox = 0;
-    const requiredLandmarks = 5; // At least 5 key landmarks must be in box
-    
+    const requiredLandmarks = 5;
+
     for (const index of keyLandmarks.slice(0, requiredLandmarks)) {
       const landmark = landmarks[index];
-      if (landmark && 
-          landmark.x >= guideBoxLeft && 
-          landmark.x <= guideBoxRight &&
-          landmark.y >= guideBoxTop && 
-          landmark.y <= guideBoxBottom) {
+      if (
+        landmark &&
+        landmark.x >= guideBoxLeft && landmark.x <= guideBoxRight &&
+        landmark.y >= guideBoxTop && landmark.y <= guideBoxBottom
+      ) {
         landmarksInBox++;
       }
     }
-    
     return landmarksInBox >= requiredLandmarks;
   };
 
-  // Effect to handle guidance timeout
+  // guidance timeout effect
   useEffect(() => {
     const timeout = setTimeout(() => {
-      const timeSinceDetection = Date.now() - lastFaceDetectionTime;
-      if (timeSinceDetection > 3000 && guidanceType !== 'loading') { // 3 seconds timeout
+      const elapsed = Date.now() - lastFaceDetectionTime;
+      if (elapsed > 3000 && guidanceType !== 'loading') {
         setGuidanceMessage('');
         setGuidanceType('detecting');
       }
     }, 1000);
-    
     return () => clearTimeout(timeout);
   }, [lastFaceDetectionTime, guidanceType]);
 
-
   const capturePhoto = () => {
     if (!videoRef.current || !canvasRef.current) return;
-    
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-
     if (!ctx) return;
-    
-    // Get the original video dimensions (full resolution)
+
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
-    
-    // Set canvas to original video dimensions for full resolution capture
+
     canvas.width = originalWidth;
     canvas.height = originalHeight;
-    
-    // Clear canvas with white background
+
     ctx.fillStyle = '#FFFFFF';
     ctx.fillRect(0, 0, originalWidth, originalHeight);
-    
-    // Handle mirroring for front-facing camera
+
     if (currentCamera === 'front') {
       ctx.save();
       ctx.scale(-1, 1);
-      ctx.drawImage(
-        video, 
-        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
-        -originalWidth, 0, originalWidth, originalHeight  // Destination rectangle (mirrored)
-      );
+      ctx.drawImage(video, 0, 0, originalWidth, originalHeight, -originalWidth, 0, originalWidth, originalHeight);
       ctx.restore();
     } else {
-      ctx.drawImage(
-        video,
-        0, 0, originalWidth, originalHeight,  // Source rectangle (full video)
-        0, 0, originalWidth, originalHeight  // Destination rectangle (full resolution)
-      );
+      ctx.drawImage(video, 0, 0, originalWidth, originalHeight, 0, 0, originalWidth, originalHeight);
     }
-    
+
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
-    
     setCapturedImage(imageData);
     setCameraState('preview');
     stopCamera();
@@ -837,31 +649,26 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   };
 
   const confirmPhoto = () => {
-    if (capturedImage) {
-      onNext(capturedImage);
-    }
+    if (capturedImage) onNext(capturedImage);
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageData = e.target?.result as string;
-        if (imageData) {
-          setCapturedImage(imageData);
-          setCameraState('preview');
-          setShowDesktopGate(false);
-          stopCamera();
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imageData = e.target?.result as string;
+      if (imageData) {
+        setCapturedImage(imageData);
+        setCameraState('preview');
+        setShowDesktopGate(false);
+        stopCamera();
+      }
+    };
+    reader.readAsDataURL(file);
   };
 
-  const openFileDialog = () => {
-    fileInputRef.current?.click();
-  };
+  const openFileDialog = () => fileInputRef.current?.click();
 
   return (
     <motion.div
@@ -896,7 +703,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   onPhotoReceived={(image) => {
                     setCapturedImage(image);
                     setCameraState('preview');
-                    setShowDesktopGate(false); // Optional: hide desktop gate
+                    setShowDesktopGate(false);
                     console.log('Photo received, switching to preview step');
                   }}
                 />
@@ -908,7 +715,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   setShowDesktopGate(false);
                   startCamera();
                 }}
-                className="w-full relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 transition flex items-center gap-4 justify-center gap-2 cursor-pointer"
+                className="w-full relative rounded-md bg-white/20 hover:bg-white/30 text-white px-4 py-3 transition flex items-center justify-center gap-2 cursor-pointer"
                 aria-label="Continue on desktop"
               >
                 <Camera />
@@ -939,54 +746,50 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
       {/* Camera Content */}
       {!showDesktopGate && (
-      <div className="flex-1 relative bg-black overflow-hidden">
-        {isLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-            <div className="text-white text-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-              <p>Avvio fotocamera...</p>
+        <div className="flex-1 relative bg-black overflow-hidden">
+          {isLoading && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-white text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
+                <p>Avvio fotocamera...</p>
+              </div>
             </div>
-          </div>
-        )}
-        
-        {!capturedImage && error && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
-            <div className="text-white text-center p-4">
-              <p className="mb-4">{error}</p>
-              <button
-                onClick={() => {
-                  setError(null);
-                  startCamera();
+          )}
+
+          {!capturedImage && error && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
+              <div className="text-white text-center p-4">
+                <p className="mb-4">{error}</p>
+                <button
+                  onClick={() => { setError(null); startCamera(); }}
+                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                >
+                  Riprova
+                </button>
+              </div>
+            </div>
+          )}
+
+          {cameraState === 'live' && (
+            <div className="relative w-full h-full flex items-center justify-center bg-black">
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+                style={{
+                  maxWidth: '100%',
+                  maxHeight: '100%',
+                  width: 'auto',
+                  height: 'auto',
+                  display: 'block',
+                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
                 }}
-                className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
-              >
-                Riprova
-              </button>
-            </div>
-          </div>
-        )}
-        
-        {cameraState === 'live' && (
-          <div className="relative w-full h-full flex items-center justify-center bg-black">
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                width: 'auto',
-                height: 'auto',
-                display: 'block',
-                transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
-              }}
-            />
-            
-            {/* Face guide overlay */}
-            {
-              guidanceMessage !== 'Center your face in the guide box' && (
+              />
+
+              {/* Face guide overlay */}
+              {guidanceMessage !== 'Center your face in the guide box' && (
                 <AnimatePresence>
                   <motion.div
                     key="guide-overlay"
@@ -996,20 +799,18 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                     transition={{ duration: 0.35, ease: 'easeOut' }}
                     className="absolute inset-0 flex items-center justify-center pointer-events-none z-5"
                   >
-                    {/* Bloom glow (soft blurred white) */}
                     <div
                       aria-hidden
                       className="absolute rounded-lg"
                       style={{
-                        width: '12rem',      // matches guide box width (w-48)
-                        height: '15rem',     // matches guide box height (h-60)
+                        width: '12rem',
+                        height: '15rem',
                         boxShadow: '0 12px 40px rgba(139, 75, 241, 0.8), 0 0 80px rgba(196, 24, 212, 0.23)',
                         filter: 'blur(10px)',
                         transform: 'translateZ(0)',
                         pointerEvents: 'none'
                       }}
                     />
-                    {/* Guide box (visible border) */}
                     <div
                       className="relative w-48 h-60 rounded-lg"
                       style={{
@@ -1021,95 +822,86 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                     />
                   </motion.div>
                 </AnimatePresence>
-              )
-            }
-            
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
-              <span 
-                className="text-xs text-white mb-1"
-                style={{
-                  textShadow:
-                    '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
-                  filter: 'brightness(1.2)',
-                }}
-              >
-                Lighting
-              </span>
-              <BrightnessBar value={brightness} />
-            </div>
-            {/* Dynamic Guidance Text */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
-              <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
-                <AnimatePresence mode="wait" initial={false}>
-                  {guidanceType === 'loading' ? (
-                    <motion.div
-                      key={`loading-${guidanceMessage}`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
-                      className="flex items-center justify-center gap-2"
-                    >
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      <span>{guidanceMessage}</span>
-                    </motion.div>
-                  ) : (
-                    <motion.div
-                      key={`msg-${guidanceMessage}`}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.25, ease: 'easeOut' }}
-                      className="flex items-center justify-center"
-                    >
-                      
-                      {guidanceMessage}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+              )}
+
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
+                <span
+                  className="text-xs text-white mb-1"
+                  style={{
+                    textShadow: '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
+                    filter: 'brightness(1.2)',
+                  }}
+                >
+                  Lighting
+                </span>
+                <BrightnessBar value={brightness} />
+              </div>
+
+              {/* Dynamic Guidance Text */}
+              <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
+                <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
+                  <AnimatePresence mode="wait" initial={false}>
+                    {guidanceType === 'loading' ? (
+                      <motion.div
+                        key={`loading-${guidanceMessage}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className="flex items-center justify-center gap-2"
+                      >
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                        <span>{guidanceMessage}</span>
+                      </motion.div>
+                    ) : (
+                      <motion.div
+                        key={`msg-${guidanceMessage}`}
+                        initial={{ opacity: 0, y: 8 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -6 }}
+                        transition={{ duration: 0.25, ease: 'easeOut' }}
+                        className="flex items-center justify-center"
+                      >
+                        {guidanceMessage}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
-          </div>
-        )}
-        
-        {cameraState === 'preview' && capturedImage && (
-          <div className="relative w-full h-full flex items-center justify-center bg-black">
-            <img
-              src={capturedImage}
-              alt="Captured photo"
-              className="max-w-full max-h-full object-contain"
-              style={{
-                maxWidth: '100%',
-                maxHeight: '100%',
-                width: 'auto',
-                height: 'auto'
-              }}
-            />
-          </div>
-        )}
-        
-        {/* Hidden canvas for photo capture */}
-        <canvas ref={canvasRef} className="hidden" />
-        
-        {/* Hidden file input for photo upload */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleFileUpload}
-          className="hidden"
-          aria-label="Seleziona file immagine"
-        />
-      </div>
+          )}
+
+          {cameraState === 'preview' && capturedImage && (
+            <div className="relative w-full h-full flex items-center justify-center bg-black">
+              <img
+                src={capturedImage}
+                alt="Captured photo"
+                className="max-w-full max-h-full object-contain"
+                style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
+              />
+            </div>
+          )}
+
+          {/* Hidden canvas for photo capture */}
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/* Hidden file input for photo upload */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileUpload}
+            className="hidden"
+            aria-label="Seleziona file immagine"
+          />
+        </div>
       )}
 
       {/* Controls */}
       {!showDesktopGate && (
-      <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4">
-        {cameraState === 'live' && (
-          <>
+        <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4">
+          {cameraState === 'live' && (
             <div className="flex items-center justify-center gap-4 sm:gap-6">
-              {/* Switch Camera Button - Mobile optimized */}
               <button
                 onClick={switchCamera}
                 className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
@@ -1118,8 +910,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               >
                 <SwitchCameraIcon size={24} className="text-white" />
               </button>
-              
-              {/* Capture Button - Mobile optimized */}
+
               <button
                 onClick={capturePhoto}
                 className="p-4 sm:p-5 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 rounded-full transition-colors shadow-lg touch-manipulation min-w-[60px] min-h-[60px] sm:min-w-[70px] sm:min-h-[70px]"
@@ -1128,6 +919,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               >
                 <Camera size={28} className="text-white" />
               </button>
+
               <input
                 ref={fileInputRef}
                 type="file"
@@ -1136,7 +928,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 className="hidden"
                 aria-label="Seleziona file immagine"
               />
-              {/* Upload Button - Mobile optimized */}
               <button
                 onClick={openFileDialog}
                 className="p-3 sm:p-4 bg-white/20 hover:bg-white/30 rounded-full transition-colors touch-manipulation"
@@ -1146,33 +937,32 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 <Upload size={24} className="text-white" />
               </button>
             </div>
-          </>
-        )}
-        
-        {cameraState === 'preview' && (
-          <div className="flex items-center justify-center gap-3 sm:gap-4">
-            <button
-              onClick={retakePhoto}
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
-              title="Retake"
-              aria-label="Retake"
-            >
-              <Redo2 size={20} />
-              Retake
-            </button>
-            
-            <button
-              onClick={confirmPhoto}
-              className="px-6 py-3 sm:px-8 sm:py-4 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
-              title="Send"
-              aria-label="Usa questa foto per l'analisi"
-            >
-              <CheckCircle2 size={20} />
-              Send
-            </button>
-          </div>
-        )}
-      </div>
+          )}
+
+          {cameraState === 'preview' && (
+            <div className="flex items-center justify-center gap-3 sm:gap-4">
+              <button
+                onClick={retakePhoto}
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-gray-200 hover:bg-gray-300 active:bg-gray-400 text-gray-700 rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
+                title="Retake"
+                aria-label="Retake"
+              >
+                <Redo2 size={20} />
+                Retake
+              </button>
+
+              <button
+                onClick={confirmPhoto}
+                className="px-6 py-3 sm:px-8 sm:py-4 bg-primary-600 hover:bg-primary-700 active:bg-primary-800 text-white rounded-lg transition-colors flex items-center gap-2 touch-manipulation font-semibold"
+                title="Send"
+                aria-label="Usa questa foto per l'analisi"
+              >
+                <CheckCircle2 size={20} />
+                Send
+              </button>
+            </div>
+          )}
+        </div>
       )}
     </motion.div>
   );

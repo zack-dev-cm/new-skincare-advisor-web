@@ -34,7 +34,7 @@ export function startFaceApiBackgroundLoading(): void {
       // Ensure TFJS backend is initialized before face-api usage
       await ensureTfBackendReady();
       // Dynamic import non bloccante
-      const module = await import('face-api.js');
+      const module = await import('@vladmandic/face-api');
       cachedFaceApi = module;
       
       // Carica modelli da CDN in parallelo
