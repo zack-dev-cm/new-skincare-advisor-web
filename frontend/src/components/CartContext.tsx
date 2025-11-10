@@ -448,29 +448,15 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, []); // Empty dependency array - only runs once on mount
 
-  // Helper function to get Shopify domain dynamically
-  const getShopifyDomain = (): string => {
-    if (window.parent !== window) {
-      // For embedded apps, get domain from parent
-      try {
-        return window.parent.location.origin;
-      } catch (e) {
-        // If cross-origin, try to get from environment or fallback
-        return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
-          ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
-          : 'https://dermaself-dev.myshopify.com'; // fallback only
-      }
-    } else {
-      // For standalone apps, use current domain if it's Shopify
-      if (window.location.hostname.includes('myshopify.com')) {
-        return window.location.origin;
-      } else {
-        // Try to get from environment
-        return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
-          ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
-          : 'https://dermaself-dev.myshopify.com'; // fallback only
-      }
+  // Helper function to get full Shopify URL (with https://)
+  const getShopifyUrl = (): string => {
+    const domain = getShopifyDomain();
+    if (!domain) {
+      // Fallback for development/testing
+      return 'https://dermaself-dev.myshopify.com';
     }
+    // If domain doesn't start with http, add https://
+    return domain.startsWith('http') ? domain : `https://${domain}`;
   };
 
   // Helper function to extract numeric ID from GraphQL ID
@@ -924,12 +910,12 @@ export function CartProvider({ children }: CartProviderProps) {
         
         // Method 3: Get cart token from Shopify and navigate to checkout
         try {
-          const shopifyDomain = getShopifyDomain();
-          const cartResponse = await fetch(`${shopifyDomain}/cart.js`);
+          const shopifyUrl = getShopifyUrl();
+          const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
           const cart = await cartResponse.json();
           
           if (cart.token) {
-            const checkoutUrl = `${shopifyDomain}/checkout?token=${cart.token}`;
+            const checkoutUrl = `${shopifyUrl}/checkout?token=${cart.token}`;
             console.log('Navigating to checkout with cart token:', checkoutUrl);
             
             if (window.parent !== window) {
@@ -947,8 +933,8 @@ export function CartProvider({ children }: CartProviderProps) {
         
         // Method 4: Navigate to Shopify checkout directly
         console.log('Navigating to Shopify checkout directly');
-        const shopifyDomain = getShopifyDomain();
-        const shopifyCheckoutUrl = `${shopifyDomain}/checkout`;
+        const shopifyUrl = getShopifyUrl();
+        const shopifyCheckoutUrl = `${shopifyUrl}/checkout`;
         
         if (window.parent !== window) {
           console.log('Redirecting parent to Shopify checkout:', shopifyCheckoutUrl);
@@ -1033,8 +1019,8 @@ export function CartProvider({ children }: CartProviderProps) {
             hideCartToast();
             // Navigate to cart page
             if (typeof window !== 'undefined') {
-              const shopifyDomain = getShopifyDomain();
-              const cartUrl = `${shopifyDomain}/cart`;
+              const shopifyUrl = getShopifyUrl();
+              const cartUrl = `${shopifyUrl}/cart`;
               if (window.parent !== window) {
                 window.parent.location.href = cartUrl;
               } else {

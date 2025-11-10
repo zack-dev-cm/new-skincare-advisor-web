@@ -29,6 +29,13 @@ interface ShopifyProduct {
   updated_at: string;
 }
 
+interface StorefrontVariant {
+  id: string;
+  title: string;
+  price: string;
+  availableForSale: boolean;
+}
+
 interface TestResult {
   success: boolean;
   message: string;
@@ -51,6 +58,9 @@ export default function ShopifyTestPage() {
   const [detectedShop, setDetectedShop] = useState('');
   const [sessionStatus, setSessionStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
   const [selectedMarket, setSelectedMarket] = useState(MARKETS[0]);
+  const [randomVariants, setRandomVariants] = useState<StorefrontVariant[]>([]);
+  const [isLoadingVariants, setIsLoadingVariants] = useState(false);
+  const [cartTestResults, setCartTestResults] = useState<TestResult[]>([]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -80,7 +90,10 @@ export default function ShopifyTestPage() {
         throw new Error('Provide a shop domain (your-store.myshopify.com) and complete OAuth first.');
       }
 
-      const response = await fetch(`/api/shopify?shop=${encodeURIComponent(targetShop)}`, {
+      // Normalize shop domain - remove https:// if present
+      const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
+
+      const response = await fetch(`/api/shopify?shop=${encodeURIComponent(normalizedShop)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -137,6 +150,133 @@ export default function ShopifyTestPage() {
 
     setTestResults(results);
     setIsLoading(false);
+  };
+
+  const fetchRandomVariants = async () => {
+    setIsLoadingVariants(true);
+    setCartTestResults([]);
+    
+    try {
+      const targetShop = shopifyDomain || detectedShop;
+
+      if (!targetShop) {
+        throw new Error('Provide a shop domain first.');
+      }
+
+      // Normalize shop domain
+      const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
+
+      const response = await fetch(`/api/shopify/products/list?shop=${encodeURIComponent(normalizedShop)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || body.details || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.products && data.products.length > 0) {
+        // Collect all variants from all products
+        const allVariants: StorefrontVariant[] = [];
+        data.products.forEach((product: any) => {
+          if (product.variants && product.variants.length > 0) {
+            product.variants.forEach((variant: any) => {
+              allVariants.push({
+                id: variant.id,
+                title: `${product.title} - ${variant.title}`,
+                price: variant.price,
+                availableForSale: variant.availableForSale
+              });
+            });
+          }
+        });
+
+        // Select 3 random variants (or less if not enough)
+        const shuffled = allVariants.sort(() => 0.5 - Math.random());
+        const selected = shuffled.slice(0, Math.min(3, allVariants.length));
+        setRandomVariants(selected);
+
+        setCartTestResults([{
+          success: true,
+          message: 'Variants Loaded Successfully',
+          data: {
+            totalVariants: allVariants.length,
+            selectedVariants: selected.length
+          }
+        }]);
+      } else {
+        throw new Error('No products with variants found');
+      }
+    } catch (error) {
+      setCartTestResults([{
+        success: false,
+        message: 'Failed to Load Variants',
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }]);
+    } finally {
+      setIsLoadingVariants(false);
+    }
+  };
+
+  const testCartWithVariant = async (variantId: string, variantTitle: string) => {
+    const results: TestResult[] = [...cartTestResults];
+    
+    try {
+      const targetShop = shopifyDomain || detectedShop;
+
+      if (!targetShop) {
+        throw new Error('Provide a shop domain first.');
+      }
+
+      // Normalize shop domain
+      const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
+
+      const response = await fetch(`/api/shopify/cart?shop=${encodeURIComponent(normalizedShop)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          action: 'create_cart',
+          variantId: variantId,
+          quantity: 1
+        }),
+      });
+
+      if (!response.ok) {
+        const body = await response.json().catch(() => ({}));
+        throw new Error(body.error || body.details || `API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+
+      if (data.success && data.cart) {
+        results.push({
+          success: true,
+          message: `Cart Created with ${variantTitle}`,
+          data: {
+            cartId: data.cart.id,
+            itemsCount: data.cart.lines.edges.length,
+            checkoutUrl: data.cart.checkoutUrl
+          }
+        });
+      } else {
+        throw new Error('Cart creation failed');
+      }
+    } catch (error) {
+      results.push({
+        success: false,
+        message: `Cart Test Failed for ${variantTitle}`,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+    
+    setCartTestResults(results);
   };
 
   return (
@@ -231,6 +371,81 @@ export default function ShopifyTestPage() {
                 /embed-fast?locale={selectedMarket.locale}&currency={selectedMarket.currency}&market={selectedMarket.market}&country={selectedMarket.country}&shop=your-store.myshopify.com
               </code>
             </div>
+          </div>
+
+          {/* Cart & Variants Test Section */}
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold mb-3">Cart API Test with Real Variants</h2>
+            <p className="text-sm text-gray-600 mb-4">
+              Load random product variants from your store and test cart creation with the Storefront API.
+            </p>
+            <button
+              onClick={fetchRandomVariants}
+              disabled={isLoadingVariants || !shopifyDomain}
+              className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+            >
+              {isLoadingVariants ? <Loader2 className="w-5 h-5 animate-spin" /> : <ShoppingBag className="w-5 h-5" />}
+              <span>Load Random Variants</span>
+            </button>
+
+            {randomVariants.length > 0 && (
+              <div className="mt-4 space-y-3">
+                <h3 className="font-semibold text-gray-700">Random Variants from Store:</h3>
+                {randomVariants.map((variant, index) => (
+                  <div key={variant.id} className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1">
+                        <p className="font-medium text-gray-900">{variant.title}</p>
+                        <p className="text-sm text-gray-600">Price: {variant.price}</p>
+                        <p className="text-xs text-gray-500 font-mono mt-1">{variant.id}</p>
+                        <span className={`inline-block mt-2 text-xs px-2 py-1 rounded ${variant.availableForSale ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                          {variant.availableForSale ? 'Available' : 'Not Available'}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => testCartWithVariant(variant.id, variant.title)}
+                        disabled={!variant.availableForSale}
+                        className="ml-4 flex items-center space-x-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        <span>Test Cart</span>
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {cartTestResults.length > 0 && (
+              <div className="mt-4">
+                <h3 className="font-semibold text-gray-700 mb-2">Cart Test Results:</h3>
+                <div className="space-y-2">
+                  {cartTestResults.map((result, index) => (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg border ${
+                        result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-center space-x-2 mb-1">
+                        {result.success ? (
+                          <CheckCircle className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-red-600" />
+                        )}
+                        <span className="font-medium text-sm">{result.message}</span>
+                      </div>
+                      {result.data && (
+                        <div className="text-xs text-gray-600 ml-6">
+                          <pre className="bg-white p-2 rounded border overflow-x-auto">{JSON.stringify(result.data, null, 2)}</pre>
+                        </div>
+                      )}
+                      {result.error && <p className="text-xs text-red-600 ml-6">{result.error}</p>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex flex-wrap gap-4 mb-6">
