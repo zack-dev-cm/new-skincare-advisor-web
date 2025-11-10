@@ -1,12 +1,15 @@
 "use client";
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 
 interface LoadingStepProps {
   // Add any props you might need for loading state
 }
 
 export default function LoadingStep({}: LoadingStepProps) {
+  const { t } = useTranslation();
+  
   return (
     <motion.div
       key="loading"
@@ -19,9 +22,9 @@ export default function LoadingStep({}: LoadingStepProps) {
         <div className="loader__wrapper">
           <div className="loader">&nbsp;</div>
         </div>
-        <h2 className="text-xl font-bold text-gray-900 mb-2 mt-4">Analizzando la Tua Foto</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2 mt-4">{t('steps:loading.analyzing')}</h2>
         <p className="text-gray-600 text-center max-w-md">
-          La nostra AI sta analizzando la tua pelle e creando raccomandazioni personalizzate...
+          {t('steps:loading.processing')}
         </p>
       </div>
     </motion.div>

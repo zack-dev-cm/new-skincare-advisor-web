@@ -14,5 +14,8 @@
   },
   "engines": {
     "node": ">=20.9.0"
+  },
+  "dependencies": {
+    "openssl": "^2.0.0"
   }
 }

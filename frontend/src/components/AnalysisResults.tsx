@@ -9,6 +9,8 @@ import { useCart } from './CartContext';
 import { fetchProductsByVariantIds, TransformedProduct } from '../lib/shopify-product-fetcher';
 import { translateModuleName } from '../lib/moduleTranslations';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '../lib/LocaleContext';
 
 interface AnalysisResultsProps {
   result: AnalysisResult;
@@ -16,6 +18,8 @@ interface AnalysisResultsProps {
 }
 
 export default function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
+  const { t } = useTranslation();
+  const { formatCurrency } = useLocale();
   const { addToCart, state } = useCart();
   const [routineSteps, setRoutineSteps] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -261,10 +265,10 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         className="text-center"
       >
         <h2 className="text-3xl font-bold text-gray-900 mb-2">
-          I Risultati della Tua Analisi della Pelle
+          {t('analysis:results.title')}
         </h2>
         <p className="text-gray-600">
-          Basato sull'analisi AI della tua pelle, ecco le tue intuizioni personalizzate
+          {t('analysis:results.subtitle')}
         </p>
       </motion.div>
 
@@ -306,7 +310,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
             {/* Health Score */}
             <div className="text-center">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Salute Generale della Pelle
+                {t('analysis:results.health_score')}
               </h3>
               <div className={`text-4xl font-bold mb-2 ${getHealthScoreColor(result.overallHealth)}`}>
                 {result.overallHealth}%
@@ -321,9 +325,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                 ></div>
               </div>
               <p className="text-sm text-gray-600">
-                {result.overallHealth >= 80 ? 'Eccellente salute della pelle!' :
-                 result.overallHealth >= 60 ? 'Buona salute della pelle con margine di miglioramento' :
-                 'Alcune preoccupazioni rilevate - vedi le raccomandazioni qui sotto'}
+                {result.overallHealth >= 80 ? t('analysis:results.health_excellent') :
+                 result.overallHealth >= 60 ? t('analysis:results.health_good') :
+                 t('analysis:results.health_needs_attention')}
               </p>
             </div>
           </div>
@@ -339,13 +343,13 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           {/* Skin Concerns */}
           <div className="card">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Preoccupazioni della Pelle Rilevate
+              {t('analysis:concerns.title')}
             </h3>
             
             {result.concerns.length === 0 ? (
               <div className="text-center py-8">
                 <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
-                <p className="text-gray-600">Nessuna preoccupazione significativa della pelle rilevata!</p>
+                <p className="text-gray-600">{t('analysis:concerns.no_concerns')}</p>
               </div>
             ) : (
               <div className="space-y-4">
@@ -369,10 +373,10 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                       </div>
                       <div className="text-right">
                         <div className="text-sm font-medium text-gray-900">
-                          {Math.round(concern.confidence)}% confidenza
+                          {Math.round(concern.confidence)}% {t('analysis:concerns.confidence')}
                         </div>
                         <div className={`text-xs px-2 py-1 rounded-full ${getSeverityColor(concern.severity)}`}>
-                          gravità {concern.severity}
+                          {t('analysis:concerns.severity.' + concern.severity)}
                         </div>
                       </div>
                     </div>
@@ -385,7 +389,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           {/* Text Recommendations */}
           <div className="card">
             <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Raccomandazioni Personalizzate
+              {t('analysis:recommendations.title')}
             </h3>
             
             <div className="space-y-3">
@@ -413,7 +417,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                   <p className="text-gray-700">
                     {typeof result.recommendations === 'string' 
                       ? result.recommendations 
-                      : 'Routine personalizzata generata basata sulla tua analisi'}
+                      : t('analysis:recommendations.default')}
                   </p>
                 </motion.div>
               )}
@@ -432,23 +436,23 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         >
           <div className="text-center">
             <h3 className="text-2xl font-bold text-gray-900 mb-2">
-              La Tua Routine di Cura della Pelle Personalizzata
+              {t('analysis:routine.title')}
             </h3>
             <p className="text-gray-600">
-              Basato sulla tua analisi della pelle, ecco i prodotti che raccomandiamo per la tua routine
+              {t('analysis:routine.subtitle')}
             </p>
             {isLoadingProducts ? (
               <div className="mt-4 p-4 bg-primary-50 rounded-lg">
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-4 h-4 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-sm text-primary-700">Caricamento prodotti da Shopify...</p>
+                  <p className="text-sm text-primary-700">{t('analysis:routine.loading')}</p>
                 </div>
               </div>
             ) : (
               <div className="mt-4 p-4 bg-primary-50 rounded-lg">
                 <p className="text-sm text-primary-700">
-                  Trovati {routineSteps.length} prodotti principali e{' '}
-                  {routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0)} prodotti alternativi
+                  {t('analysis:routine.found_products', { count: routineSteps.length })} {' '}
+                  {t('analysis:routine.found_alternatives', { count: routineSteps.reduce((total: number, step: any) => total + step.alternativeProducts.length, 0) })}
                 </p>
               </div>
             )}
@@ -486,7 +490,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
               className="card"
             >
               <h4 className="text-xl font-semibold text-gray-900 mb-4">
-                Prodotti Alternativi
+                {t('products:alternative_products')}
               </h4>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {routineSteps.map((step: any, stepIndex: number) => 
@@ -509,10 +513,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                         <h5 className="font-semibold text-gray-900 mb-1">{product.title}</h5>
                         <p className="text-sm text-gray-600 mb-2">{product.vendor}</p>
                         <p className="text-lg font-bold text-gray-900 mb-3">
-                          {new Intl.NumberFormat('en-US', {
-                            style: 'currency',
-                            currency: (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) ? (window as any).Shopify.currency.active : 'USD',
-                          }).format(parseFloat(product.variants[0]?.price || '0'))}
+                          {formatCurrency(parseFloat(product.variants[0]?.price || '0'))}
                         </p>
                         <button 
                           onClick={() => handleAddAlternativeToCart(product)}
@@ -524,7 +525,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                           ) : (
                             <ShoppingCart className="w-4 h-4" />
                           )}
-                          <span>{state.loading ? 'Aggiungendo...' : 'Aggiungi al Carrello'}</span>
+                          <span>{state.loading ? t('products:cart.adding') : t('products:cart.add_to_cart')}</span>
                         </button>
                       </div>
                     </motion.div>
@@ -548,17 +549,17 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
           className="btn-secondary"
         >
           <ArrowLeft className="w-5 h-5 mr-2" />
-          Nuova Analisi
+          {t('common:buttons.new_analysis')}
         </button>
         
         <button className="btn-secondary">
           <Share2 className="w-5 h-5 mr-2" />
-          Condividi Risultati
+          {t('common:buttons.share')}
         </button>
         
         <button className="btn-primary">
           <Download className="w-5 h-5 mr-2" />
-          Scarica Report
+          {t('common:buttons.download')}
         </button>
       </motion.div>
 
@@ -570,8 +571,7 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
         className="text-center text-xs text-gray-500 bg-gray-50 p-4 rounded-lg"
       >
         <p>
-          Questa analisi è solo a scopo informativo e non deve sostituire il consiglio medico professionale. 
-          Consulta sempre un dermatologo per le preoccupazioni mediche.
+          {t('analysis:disclaimer')}
         </p>
       </motion.div>
     </div>

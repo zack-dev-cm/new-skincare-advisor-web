@@ -1,0 +1,10 @@
+# Non committare file con variabili di ambiente esportate
+*.json
+!README.md
+
+# Backup files
+*.bak
+backup-*.json
+*-export.json
+azure-env-*.json
+

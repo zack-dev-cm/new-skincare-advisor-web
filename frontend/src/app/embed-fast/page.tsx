@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 import { startBackgroundLoading } from '@/lib/backgroundLoader';
+import i18n from '@/lib/i18n';
 
 /**
  * ULTRA-FAST EMBED PAGE
@@ -27,15 +28,23 @@ export default function FastEmbedPage() {
     
     console.log('🚀 Fast embed: Modal opened immediately, background loading started');
     
-    // Also try to read query parameters (fallback for old implementations)
+    // Read query parameters for market, locale, currency
     const urlParams = new URLSearchParams(window.location.search);
     const shop = urlParams.get('shop');
     const locale = urlParams.get('locale');
     const currency = urlParams.get('currency');
+    const market = urlParams.get('market');
+    const country = urlParams.get('country');
     
-    if (shop || locale || currency) {
-      setStoreData({ shop, locale, currency });
-      console.log('Store data from URL params:', { shop, locale, currency });
+    // Change i18n language if locale param is provided
+    if (locale && ['it', 'es', 'en'].includes(locale) && i18n.language !== locale) {
+      i18n.changeLanguage(locale);
+      console.log('🌍 Language changed to:', locale);
+    }
+    
+    if (shop || locale || currency || market || country) {
+      setStoreData({ shop, locale, currency, market, country });
+      console.log('Store data from URL params:', { shop, locale, currency, market, country });
     }
   }, []);
 

@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Loader2, CheckCircle } from 'lucide-react';
 import { useCart } from './CartContext';
 import { TransformedProduct } from '../lib/shopify-product-fetcher';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '../lib/LocaleContext';
 
 interface SkincareRoutineCardProps {
   categoryTitle: string;
@@ -25,6 +27,8 @@ export default function SkincareRoutineCard({
   showAddAllButton = false,
   onAddAllToCart
 }: SkincareRoutineCardProps) {
+  const { t } = useTranslation();
+  const { formatCurrency } = useLocale();
   const { addToCart, state } = useCart();
   const [isExpanded, setIsExpanded] = useState(true);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -99,19 +103,8 @@ export default function SkincareRoutineCard({
     }
   };
 
-  const getActiveCurrency = (): string => {
-    try {
-      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
-    } catch {}
-    return 'USD';
-  };
-
   const formatPrice = (price: string) => {
-    const currency = getActiveCurrency();
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(parseFloat(price));
+    return formatCurrency(parseFloat(price));
   };
 
 
@@ -208,7 +201,7 @@ export default function SkincareRoutineCard({
                       disabled={state.loading}
                       className="w-full bg-primary-600 text-white py-1 px-2 rounded text-xs hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {state.loading ? 'Aggiungendo...' : 'Aggiungi al Carrello'}
+                      {state.loading ? t('products:cart.adding') : t('products:cart.add_to_cart')}
                     </button>
                   </div>
                 ))}

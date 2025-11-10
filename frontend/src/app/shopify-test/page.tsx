@@ -36,6 +36,13 @@ interface TestResult {
   error?: string;
 }
 
+const MARKETS = [
+  { name: 'Italy', locale: 'it', currency: 'EUR', market: 'italy', country: 'IT' },
+  { name: 'Spain', locale: 'es', currency: 'EUR', market: 'spain', country: 'ES' },
+  { name: 'United Kingdom', locale: 'en', currency: 'GBP', market: 'united-kingdom', country: 'GB' },
+  { name: 'United States', locale: 'en', currency: 'USD', market: 'united-states', country: 'US' },
+];
+
 export default function ShopifyTestPage() {
   const [testResults, setTestResults] = useState<TestResult[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,6 +50,7 @@ export default function ShopifyTestPage() {
   const [shopifyDomain, setShopifyDomain] = useState('');
   const [detectedShop, setDetectedShop] = useState('');
   const [sessionStatus, setSessionStatus] = useState<'unknown' | 'authenticated' | 'unauthenticated'>('unknown');
+  const [selectedMarket, setSelectedMarket] = useState(MARKETS[0]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -189,6 +197,42 @@ export default function ShopifyTestPage() {
             </div>
           </div>
 
+          {/* Market Selector */}
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <h2 className="text-lg font-semibold mb-3">Market & Localization Test</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Select Market</label>
+                <select
+                  value={MARKETS.findIndex(m => m.market === selectedMarket.market)}
+                  onChange={(e) => setSelectedMarket(MARKETS[parseInt(e.target.value)])}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500"
+                >
+                  {MARKETS.map((market, index) => (
+                    <option key={market.market} value={index}>
+                      {market.name} ({market.currency})
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="bg-gray-50 p-4 rounded-md">
+                <h3 className="text-sm font-semibold text-gray-700 mb-2">Current Market Settings:</h3>
+                <div className="space-y-1 text-sm">
+                  <p><span className="font-medium">Locale:</span> {selectedMarket.locale}</p>
+                  <p><span className="font-medium">Currency:</span> {selectedMarket.currency}</p>
+                  <p><span className="font-medium">Market:</span> {selectedMarket.market}</p>
+                  <p><span className="font-medium">Country:</span> {selectedMarket.country}</p>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4">
+              <p className="text-sm text-gray-600 mb-2">Test URL with market params:</p>
+              <code className="block bg-gray-100 p-3 rounded text-sm overflow-x-auto">
+                /embed-fast?locale={selectedMarket.locale}&currency={selectedMarket.currency}&market={selectedMarket.market}&country={selectedMarket.country}&shop=your-store.myshopify.com
+              </code>
+            </div>
+          </div>
+
           <div className="flex flex-wrap gap-4 mb-6">
             <a
               href={authUrl || '#'}
@@ -250,6 +294,34 @@ export default function ShopifyTestPage() {
               </div>
             </div>
           )}
+
+          {/* Currency Formatting Demo */}
+          <div className="mt-6 mb-6 p-6 bg-blue-50 rounded-lg border border-blue-200">
+            <h3 className="text-lg font-semibold mb-4 text-blue-900">Currency Formatting Test</h3>
+            <p className="text-sm text-blue-700 mb-4">
+              Sample price formatted for current market: <span className="font-mono font-bold">{selectedMarket.locale}</span>
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white p-4 rounded border">
+                <p className="text-sm text-gray-600 mb-2">Amount: 49.99</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {new Intl.NumberFormat(
+                    selectedMarket.locale === 'en' ? 'en-US' : selectedMarket.locale === 'es' ? 'es-ES' : 'it-IT',
+                    { style: 'currency', currency: selectedMarket.currency }
+                  ).format(49.99)}
+                </p>
+              </div>
+              <div className="bg-white p-4 rounded border">
+                <p className="text-sm text-gray-600 mb-2">Amount: 125.50</p>
+                <p className="text-2xl font-bold text-gray-900">
+                  {new Intl.NumberFormat(
+                    selectedMarket.locale === 'en' ? 'en-US' : selectedMarket.locale === 'es' ? 'es-ES' : 'it-IT',
+                    { style: 'currency', currency: selectedMarket.currency }
+                  ).format(125.50)}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {products.length > 0 && (
             <div className="mt-6">

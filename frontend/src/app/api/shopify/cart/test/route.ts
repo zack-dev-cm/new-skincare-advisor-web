@@ -46,13 +46,16 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    // Test Shopify API connection
+    // Test Shopify Storefront API connection
+    // Using a simple products query that works with Storefront API
     const testQuery = `
       query {
-        shop {
-          name
-          primaryDomain {
-            url
+        products(first: 1) {
+          edges {
+            node {
+              id
+              title
+            }
           }
         }
       }
@@ -90,7 +93,8 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      shop: data.data.shop,
+      message: 'Storefront API connection successful',
+      productsCount: data.data.products.edges.length,
       envCheck
     });
 

@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 import Image from 'next/image';
+import { useTranslation } from 'react-i18next';
 
 interface OnboardingStepProps {
   onNext: () => void;
@@ -11,6 +12,7 @@ interface OnboardingStepProps {
 }
 
 export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps) {
+  const { t } = useTranslation();
   const [consentGiven, setConsentGiven] = useState(false);
 
   return (
@@ -25,21 +27,21 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
       {/* Main content */}
       <div className="flex flex-col justify-center text-center m-8 mt-auto bg-white/50 backdrop-blur-sm rounded-lg p-8 overflow-y-auto h-fit">
         <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
-          Scopri la Tua Routine di Cura della Pelle Perfetta con Analisi Powered by AI
+          {t('steps:onboarding.welcome')}
         </h1>
         
         <div className="text-gray-600 mb-8 space-y-4">
           <p className="text-sm leading-relaxed">
-            Utilizzando questo servizio, accetti la nostra{' '}
+            {t('steps:onboarding.privacy_text')}{' '}
             <a 
               href="https://dermaself.it/pages/privacy-policy" 
               target="_blank" 
               rel="noopener noreferrer"
               className="text-primary-600 hover:text-primary-700 underline"
             >
-              Informativa sulla Privacy
+              {t('steps:onboarding.privacy_link')}
             </a>
-            . I tuoi dati saranno elaborati in modo sicuro e utilizzati solo per fornire raccomandazioni personalizzate per la cura della pelle.
+            . {t('steps:onboarding.privacy_detail')}
           </p>
         </div>
 
@@ -53,7 +55,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
             />
             <span className="text-sm text-gray-700">
-              Acconsento al trattamento dei miei dati personali per ricevere raccomandazioni personalizzate per la cura della pelle.
+              {t('steps:onboarding.consent_text')}
             </span>
           </label>
         </div>
@@ -74,7 +76,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileHover={consentGiven ? { scale: 1.02 } : {}}
           whileTap={consentGiven ? { scale: 0.98 } : {}}
         >
-          <span>Inizia Analisi</span>
+          <span>{t('common:buttons.start_analysis')}</span>
         </motion.button>
         {/* Fake login button */}
         <motion.button
@@ -83,7 +85,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
-          <span>Accedi con</span>
+          <span>{t('steps:onboarding.login_with')}</span>
           <div className="flex items-center">
             <span className="text-sm font-semibold text-primary-600">Dermaself</span>
           </div>

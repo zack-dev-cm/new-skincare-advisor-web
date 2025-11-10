@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ShoppingCart, Plus, Minus, Loader2, CheckCircle } from 'lucide-react';
 import { useCart } from './CartContext';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '../lib/LocaleContext';
 
 interface ProductVariant {
   id: string | number;
@@ -36,6 +38,8 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
+  const { t } = useTranslation();
+  const { formatCurrency } = useLocale();
   const { addToCart, state } = useCart();
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(
     product.variants[0] || null
@@ -79,20 +83,8 @@ export default function ProductCard({ product }: ProductCardProps) {
     }
   };
 
-  const getActiveCurrency = (): string => {
-    try {
-      if (state?.cart?.cost?.totalAmount?.currencyCode) return state.cart.cost.totalAmount.currencyCode;
-      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
-    } catch {}
-    return 'USD';
-  };
-
   const formatPrice = (price: string) => {
-    const currency = getActiveCurrency();
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(parseFloat(price));
+    return formatCurrency(parseFloat(price));
   };
 
   const isVariantAvailable = (variant: ProductVariant) => {
@@ -129,7 +121,7 @@ export default function ProductCard({ product }: ProductCardProps) {
           >
             <div className="text-white text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-              <p className="font-semibold">Aggiunto al Carrello!</p>
+              <p className="font-semibold">{t('products:cart.added')}</p>
             </div>
           </motion.div>
         )}
@@ -153,7 +145,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {product.variants.length > 1 && (
           <div className="mb-3">
             <label htmlFor="variant-select" className="block text-sm font-medium text-gray-700 mb-2">
-              Variant
+              {t('products:price.variant')}
             </label>
             <select
               id="variant-select"
@@ -171,7 +163,7 @@ export default function ProductCard({ product }: ProductCardProps) {
                   disabled={!isVariantAvailable(variant)}
                 >
                   {variant.title} - {formatPrice(variant.price)}
-                  {!isVariantAvailable(variant) && ' (Out of Stock)'}
+                  {!isVariantAvailable(variant) && ` (${t('products:price.out_of_stock')})`}
                 </option>
               ))}
             </select>
@@ -181,7 +173,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         {/* Quantity Selector */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Quantità
+            {t('products:price.quantity')}
           </label>
           <div className="flex items-center space-x-2">
             <button
@@ -228,12 +220,12 @@ export default function ProductCard({ product }: ProductCardProps) {
           )}
           <span>
             {isAddingToCart
-              ? 'Aggiungendo...'
+              ? t('products:cart.adding')
               : !selectedVariant
-              ? 'Seleziona Variante'
+              ? t('products:price.select_variant')
               : !isVariantAvailable(selectedVariant)
-              ? 'Esaurito'
-              : 'Aggiungi al Carrello'}
+              ? t('products:price.out_of_stock')
+              : t('products:cart.add_to_cart')}
           </span>
         </button>
 

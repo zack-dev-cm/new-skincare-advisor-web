@@ -5,6 +5,8 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Loader2, CheckCircle, Trash2, Info, X } from 'lucide-react';
 import { useCart } from './CartContext';
 import { translateModuleName } from '../lib/moduleTranslations';
+import { useTranslation } from 'react-i18next';
+import { useLocale } from '../lib/LocaleContext';
 
 interface ProductVariant {
   id: string | number;
@@ -60,6 +62,8 @@ export default function RoutineProductCard({
   alternativesExpanded = false,
   onToggleAlternatives
 }: RoutineProductCardProps) {
+  const { t } = useTranslation();
+  const { formatCurrency } = useLocale();
   
   // Optimize Shopify CDN image URLs to requested width for faster loads
   const getOptimizedImageUrl = (url?: string, width: number = 160): string => {
@@ -205,20 +209,8 @@ export default function RoutineProductCard({
   };
 
 
-  const getActiveCurrency = (): string => {
-    try {
-      if (state?.cart?.cost?.totalAmount?.currencyCode) return state.cart.cost.totalAmount.currencyCode;
-      if (typeof window !== 'undefined' && (window as any)?.Shopify?.currency?.active) return (window as any).Shopify.currency.active;
-    } catch {}
-    return 'USD';
-  };
-
   const formatPrice = (price: string) => {
-    const currency = getActiveCurrency();
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency,
-    }).format(parseFloat(price));
+    return formatCurrency(parseFloat(price));
   };
 
   const isVariantAvailable = (variant: ProductVariant) => {
@@ -296,7 +288,7 @@ export default function RoutineProductCard({
               </div>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
                 <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                  {selectedVariant ? formatPrice(selectedVariant.price) : new Intl.NumberFormat('en-US', { style: 'currency', currency: getActiveCurrency() }).format(0)}
+                  {selectedVariant ? formatPrice(selectedVariant.price) : formatCurrency(0)}
                 </span>
                 {(() => {
                   const ratingValue = (product as any).rating ?? (product as any).rating_value;
@@ -355,17 +347,17 @@ export default function RoutineProductCard({
               {isLoading || state.loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  <span aria-live="polite">{isInCart ? 'Rimuovendo...' : 'Aggiungendo...'}</span>
+                  <span aria-live="polite">{isInCart ? t('products:cart.adding') : t('products:cart.adding')}</span>
                 </>
               ) : isInCart ? (
                 <>
                   <Trash2 className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">Rimuovi dal Carrello</span>
+                  <span aria-live="polite">{t('products:cart.remove')}</span>
                 </>
               ) : (
                 <>
                   <ShoppingCart className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">Aggiungi al Carrello</span>
+                  <span aria-live="polite">{t('products:cart.add_to_cart')}</span>
                 </>
               )}
             </button>
@@ -409,7 +401,7 @@ export default function RoutineProductCard({
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
                           {alt.variants?.[0]?.price && (
                             <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                              {new Intl.NumberFormat('en-US',{style:'currency',currency:getActiveCurrency()}).format(parseFloat(alt.variants[0].price))}
+                              {formatCurrency(parseFloat(alt.variants[0].price))}
                             </div>
                           )}
                         </div>
@@ -585,7 +577,7 @@ export default function RoutineProductCard({
                 {/* Price */}
                 <div>
                   <p className="text-xl font-bold text-primary-600">
-                    {selectedVariant ? formatPrice(selectedVariant.price) : new Intl.NumberFormat('en-US', { style: 'currency', currency: getActiveCurrency() }).format(0)}
+                    {selectedVariant ? formatPrice(selectedVariant.price) : formatCurrency(0)}
                   </p>
                 </div>
 
