@@ -1,47 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server';
-
-const SHOPIFY_ACCESS_TOKEN = process.env.NEXT_PUBLIC_SHOPIFY_ACCESS_TOKEN;
-const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN;
+import { getShopifySession } from '../../../lib/shopify-session-store';
+import { validateShopParameter } from '../../../lib/shopify-oauth';
 
 export async function GET(request: NextRequest) {
   try {
-    // Debug logging
-    console.log('🔍 Debug Info:');
-    console.log('SHOPIFY_DOMAIN:', SHOPIFY_DOMAIN);
-    console.log('SHOPIFY_ACCESS_TOKEN exists:', !!SHOPIFY_ACCESS_TOKEN);
-    console.log('SHOPIFY_ACCESS_TOKEN starts with shpat_:', SHOPIFY_ACCESS_TOKEN?.startsWith('shpat_'));
-    
-    if (!SHOPIFY_ACCESS_TOKEN || !SHOPIFY_DOMAIN) {
-      console.log('❌ Missing credentials');
+    const sessionResolution = resolveSession(request);
+    if (!sessionResolution.ok) {
       return NextResponse.json(
-        { error: 'Missing Shopify credentials' },
-        { status: 500 }
+        { error: sessionResolution.error, details: sessionResolution.details },
+        { status: sessionResolution.status }
       );
     }
 
-    // Use Admin API with access token
-    const url = `https://${SHOPIFY_DOMAIN}/admin/api/2024-01/products.json`;
-    console.log('🌐 Making request to:', url);
-    
-    const response = await fetch(url, {
+    const { shop, accessToken } = sessionResolution.session;
+    const response = await fetch(`https://${shop}/admin/api/2024-01/products.json`, {
       headers: {
-        'X-Shopify-Access-Token': SHOPIFY_ACCESS_TOKEN,
+        'X-Shopify-Access-Token': accessToken,
         'Content-Type': 'application/json',
       },
     });
 
-    console.log('📡 Response status:', response.status);
-    console.log('📡 Response headers:', Object.fromEntries(response.headers.entries()));
-
     if (!response.ok) {
       const errorText = await response.text();
-      console.log('❌ Error response body:', errorText);
-      throw new Error(`Shopify API error: ${response.status} ${response.statusText}`);
+      throw new Error(`Shopify API error: ${response.status} ${response.statusText} - ${errorText}`);
     }
 
     const data = await response.json();
-    console.log('✅ Success! Products found:', data.products?.length || 0);
-    
+
     return NextResponse.json({
       success: true,
       products: data.products,
@@ -65,10 +50,11 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { action, productId, variantId, quantity } = body;
 
-    if (!SHOPIFY_ACCESS_TOKEN || !SHOPIFY_DOMAIN) {
+    const sessionResolution = resolveSession(request);
+    if (!sessionResolution.ok) {
       return NextResponse.json(
-        { error: 'Missing Shopify credentials' },
-        { status: 500 }
+        { error: sessionResolution.error, details: sessionResolution.details },
+        { status: sessionResolution.status }
       );
     }
 
@@ -98,3 +84,29 @@ export async function POST(request: NextRequest) {
     );
   }
 } 
+
+function resolveSession(request: NextRequest):
+  | { ok: true; session: { shop: string; accessToken: string } }
+  | { ok: false; status: number; error: string; details?: string } {
+  const shop =
+    request.nextUrl.searchParams.get('shop') ||
+    request.headers.get('x-shopify-shop-domain') ||
+    request.headers.get('x-shopify-shop') ||
+    request.cookies.get('ds_shopify_shop')?.value;
+
+  if (!validateShopParameter(shop)) {
+    return { ok: false, status: 400, error: 'Missing or invalid shop identifier' };
+  }
+
+  const session = getShopifySession(shop!);
+  if (!session) {
+    return {
+      ok: false,
+      status: 401,
+      error: 'Shop not authenticated',
+      details: 'Start OAuth at /api/shopify/auth/start?shop=your-store.myshopify.com',
+    };
+  }
+
+  return { ok: true, session: { shop: session.shop, accessToken: session.accessToken } };
+}

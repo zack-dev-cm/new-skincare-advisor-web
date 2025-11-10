@@ -1,8 +1,20 @@
 'use client';
 
-import React, { createContext, useContext, useReducer, useEffect, useState, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useReducer,
+  useEffect,
+  useState,
+  ReactNode,
+  useRef,
+  useCallback,
+} from 'react';
+import { Cart as AppBridgeCart } from '@shopify/app-bridge/actions';
 import CartToast from './CartToast';
 import BottomToolbar from './BottomToolbar';
+import { getAppBridge, getAuthenticatedFetch } from '../lib/app-bridge-client';
+import { getShopifyDomain } from '../lib/shopify';
 
 // Types
 export interface CartItem {
@@ -176,9 +188,35 @@ interface CartProviderProps {
 export function CartProvider({ children }: CartProviderProps) {
   const [state, dispatch] = useReducer(cartReducer, initialState);
   const [lastSuccessModalTime, setLastSuccessModalTime] = useState<number>(0);
+  const shopDomainRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      shopDomainRef.current = getShopifyDomain() || null;
+    }
+  }, []);
+
+  const performCartRequest = useCallback(async (payload: Record<string, unknown>) => {
+    const fetchImpl = getAuthenticatedFetch();
+    const executor = fetchImpl ?? fetch;
+    const shop = shopDomainRef.current;
+    const url = shop ? `/api/shopify/cart?shop=${encodeURIComponent(shop)}` : '/api/shopify/cart';
+
+    return executor(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify(payload),
+    });
+  }, []);
 
   // Check if we're in a Shopify environment
   const isShopifyEnvironment = () => {
+    if (getAppBridge()) {
+      return true;
+    }
     if (typeof window !== 'undefined') {
       const isShopify = window.parent !== window || 
              window.location.hostname.includes('myshopify.com') ||
@@ -222,6 +260,10 @@ export function CartProvider({ children }: CartProviderProps) {
 
   // Listen for cart updates from Shopify integration
   useEffect(() => {
+    if (getAppBridge()) {
+      return;
+    }
+
     const handleMessage = (event: MessageEvent) => {
       console.log('CartContext received message:', event.data);
       
@@ -461,18 +503,70 @@ export function CartProvider({ children }: CartProviderProps) {
   };
 
   // Helper function to refresh cart from server
-  const refreshCart = async () => {
-    if (!state.cart) return;
-    
+  const refreshCart = useCallback(async () => {
+    const cartId = state.cart?.id;
+    if (!cartId) return;
+
     try {
-      // Cart will be updated via webhook - no need for manual refresh
-      console.log('Cart refresh requested - webhook will handle this');
+      const response = await performCartRequest({
+        action: 'get_cart',
+        cartId,
+      });
+
+      if (!response.ok) {
+        console.error('Failed to refresh cart:', await response.text());
+        return;
+      }
+
+      const data = await response.json();
+      if (data.success && data.cart) {
+        const transformedCart: Cart = {
+          id: data.cart.id,
+          checkoutUrl: data.cart.checkoutUrl,
+          lines: data.cart.lines.edges.map((edge: any) => ({
+            id: edge.node.id,
+            quantity: edge.node.quantity,
+            merchandise: {
+              id: edge.node.merchandise.id,
+              title: edge.node.merchandise.title,
+              price: edge.node.merchandise.price,
+              product: {
+                title: edge.node.merchandise.product.title,
+                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
+                  url: imgEdge.node.url,
+                  altText: imgEdge.node.altText,
+                })),
+              },
+            },
+            attributes: edge.node.attributes || [],
+          })),
+          cost: data.cart.cost,
+        };
+
+        dispatch({ type: 'SET_CART', payload: transformedCart });
+      }
     } catch (error) {
       console.error('Failed to refresh cart:', error);
     }
-  };
+  }, [performCartRequest, state.cart?.id]);
 
-  const addToCart = async (variantId: string, quantity: number = 1, customAttributes?: Array<{key: string, value: string}>, productInfo?: {name: string; image: string; price: number}) => {
+  useEffect(() => {
+    const app = getAppBridge();
+    if (!app) return;
+    const unsubscribe = app.subscribe(AppBridgeCart.Action.UPDATE, () => {
+      refreshCart();
+    });
+    return () => {
+      unsubscribe();
+    };
+  }, [refreshCart]);
+
+  const addToCart = async (
+    variantId: string,
+    quantity: number = 1,
+    customAttributes?: Array<{ key: string; value: string }>,
+    productInfo?: { name: string; image: string; price: number }
+  ) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
@@ -487,99 +581,29 @@ export function CartProvider({ children }: CartProviderProps) {
         }
       ];
 
-      // If in Shopify environment, try to use native cart API first
-      if (isShopifyEnvironment() && typeof window !== 'undefined') {
-        // Try to communicate with parent Shopify page
-        if (window.parent !== window) {
-          console.log('Adding to cart via parent Shopify page');
-          window.parent.postMessage({
-            type: 'SHOPIFY_ADD_TO_CART',
-            payload: { 
-              variantId,
-              quantity,
-              customAttributes: enhancedAttributes,
-              tracking: 'recommended_by_dermaself'
-            }
-          }, '*');
-          
-          // Wait a bit for the parent to process
-          await new Promise(resolve => setTimeout(resolve, 500));
-          
-          // Wait for cart update and icon refresh (shorter timeout)
-          try {
-            await Promise.race([
-              waitForCartIconUpdate(),
-              new Promise(resolve => setTimeout(resolve, 1500)) // 1.5 second timeout
-            ]);
-          } catch (error) {
-            console.log('Cart icon update timeout, continuing anyway');
-          }
-          
-          // Try to get updated cart from parent
-          window.parent.postMessage({
-            type: 'SHOPIFY_GET_CART'
-          }, '*');
-          
-          // Show success toast immediately for Shopify environments
-          // Use provided product info if available, otherwise show generic message
-          const now = Date.now();
-          if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
-            const addedProduct = productInfo || {
-              name: 'Product added to cart',
-              image: '/placeholder-product.png',
-              price: 0
-            };
-            dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
-            dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
-            setLastSuccessModalTime(now);
-          }
-          return;
-        }
-        
-        // If we're on the same domain, try to use Shopify's native cart
-        console.log('Using message-based approach for Shopify cart integration');
+      const payload: Record<string, unknown> = {
+        action: state.cart ? 'add_to_cart' : 'create_cart',
+        variantId,
+        quantity,
+        customAttributes: enhancedAttributes,
+      };
+
+      if (state.cart) {
+        payload.cartId = state.cart.id;
       }
 
-      // Fallback to our API cart system
-      let response;
-      
-      if (state.cart) {
-        // Add to existing cart
-        console.log('Adding to existing cart via API');
-        response = await fetch('/api/shopify/cart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'add_to_cart',
-            cartId: state.cart.id,
-            variantId,
-            quantity,
-            customAttributes: enhancedAttributes,
-          }),
-        });
-      } else {
-        // Create new cart
-        console.log('Creating new cart via API');
-        response = await fetch('/api/shopify/cart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            action: 'create_cart',
-            variantId,
-            quantity,
-            customAttributes: enhancedAttributes,
-          }),
-        });
-      }
+      const response = await performCartRequest(payload);
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Cart API error response:', errorData);
-        throw new Error(errorData.details || errorData.error || 'Failed to add item to cart');
+        let errorMessage = 'Failed to add item to cart';
+        try {
+          const errorData = await response.json();
+          console.error('Cart API error response:', errorData);
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -649,23 +673,23 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'update_cart_item',
-          cartId: state.cart.id,
-          lineId,
-          quantity,
-        }),
+      const response = await performCartRequest({
+        action: 'update_cart_item',
+        cartId: state.cart.id,
+        lineId,
+        quantity,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Cart API error response:', errorData);
-        throw new Error(errorData.details || errorData.error || 'Failed to update cart item');
+        let errorMessage = 'Failed to update cart item';
+        try {
+          const errorData = await response.json();
+          console.error('Cart API error response:', errorData);
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -724,62 +748,22 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      // If in Shopify environment, try to use native cart API first
-      if (isShopifyEnvironment() && typeof window !== 'undefined') {
-        console.log('In Shopify environment, attempting to remove via Shopify cart sync');
-        
-        // Find the variant ID from the line ID
-        const line = state.cart.lines.find(l => l.id === lineId);
-        console.log('Found line:', line);
-        
-        if (line) {
-          const variantId = line.merchandise.id;
-          console.log('Extracted variantId:', variantId);
-          
-          // Try to communicate with parent Shopify page
-          if (window.parent !== window) {
-            console.log('Sending SHOPIFY_REMOVE_FROM_CART message to parent');
-            window.parent.postMessage({
-              type: 'SHOPIFY_REMOVE_FROM_CART',
-              payload: { 
-                variantId
-              }
-            }, '*');
-            
-            // Wait for cart update and icon refresh
-            await waitForCartIconUpdate();
-            
-            // Try to get updated cart from parent
-            console.log('Requesting updated cart from parent');
-            window.parent.postMessage({
-              type: 'SHOPIFY_GET_CART'
-            }, '*');
-            
-            return;
-          }
-          
-          // If we're on the same domain, try to use Shopify's native cart
-          console.log('Native Shopify cart removeItem not available, using message-based approach');
-        }
-      }
-
-      // Fallback to our API cart system
-      const response = await fetch('/api/shopify/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'remove_from_cart',
-          cartId: state.cart.id,
-          lineId,
-        }),
+      const response = await performCartRequest({
+        action: 'remove_from_cart',
+        cartId: state.cart.id,
+        lineId,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Cart API error response:', errorData);
-        throw new Error(errorData.details || errorData.error || 'Failed to remove item from cart');
+        let errorMessage = 'Failed to remove item from cart';
+        try {
+          const errorData = await response.json();
+          console.error('Cart API error response:', errorData);
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
@@ -826,53 +810,26 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   };
 
-  // Helper function to wait for cart icon updates
-  const waitForCartIconUpdate = async (): Promise<void> => {
-    return new Promise((resolve) => {
-      // Wait for cart icon to update (reduced from 2 seconds to 1 second)
-      setTimeout(resolve, 1000);
-      
-      // Also listen for cart update events
-      const handleCartUpdate = () => {
-        console.log('Cart update detected, resolving wait');
-        resolve();
-      };
-      
-      // Listen for various cart update events
-      document.addEventListener('cart:updated', handleCartUpdate, { once: true });
-      document.addEventListener('cart:refresh', handleCartUpdate, { once: true });
-      document.addEventListener('cart-ui-updated', handleCartUpdate, { once: true });
-      
-      // Cleanup after 2 seconds (reduced from 3 seconds)
-      setTimeout(() => {
-        document.removeEventListener('cart:updated', handleCartUpdate);
-        document.removeEventListener('cart:refresh', handleCartUpdate);
-        document.removeEventListener('cart-ui-updated', handleCartUpdate);
-        resolve();
-      }, 2000);
-    });
-  };
-
   const getCart = async (cartId: string) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const response = await fetch('/api/shopify/cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          action: 'get_cart',
-          cartId,
-        }),
+      const response = await performCartRequest({
+        action: 'get_cart',
+        cartId,
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.error('Cart API error response:', errorData);
-        throw new Error(errorData.details || errorData.error || 'Failed to get cart');
+        let errorMessage = 'Failed to get cart';
+        try {
+          const errorData = await response.json();
+          console.error('Cart API error response:', errorData);
+          errorMessage = errorData.details || errorData.error || errorMessage;
+        } catch {
+          // ignore parse errors
+        }
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();

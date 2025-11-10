@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getShopifySession } from '../../../../lib/shopify-session-store';
+import { validateShopParameter } from '../../../../lib/shopify-oauth';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +11,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json(
         { error: 'Shop domain is required' },
         { status: 400 }
+      );
+    }
+
+    if (!validateShopParameter(shopDomain)) {
+      return NextResponse.json(
+        { error: 'Invalid shop domain' },
+        { status: 400 }
+      );
+    }
+
+    const session =
+      getShopifySession(shopDomain) ||
+      getShopifySession(request.cookies.get('ds_shopify_shop')?.value || '');
+
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Shop not authenticated' },
+        { status: 401 }
       );
     }
 

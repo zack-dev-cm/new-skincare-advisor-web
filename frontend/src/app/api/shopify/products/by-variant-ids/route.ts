@@ -1,13 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getShopifySession } from '../../../../../lib/shopify-session-store';
+import { validateShopParameter } from '../../../../../lib/shopify-oauth';
 
-const SHOPIFY_DOMAIN = process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN;
 const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
 export async function POST(request: NextRequest) {
   try {
-    if (!SHOPIFY_DOMAIN || !SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    const shop =
+      request.nextUrl.searchParams.get('shop') ||
+      request.headers.get('x-shopify-shop-domain') ||
+      request.headers.get('x-shopify-shop') ||
+      request.cookies.get('ds_shopify_shop')?.value;
+
+    if (!validateShopParameter(shop)) {
       return NextResponse.json(
-        { error: 'Missing Shopify Storefront credentials' },
+        { error: 'Missing or invalid shop identifier' },
+        { status: 400 }
+      );
+    }
+
+    const session = getShopifySession(shop!);
+    if (!session) {
+      return NextResponse.json(
+        {
+          error: 'Shop not authenticated',
+          details: 'Start OAuth at /api/shopify/auth/start?shop=your-store.myshopify.com',
+        },
+        { status: 401 }
+      );
+    }
+
+    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+      return NextResponse.json(
+        { error: 'Missing Shopify Storefront access token' },
         { status: 500 }
       );
     }
@@ -86,7 +111,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Fetching specific variants directly from Shopify...');
 
-    const response = await fetch(`https://${SHOPIFY_DOMAIN}/api/2024-01/graphql.json`, {
+    const response = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
