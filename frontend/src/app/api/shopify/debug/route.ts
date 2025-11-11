@@ -108,6 +108,11 @@ export async function GET(request: NextRequest) {
         body: JSON.stringify({ query: simpleQuery }),
       });
 
+      const responseHeaders: any = {};
+      storefrontResponse.headers.forEach((value, key) => {
+        responseHeaders[key] = value;
+      });
+
       if (storefrontResponse.ok) {
         const storefrontData = await storefrontResponse.json();
         
@@ -115,14 +120,17 @@ export async function GET(request: NextRequest) {
           results.tests.push({
             name: 'Storefront API - Products Query',
             status: 'error',
-            errors: storefrontData.errors
+            errors: storefrontData.errors,
+            responseHeaders
           });
         } else {
           results.tests.push({
             name: 'Storefront API - Products Query',
             status: 'success',
             productsCount: storefrontData.data?.products?.edges?.length || 0,
-            products: storefrontData.data?.products?.edges?.slice(0, 2).map((edge: any) => edge.node)
+            products: storefrontData.data?.products?.edges?.slice(0, 2).map((edge: any) => edge.node),
+            responseHeaders,
+            fullResponse: storefrontData
           });
         }
       } else {
@@ -131,12 +139,70 @@ export async function GET(request: NextRequest) {
           name: 'Storefront API - Products Query',
           status: 'error',
           error: `${storefrontResponse.status} ${storefrontResponse.statusText}`,
-          details: errorText
+          details: errorText,
+          responseHeaders
         });
       }
     } catch (error) {
       results.tests.push({
         name: 'Storefront API - Products Query',
+        status: 'error',
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+
+    // Test 2b: Try to query a specific product by GraphQL ID from Admin API
+    try {
+      if (results.tests[0].status === 'success' && results.tests[0].products && results.tests[0].products.length > 0) {
+        const firstProductId = results.tests[0].products[0].id;
+        const graphqlProductId = `gid://shopify/Product/${firstProductId}`;
+        
+        const specificQuery = `
+          query getProduct($id: ID!) {
+            product(id: $id) {
+              id
+              title
+              availableForSale
+              publishedAt
+              variants(first: 3) {
+                edges {
+                  node {
+                    id
+                    title
+                    availableForSale
+                  }
+                }
+              }
+            }
+          }
+        `;
+
+        const specificResponse = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
+          method: 'POST',
+          headers: {
+            'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ 
+            query: specificQuery,
+            variables: { id: graphqlProductId }
+          }),
+        });
+
+        if (specificResponse.ok) {
+          const specificData = await specificResponse.json();
+          results.tests.push({
+            name: 'Storefront API - Query Specific Product',
+            status: specificData.errors ? 'error' : 'success',
+            requestedId: graphqlProductId,
+            product: specificData.data?.product,
+            errors: specificData.errors
+          });
+        }
+      }
+    } catch (error) {
+      results.tests.push({
+        name: 'Storefront API - Query Specific Product',
         status: 'error',
         error: error instanceof Error ? error.message : 'Unknown error'
       });
