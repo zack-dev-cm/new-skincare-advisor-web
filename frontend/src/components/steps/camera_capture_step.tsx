@@ -1015,7 +1015,7 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         }
 
         const leftImagedata = ctx.getImageData(
-            leftCheek.x, leftCheek.y, 20, 20);
+            leftCheek.x-20, leftCheek.y, 20, 20);
         const leftBrightness = calculateLuminance(leftImagedata);
 
         const rightImagedata = ctx.getImageData(
@@ -1284,6 +1284,12 @@ export default function CameraCaptureStep({ onNext, onBack }: CameraCaptureStepP
         const bitmap = ctx.getImageData(0, 0, newW, newH, {colorSpace: "srgb"});
 
         const imageData = canvas.toDataURL('image/jpeg', 1.0);
+        const link = document.createElement('a');
+        link.href = imageData;
+        link.download = 'canvas-image.jpg'; // File name for saving
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
         const img = new Image();
         img.src = imageData;
 

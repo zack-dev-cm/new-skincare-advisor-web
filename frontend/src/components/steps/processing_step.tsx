@@ -2,9 +2,11 @@
 import React, {useEffect, useState} from 'react';
 import {motion} from 'framer-motion';
 import {CheckCircle} from 'lucide-react';
-import * as ort from 'onnxruntime-web';
+import * as ort from 'onnxruntime-web/webgpu';
 import {pipeline, RawImage} from "@huggingface/transformers";
 import {getGPUTier, TierResult} from "detect-gpu";
+import {Tensor} from "onnxruntime-common";
+import DataTypeMap = Tensor.DataTypeMap;
 
 interface ProcessingStepProps {
     capturedImageUri: string;
@@ -28,6 +30,8 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
     const [workCanvas, setWorkCanvas] = useState<HTMLCanvasElement | null>(null);
     const [workCtx, setWorkCtx] = useState<CanvasRenderingContext2D | null>(null);
     const [gpuTier, setGpuTier] = useState< TierResult| null>(null);
+    const [deepWBModel, setDeepWBModel] = useState<ort.InferenceSession | null>(null);
+    const [iatWBModel, setIatWBModel] = useState<ort.InferenceSession | null>(null);
 
     const inputsize_model = 512;
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
@@ -201,56 +205,65 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         ctx.drawImage(upscaledImg, 0, 0);
     }
 
-    function tensorToImageData(tensor, shape) {
-        // shape example: [1, 3, H, W]
-        const [batch, channels, height, width] = shape;
-        const data = tensor;
-        const imageDataArray = new Uint8ClampedArray(height * width * 4); // RGBA
-
-        let idx = 0;
-        for (let h = 0; h < height; h++) {
-            for (let w = 0; w < width; w++) {
-                // Get R, G, B channels
-                let r = data[0 * height * width + h * width + w];
-                let g = data[1 * height * width + h * width + w];
-                let b = data[2 * height * width + h * width + w];
-
-                // Normalize from [0, 1] to [0, 255]
-                r = Math.min(255, Math.max(0, Math.round(r * 255)));
-                g = Math.min(255, Math.max(0, Math.round(g * 255)));
-                b = Math.min(255, Math.max(0, Math.round(b * 255)));
-
-                // Set RGBA values
-                imageDataArray[idx++] = r;     // R
-                imageDataArray[idx++] = g;     // G
-                imageDataArray[idx++] = b;     // B
-                imageDataArray[idx++] = 255;   // A
+    function ImageDataToTensor(imageData: ImageData, type:keyof DataTypeMap): ort.Tensor {
+        const {width, height, data} = imageData;
+        const floatData = new Float32Array(1 * width * height * 3); // RGB
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const idx = (y * width + x) * 4;
+                const r = data[idx] / 255;     // Normalize to [0, 1]
+                const g = data[idx + 1] / 255; // Normalize to [0, 1]
+                const b = data[idx + 2] / 255; // Normalize to [0, 1]
+                floatData[0 * width * height + y * width + x] = r;
+                floatData[1 * width * height + y * width + x] = g;
+                floatData[2 * width * height + y * width + x] = b;
             }
         }
-
-        // Create ImageData for canvas
-        return new ImageData(imageDataArray, width, height);
+        return new ort.Tensor(type, floatData, [1, 3, height, width]);
     }
 
-    const illuminant_balance = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+    function tensorToImageData(tensor: Tensor) {
+        // shape example: [1, 3, H, W]
+        const [batch, channels, height, width] = tensor.dims;
+        const data = tensor.data as Float32Array;
+        const imageData = new ImageData(width, height);
+        for (let y = 0; y < height; y++) {
+            for (let x = 0; x < width; x++) {
+                const r = data[0 * height * width + y * width + x];
+                const g = data[1 * height * width + y * width + x];
+                const b = data[2 * height * width + y * width + x];
+                const idx = (y * width + x) * 4;
+                imageData.data[idx] = Math.min(255, Math.max(0, Math.round(r * 255)));
+                imageData.data[idx + 1] = Math.min(255, Math.max(0, Math.round(g * 255)));
+                imageData.data[idx + 2] = Math.min(255, Math.max(0, Math.round(b * 255)));
+                imageData.data[idx + 3] = 255; // Alpha channel
+            }
+        }
+        return imageData;
+    }
+
+    const IAT_WB = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
         if (!ctx || !canvas) return;
         console.log('Illuminant balance started with onnx model...');
         ort.env.wasm.simd = true;
         ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4; // Multi-threading
+
+
         //start nnx runtime
-        const session = await ort.InferenceSession.create('./assets/models/preprocessing/IAT_exp.onnx', {
-            executionProviders: ['wasm'],
+        const session = iatWBModel ? iatWBModel : await ort.InferenceSession.create('./assets/models/preprocessing/IAT_EXP.onnx', {
+            executionProviders: ['webgl', 'wasm'],
         });
+        if (!iatWBModel) setIatWBModel(session);
+
 
         const {width: w, height: h} = canvas;
-        const inputTensor = new ort.Tensor('float32', new Float32Array(w * h * 3), [1, 3, h, w]);
+
+
         // Fill input tensor with image data
         const imageData = ctx.getImageData(0, 0, w, h);
-        for (let i = 0; i < w * h; i++) {
-            inputTensor.data[i] = imageData.data[i * 4] / 255.0;         // R
-            inputTensor.data[i + w * h] = imageData.data[i * 4 + 1] / 255.0; // G
-            inputTensor.data[i + 2 * w * h] = imageData.data[i * 4 + 2] / 255.0; // B
-        }
+
+        const inputTensor = ImageDataToTensor(imageData, 'float32');
+
         const feed = {'img_low': inputTensor};
 
         const result = await session.run(feed);
@@ -259,7 +272,38 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         const outputTensor = result['permute_42'] as ort.Tensor;
 
         // Create new ImageData for output
-        const outputImageData = tensorToImageData(outputTensor.data, [1, 3, h, w]);
+        const outputImageData = tensorToImageData(outputTensor);
+        // Put adjusted image data back to canvas
+        ctx.putImageData(outputImageData, 0, 0);
+    }
+
+    const DeepWB = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+        if (!ctx || !canvas) return;
+        console.log('DeepWEB WB started with onnx model...');
+        ort.env.wasm.simd = true;
+        ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4; // Multi-threading
+        //start nnx runtime
+
+        const session = deepWBModel ? deepWBModel : await ort.InferenceSession.create('./assets/models/preprocessing/Deep_WB.onnx', {
+            executionProviders: ['webgl', 'wasm'],
+        });
+        if (!deepWBModel) setDeepWBModel(session);
+
+        const {width: w, height: h} = canvas;
+        // Fill input tensor with image data
+        const imageData = ctx.getImageData(0, 0, w, h);
+
+        const inputTensor = ImageDataToTensor(imageData, 'float32');
+
+        const feed = {'input.1': inputTensor};
+
+        const result = await session.run(feed);
+
+        console.log('DeepWEB WB result:', result);
+        const outputTensor = result['98'] as ort.Tensor;
+
+        // Create new ImageData for output
+        const outputImageData = tensorToImageData(outputTensor);
         // Put adjusted image data back to canvas
         ctx.putImageData(outputImageData, 0, 0);
     }
@@ -350,8 +394,8 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             setWorkCanvas(canvas);
             setWorkCtx(ctx);
             console.log('Image loaded:', img.width, 'x', img.height);
-            // Resize image
-            resizeimage(ctx, canvas, inputsize_model, inputsize_model);
+            //Resize image
+            //resizeimage(ctx, canvas, inputsize_model, inputsize_model);
 
             console.log('Image resized for model input. ', workCanvas?.width, 'x', workCanvas?.height);
             //feed to model here
@@ -369,6 +413,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             //set final image
             try{
                 await grayWorldWB(ctx, canvas);
+                //await grayWorldWB(ctx, canvas);
             }catch (err) {
                 console.log('Illuminant balance failed, proceeding without it - ', err);
             }
