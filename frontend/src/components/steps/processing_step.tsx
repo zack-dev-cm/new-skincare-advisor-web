@@ -21,6 +21,11 @@ const isMobileDevice = () => {
          window.innerWidth <= 768;
 };
 
+let deepWBModel: ort.InferenceSession | null = null;
+let iatWBModel: ort.InferenceSession | null = null;
+let iatWBModelPromise: Promise<ort.InferenceSession> | null = null;
+
+
 export default function ProcessingStep({onNext, onBack, capturedImageUri}: ProcessingStepProps) {
     const [imageUri, setImageUri] = useState<string | null>(null);
     const [isProcessing, setIsProcessing] = useState(true);
@@ -30,9 +35,9 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
     const [workCanvas, setWorkCanvas] = useState<HTMLCanvasElement | null>(null);
     const [workCtx, setWorkCtx] = useState<CanvasRenderingContext2D | null>(null);
     const [gpuTier, setGpuTier] = useState< TierResult| null>(null);
-    const [deepWBModel, setDeepWBModel] = useState<ort.InferenceSession | null>(null);
-    const [iatWBModel, setIatWBModel] = useState<ort.InferenceSession | null>(null);
 
+
+    const hasRun = React.useRef(false);
     const inputsize_model = 512;
     const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
@@ -52,8 +57,27 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             console.log('Detected GPU Tier:', tier);
         });
         setImageUri(capturedImageUri) //fallback to this if processing fails
+        if (hasRun.current) return;
+        hasRun.current = true;
+        console.log('Processing step mounted...');
         processingPipeline();
     }, [canvasRef]);
+
+    async function getIatWBModel(): Promise<ort.InferenceSession> {
+        if (iatWBModel) return iatWBModel;
+        if (iatWBModelPromise) return iatWBModelPromise;
+        let providers = ['webgpu'];
+        if (!navigator.gpu) providers = ['wasm'];
+        iatWBModelPromise = ort.InferenceSession.create(
+            './assets/models/preprocessing/IAT_EXP.onnx',
+            { executionProviders: providers }
+        ).then(session => {
+            iatWBModel = session;
+            iatWBModelPromise = null;
+            return session;
+        });
+        return iatWBModelPromise;
+    }
 
     async function loadImage(uri: string): Promise<HTMLImageElement> {
         return new Promise((resolve, reject) => {
@@ -242,27 +266,18 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         return imageData;
     }
 
-    const IAT_WB = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
-        if (!ctx || !canvas) return;
+    const IAT_WB = async (data?: ImageData) : Promise<ImageData> => {
+        if (!data) throw new Error('No image data provided');
         console.log('Illuminant balance started with onnx model...');
         ort.env.wasm.simd = true;
         ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4; // Multi-threading
 
+        if (!iatWBModel) console.log('Loading IAT WB model...'); else console.log('Using cached IAT model...');
+        const session = await getIatWBModel();
 
-        //start nnx runtime
-        const session = iatWBModel ? iatWBModel : await ort.InferenceSession.create('./assets/models/preprocessing/IAT_EXP.onnx', {
-            executionProviders: ['webgl', 'wasm'],
-        });
-        if (!iatWBModel) setIatWBModel(session);
+        console.log('IAT WB model loaded:', session);
 
-
-        const {width: w, height: h} = canvas;
-
-
-        // Fill input tensor with image data
-        const imageData = ctx.getImageData(0, 0, w, h);
-
-        const inputTensor = ImageDataToTensor(imageData, 'float32');
+        const inputTensor = ImageDataToTensor(data, 'float32');
 
         const feed = {'img_low': inputTensor};
 
@@ -272,9 +287,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         const outputTensor = result['permute_42'] as ort.Tensor;
 
         // Create new ImageData for output
-        const outputImageData = tensorToImageData(outputTensor);
-        // Put adjusted image data back to canvas
-        ctx.putImageData(outputImageData, 0, 0);
+        return tensorToImageData(outputTensor);
     }
 
     const DeepWB = async (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
@@ -283,11 +296,16 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         ort.env.wasm.simd = true;
         ort.env.wasm.numThreads = navigator.hardwareConcurrency || 4; // Multi-threading
         //start nnx runtime
-
+        if (!deepWBModel) console.log('Loading Deep WB model...');
+        let providers = ['webgpu'];
+        if (!navigator.gpu){
+            console.log('No WebGPU support detected, Deep WB may be slow on CPU-only mode.');
+            providers = ['wasm'];
+        }
         const session = deepWBModel ? deepWBModel : await ort.InferenceSession.create('./assets/models/preprocessing/Deep_WB.onnx', {
-            executionProviders: ['webgl', 'wasm'],
+            executionProviders: providers,
         });
-        if (!deepWBModel) setDeepWBModel(session);
+        if (!deepWBModel) deepWBModel = session;
 
         const {width: w, height: h} = canvas;
         // Fill input tensor with image data
@@ -347,11 +365,9 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
         ctx.putImageData(imageData, 0, 0);
     }
 
-    async function grayWorldWB(ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) {
-        if (!ctx || !canvas) return;
-        const {width: w, height: h} = canvas;
-        const imageData = ctx.getImageData(0, 0, w, h);
-        const data = imageData.data;
+    async function grayWorldWB(imgdata:ImageData): Promise<ImageData> {
+        if (!imgdata) throw new Error('No canvas or context provided');
+        const data = imgdata.data;
 
         let sumR = 0, sumG = 0, sumB = 0, count = 0;
         for (let i = 0; i < data.length; i += 4) {
@@ -370,7 +386,7 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             data[i + 1] = Math.min(255, data[i + 1] * (avgGray / (avgG || 1)));
             data[i + 2] = Math.min(255, data[i + 2] * (avgGray / (avgB || 1)));
         }
-        ctx.putImageData(imageData, 0, 0);
+        return imgdata;
     }
 
 
@@ -395,24 +411,14 @@ export default function ProcessingStep({onNext, onBack, capturedImageUri}: Proce
             setWorkCtx(ctx);
             console.log('Image loaded:', img.width, 'x', img.height);
             //Resize image
-            //resizeimage(ctx, canvas, inputsize_model, inputsize_model);
+            resizeimage(ctx, canvas, inputsize_model, inputsize_model);
 
             console.log('Image resized for model input. ', workCanvas?.width, 'x', workCanvas?.height);
-            //feed to model here
-            //curImg = model_enhancement(curImg);
-            //simulate working time
-            //await new Promise((resolve) => setTimeout(resolve, 2000));
-            //get back image from model
-            // if (isMobileDevice()) {
-            //     //on mobile devices skip upscaling for performance
-            //     console.log('Skipping upscaling on mobile device for performance');
-            // }else {
-            //     await upscaleimage2x(ctx, canvas);
-            // }
-            // console.log('Image upscaled. ', canvas!.width, 'x', canvas!.height);
-            //set final image
             try{
-                await grayWorldWB(ctx, canvas);
+                let data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                data = await IAT_WB(data);
+                //data = await grayWorldWB(data);
+                ctx.putImageData(data, 0, 0);
                 //await grayWorldWB(ctx, canvas);
             }catch (err) {
                 console.log('Illuminant balance failed, proceeding without it - ', err);

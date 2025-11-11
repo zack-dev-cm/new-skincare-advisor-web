@@ -5,12 +5,12 @@ import {Camera, CheckCircle, Move, SwitchCameraIcon, Upload} from 'lucide-react'
 
 // // Dynamic import to avoid SSR issues
 let faceapi = null;
-// if (typeof window !== 'undefined') {
-//     // Only import on client side
-//     import('@vladmandic/face-api').then(module => {
-//         faceapi = module;
-//     });
-// }
+if (typeof window !== 'undefined') {
+    // Only import on client side
+    import('@vladmandic/face-api').then(module => {
+        faceapi = module;
+    });
+}
 
 interface CameraCaptureStepProps {
   onNext: (imgUri : string) => void;
