@@ -55,8 +55,11 @@ export default function ProductCard({ product }: ProductCardProps) {
     setShowSuccess(false);
 
     try {
-      // Convert the variant ID to the format expected by Shopify Storefront API
-      const variantId = `gid://shopify/ProductVariant/${selectedVariant.id}`;
+      // Variant ID is already in the correct format from Storefront API
+      // (gid://shopify/ProductVariant/...)
+      const variantId = typeof selectedVariant.id === 'string' 
+        ? selectedVariant.id 
+        : `gid://shopify/ProductVariant/${selectedVariant.id}`;
       
       // Prepare product info for the modal
       const productInfo = {
