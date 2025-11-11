@@ -212,28 +212,6 @@ export function CartProvider({ children }: CartProviderProps) {
     });
   }, []);
 
-  // Check if we're in a Shopify environment
-  const isShopifyEnvironment = () => {
-    if (getAppBridge()) {
-      return true;
-    }
-    if (typeof window !== 'undefined') {
-      const isShopify = window.parent !== window || 
-             window.location.hostname.includes('myshopify.com') ||
-             window.location.hostname.includes('shopify.com') ||
-             document.querySelector('[data-shopify]') !== null;
-      
-      console.log('isShopifyEnvironment check:', {
-        isIframe: window.parent !== window,
-        hostname: window.location.hostname,
-        hasShopifyData: document.querySelector('[data-shopify]') !== null,
-        result: isShopify
-      });
-      
-      return isShopify;
-    }
-    return false;
-  };
 
   // Load cart from localStorage on mount
   useEffect(() => {
@@ -434,19 +412,8 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => window.removeEventListener('message', handleMessage);
   }, []);
 
-  // Request initial cart state from Shopify
-  useEffect(() => {
-    if (isShopifyEnvironment() && typeof window !== 'undefined') {
-      console.log('Requesting initial cart state from Shopify');
-      
-      // Send message to parent to get cart state
-      if (window.parent !== window) {
-        window.parent.postMessage({
-          type: 'SHOPIFY_GET_CART'
-        }, '*');
-      }
-    }
-  }, []); // Empty dependency array - only runs once on mount
+  // Cart state is managed via Storefront API only
+  // No need to request legacy cart state
 
   // Helper function to get full Shopify URL (with https://)
   const getShopifyUrl = (): string => {
@@ -457,6 +424,48 @@ export function CartProvider({ children }: CartProviderProps) {
     }
     // If domain doesn't start with http, add https://
     return domain.startsWith('http') ? domain : `https://${domain}`;
+  };
+
+  // Helper function to transform Ajax Cart API response to our Cart format
+  const transformAjaxCartToCart = (ajaxCart: any): Cart => {
+    const shopifyUrl = getShopifyUrl();
+    return {
+      id: ajaxCart.token || 'cart',
+      checkoutUrl: `${shopifyUrl}/checkout`,
+      lines: ajaxCart.items.map((item: any) => ({
+        id: item.key || item.id,
+        quantity: item.quantity,
+        merchandise: {
+          id: `gid://shopify/ProductVariant/${item.variant_id}`,
+          title: item.variant_title || 'Default Title',
+          price: {
+            amount: (item.final_price / 100).toString(),
+            currencyCode: ajaxCart.currency || 'EUR'
+          },
+          product: {
+            title: item.product_title || item.title,
+            images: item.image ? [{
+              url: item.image,
+              altText: item.product_title || item.title,
+            }] : [],
+          },
+        },
+        attributes: item.properties ? Object.entries(item.properties).map(([key, value]) => ({
+          key,
+          value: value as string
+        })) : [],
+      })),
+      cost: {
+        subtotalAmount: {
+          amount: (ajaxCart.total_price / 100).toString(),
+          currencyCode: ajaxCart.currency || 'EUR'
+        },
+        totalAmount: {
+          amount: (ajaxCart.total_price / 100).toString(),
+          currencyCode: ajaxCart.currency || 'EUR'
+        },
+      },
+    };
   };
 
   // Helper function to extract numeric ID from GraphQL ID
@@ -490,51 +499,26 @@ export function CartProvider({ children }: CartProviderProps) {
 
   // Helper function to refresh cart from server
   const refreshCart = useCallback(async () => {
-    const cartId = state.cart?.id;
-    if (!cartId) return;
-
     try {
-      const response = await performCartRequest({
-        action: 'get_cart',
-        cartId,
-      });
-
+      const shopifyUrl = getShopifyUrl();
+      
+      // Get cart using Ajax Cart API
+      const response = await fetch(`${shopifyUrl}/cart.js`);
+      
       if (!response.ok) {
         console.error('Failed to refresh cart:', await response.text());
         return;
       }
 
-      const data = await response.json();
-      if (data.success && data.cart) {
-        const transformedCart: Cart = {
-          id: data.cart.id,
-          checkoutUrl: data.cart.checkoutUrl,
-          lines: data.cart.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
-              },
-            },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: data.cart.cost,
-        };
-
-        dispatch({ type: 'SET_CART', payload: transformedCart });
-      }
+      const ajaxCart = await response.json();
+      
+      // Transform and update state
+      const transformedCart = transformAjaxCartToCart(ajaxCart);
+      dispatch({ type: 'SET_CART', payload: transformedCart });
     } catch (error) {
       console.error('Failed to refresh cart:', error);
     }
-  }, [performCartRequest, state.cart?.id]);
+  }, []);
 
   useEffect(() => {
     const app = getAppBridge();
@@ -558,83 +542,60 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      // Add tracking attribute for recommended products
-      const enhancedAttributes = [
-        ...(customAttributes || []),
-        {
-          key: 'recommended_by_dermaself',
-          value: 'true'
-        }
-      ];
+      // Extract numeric variant ID from GraphQL ID
+      const numericVariantId = variantId.includes('gid://') 
+        ? variantId.split('/').pop() 
+        : variantId;
 
-      const payload: Record<string, unknown> = {
-        action: state.cart ? 'add_to_cart' : 'create_cart',
-        variantId,
-        quantity,
-        customAttributes: enhancedAttributes,
+      // Convert custom attributes to properties format for Ajax Cart API
+      const properties: Record<string, string> = {
+        'recommended_by_dermaself': 'true',
+        ...(customAttributes?.reduce((acc, attr) => ({
+          ...acc,
+          [attr.key]: attr.value
+        }), {}) || {})
       };
 
-      if (state.cart) {
-        payload.cartId = state.cart.id;
+      // Use Ajax Cart API for embedded apps (syncs with Liquid theme cart)
+      const shopifyUrl = getShopifyUrl();
+      const cartAddResponse = await fetch(`${shopifyUrl}/cart/add.js`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: [{
+            id: numericVariantId,
+            quantity: quantity,
+            properties: properties
+          }]
+        }),
+      });
+
+      if (!cartAddResponse.ok) {
+        const errorData = await cartAddResponse.json().catch(() => ({}));
+        throw new Error(errorData.description || 'Failed to add item to cart');
       }
 
-      const response = await performCartRequest(payload);
+      // Get updated cart from Ajax API
+      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
+      const ajaxCart = await cartResponse.json();
 
-      if (!response.ok) {
-        let errorMessage = 'Failed to add item to cart';
-        try {
-          const errorData = await response.json();
-          console.error('Cart API error response:', errorData);
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch {
-          // ignore parse errors
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
+      // Transform and update cart state
+      const transformedCart = transformAjaxCartToCart(ajaxCart);
+      dispatch({ type: 'SET_CART', payload: transformedCart });
       
-      if (data.success && data.cart) {
-        const transformedCart: Cart = {
-          id: data.cart.id,
-          checkoutUrl: data.cart.checkoutUrl,
-          lines: data.cart.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
-              },
-            },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: data.cart.cost,
+      // Show success toast
+      const now = Date.now();
+      if (now - lastSuccessModalTime > 2000) {
+        const addedProduct = productInfo || {
+          name: transformedCart.lines[transformedCart.lines.length - 1]?.merchandise.product.title || 'Product',
+          image: transformedCart.lines[transformedCart.lines.length - 1]?.merchandise.product.images[0]?.url || '/placeholder-product.png',
+          price: parseFloat(transformedCart.lines[transformedCart.lines.length - 1]?.merchandise.price.amount || '0') * 100
         };
-
-        dispatch({ type: 'SET_CART', payload: transformedCart });
-        
-        // Show success toast with the added product info (for all environments)
-        // Use provided product info if available, otherwise extract from cart data
-        const now = Date.now();
-        if (now - lastSuccessModalTime > 2000) { // 2 second cooldown
-          const addedProduct = productInfo || {
-            name: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.title || 'Product added to cart',
-            image: data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.product.images.edges[0]?.node.url || '/placeholder-product.png',
-            price: parseFloat(data.cart.lines.edges[data.cart.lines.edges.length - 1]?.node.merchandise.price.amount || '0') * 100
-          };
-          dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
-          dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
-          setLastSuccessModalTime(now);
-        }
-      } else {
-        throw new Error('Failed to add item to cart');
+        dispatch({ type: 'SHOW_CART_TOAST', payload: addedProduct });
+        dispatch({ type: 'SHOW_BOTTOM_TOOLBAR' });
+        setLastSuccessModalTime(now);
       }
     } catch (error) {
       console.error('Error adding to cart:', error);
@@ -659,55 +620,32 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      const response = await performCartRequest({
-        action: 'update_cart_item',
-        cartId: state.cart.id,
-        lineId,
-        quantity,
+      const shopifyUrl = getShopifyUrl();
+      
+      // Use Ajax Cart API /cart/change.js
+      const response = await fetch(`${shopifyUrl}/cart/change.js`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: lineId,
+          quantity: quantity,
+        }),
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to update cart item';
-        try {
-          const errorData = await response.json();
-          console.error('Cart API error response:', errorData);
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch {
-          // ignore parse errors
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.description || 'Failed to update cart item');
       }
 
-      const data = await response.json();
-      
-      if (data.success && data.cart) {
-        const transformedCart: Cart = {
-          id: data.cart.id,
-          checkoutUrl: data.cart.checkoutUrl,
-          lines: data.cart.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
-              },
-            },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: data.cart.cost,
-        };
+      // Get updated cart
+      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
+      const ajaxCart = await cartResponse.json();
 
-        dispatch({ type: 'SET_CART', payload: transformedCart });
-      } else {
-        throw new Error('Failed to update cart item');
-      }
+      // Transform and update state
+      const transformedCart = transformAjaxCartToCart(ajaxCart);
+      dispatch({ type: 'SET_CART', payload: transformedCart });
     } catch (error) {
       dispatch({ 
         type: 'SET_ERROR', 
@@ -734,54 +672,32 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      const response = await performCartRequest({
-        action: 'remove_from_cart',
-        cartId: state.cart.id,
-        lineId,
+      const shopifyUrl = getShopifyUrl();
+      
+      // Remove item by setting quantity to 0 using Ajax Cart API
+      const response = await fetch(`${shopifyUrl}/cart/change.js`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: lineId,
+          quantity: 0,
+        }),
       });
 
       if (!response.ok) {
-        let errorMessage = 'Failed to remove item from cart';
-        try {
-          const errorData = await response.json();
-          console.error('Cart API error response:', errorData);
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch {
-          // ignore parse errors
-        }
-        throw new Error(errorMessage);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.description || 'Failed to remove item from cart');
       }
 
-      const data = await response.json();
-      
-      if (data.success && data.cart) {
-        const transformedCart: Cart = {
-          id: data.cart.id,
-          checkoutUrl: data.cart.checkoutUrl,
-          lines: data.cart.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
-              },
-            },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: data.cart.cost,
-        };
+      // Get updated cart
+      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
+      const ajaxCart = await cartResponse.json();
 
-        dispatch({ type: 'SET_CART', payload: transformedCart });
-      } else {
-        throw new Error('Failed to remove item from cart');
-      }
+      // Transform and update state
+      const transformedCart = transformAjaxCartToCart(ajaxCart);
+      dispatch({ type: 'SET_CART', payload: transformedCart });
     } catch (error) {
       dispatch({ 
         type: 'SET_ERROR', 
@@ -801,58 +717,27 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const response = await performCartRequest({
-        action: 'get_cart',
-        cartId,
-      });
+      const shopifyUrl = getShopifyUrl();
+      
+      // Get cart using Ajax Cart API (cartId is not used with Ajax API)
+      const response = await fetch(`${shopifyUrl}/cart.js`);
 
       if (!response.ok) {
-        let errorMessage = 'Failed to get cart';
-        try {
-          const errorData = await response.json();
-          console.error('Cart API error response:', errorData);
-          errorMessage = errorData.details || errorData.error || errorMessage;
-        } catch {
-          // ignore parse errors
-        }
-        throw new Error(errorMessage);
-      }
-
-      const data = await response.json();
-      
-      if (data.success && data.cart) {
-        const transformedCart: Cart = {
-          id: data.cart.id,
-          checkoutUrl: data.cart.checkoutUrl,
-          lines: data.cart.lines.edges.map((edge: any) => ({
-            id: edge.node.id,
-            quantity: edge.node.quantity,
-            merchandise: {
-              id: edge.node.merchandise.id,
-              title: edge.node.merchandise.title,
-              price: edge.node.merchandise.price,
-              product: {
-                title: edge.node.merchandise.product.title,
-                images: edge.node.merchandise.product.images.edges.map((imgEdge: any) => ({
-                  url: imgEdge.node.url,
-                  altText: imgEdge.node.altText,
-                })),
-              },
-            },
-            attributes: edge.node.attributes || [],
-          })),
-          cost: data.cart.cost,
-        };
-
-        dispatch({ type: 'SET_CART', payload: transformedCart });
-      } else {
         throw new Error('Failed to get cart');
       }
+
+      const ajaxCart = await response.json();
+      
+      // Transform and update state
+      const transformedCart = transformAjaxCartToCart(ajaxCart);
+      dispatch({ type: 'SET_CART', payload: transformedCart });
     } catch (error) {
       dispatch({ 
         type: 'SET_ERROR', 
         payload: error instanceof Error ? error.message : 'Failed to get cart' 
       });
+    } finally {
+      dispatch({ type: 'SET_LOADING', payload: false });
     }
   };
 
@@ -886,81 +771,18 @@ export function CartProvider({ children }: CartProviderProps) {
     try {
       if (typeof window === 'undefined') return;
       
-      // If in Shopify environment, use native Shopify checkout
-      if (isShopifyEnvironment()) {
-        console.log('Using Shopify native checkout');
-        
-        // Method 1: Try to use Shopify's native checkout API if available
-        if (window.Shopify && window.Shopify.checkout) {
-          console.log('Using Shopify.checkout()');
-          window.Shopify.checkout();
-          return;
-        }
-        
-        // Method 2: Try to find and click a native checkout button
-        const checkoutButtons = document.querySelectorAll(
-          '[data-checkout], .checkout-button, #checkout, [href*="checkout"], .btn--checkout, .checkout-btn, [data-action="checkout"]'
-        );
-        
-        if (checkoutButtons.length > 0) {
-          console.log('Clicking native checkout button');
-          (checkoutButtons[0] as HTMLElement).click();
-          return;
-        }
-        
-        // Method 3: Get cart token from Shopify and navigate to checkout
-        try {
-          const shopifyUrl = getShopifyUrl();
-          const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
-          const cart = await cartResponse.json();
-          
-          if (cart.token) {
-            const checkoutUrl = `${shopifyUrl}/checkout?token=${cart.token}`;
-            console.log('Navigating to checkout with cart token:', checkoutUrl);
-            
-            if (window.parent !== window) {
-              // For embedded apps, navigate parent window
-              console.log('Redirecting parent to checkout:', checkoutUrl);
-              window.parent.location.href = checkoutUrl;
-            } else {
-              window.location.href = checkoutUrl;
-            }
-            return;
-          }
-        } catch (cartError) {
-          console.log('Could not get cart token from Shopify, trying alternative methods');
-        }
-        
-        // Method 4: Navigate to Shopify checkout directly
-        console.log('Navigating to Shopify checkout directly');
-        const shopifyUrl = getShopifyUrl();
-        const shopifyCheckoutUrl = `${shopifyUrl}/checkout`;
-        
-        if (window.parent !== window) {
-          console.log('Redirecting parent to Shopify checkout:', shopifyCheckoutUrl);
-          window.parent.location.href = shopifyCheckoutUrl;
-        } else {
-          window.location.href = shopifyCheckoutUrl;
-        }
-        return;
-      }
-      
-      // For non-Shopify environments, use the checkout URL from cart
+      // Use the Storefront API checkout URL directly
       if (state.cart && state.cart.checkoutUrl) {
-        console.log('Using cart checkout URL:', state.cart.checkoutUrl);
+        console.log('Navigating to Storefront API checkout:', state.cart.checkoutUrl);
+        
         if (window.parent !== window) {
-          const parentOrigin = window.parent.location.origin;
-          const checkoutUrl = state.cart.checkoutUrl.startsWith('http') 
-            ? state.cart.checkoutUrl 
-            : `${parentOrigin}${state.cart.checkoutUrl}`;
-          
-          console.log('Redirecting parent to checkout:', checkoutUrl);
-          window.parent.location.href = checkoutUrl;
+          // For embedded apps, navigate parent window
+          window.parent.location.href = state.cart.checkoutUrl;
         } else {
           window.location.href = state.cart.checkoutUrl;
         }
       } else {
-        console.error('No checkout URL available');
+        console.error('No checkout URL available in cart');
         throw new Error('No checkout URL available');
       }
     } catch (error) {
@@ -1017,14 +839,12 @@ export function CartProvider({ children }: CartProviderProps) {
           onClose={hideCartToast}
           onGoToCart={() => {
             hideCartToast();
-            // Navigate to cart page
-            if (typeof window !== 'undefined') {
-              const shopifyUrl = getShopifyUrl();
-              const cartUrl = `${shopifyUrl}/cart`;
+            // Navigate to Storefront API checkout URL
+            if (typeof window !== 'undefined' && state.cart?.checkoutUrl) {
               if (window.parent !== window) {
-                window.parent.location.href = cartUrl;
+                window.parent.location.href = state.cart.checkoutUrl;
               } else {
-                window.location.href = cartUrl;
+                window.location.href = state.cart.checkoutUrl;
               }
             }
           }}
