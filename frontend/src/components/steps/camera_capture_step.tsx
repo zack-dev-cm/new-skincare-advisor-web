@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { QRCodeSVG } from 'qrcode.react';
 import DesktopPhotoReceiver from './DesktopPhotoReceiver';
 import { ensureTfBackendReady } from '@/lib/tfBackend';
+import { cropFaceFromImage } from '@/lib/imageCropper';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -69,6 +70,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [showDesktopGate, setShowDesktopGate] = useState<boolean>(false);
+  const [croppedImage, setCroppedImage] = useState<string | null>(null);
+  const [cropBox, setCropBox] = useState<any | null>(null);
+  const [originalSize, setOriginalSize] = useState({ width: 0, height: 0 });
+  const previewRef = useRef<HTMLDivElement>(null);
   const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
   const [faceAngle, setFaceAngle] = useState<{ x: number, y: number, z: number } | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
@@ -368,9 +373,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         else if (avgLuminance < 0.35) brightnessMsg = 'Turn toward more light for better visibility';
 
         if (brightnessMsg) {
-          setGuidanceMessage(brightnessMsg);
-          setGuidanceType('positioning');
-          // end early but release the lock
+          if (guidanceMessage !== brightnessMsg) {
+            setGuidanceMessage(brightnessMsg);
+            setGuidanceType('positioning');
+          }
           detectingRef.current = false;
           return;
         }
@@ -610,7 +616,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     return () => clearTimeout(timeout);
   }, [lastFaceDetectionTime, guidanceType]);
 
-  const capturePhoto = () => {
+  const capturePhoto = async () => {
     if (!videoRef.current || !canvasRef.current) return;
 
     const video = videoRef.current;
@@ -630,14 +636,33 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     if (currentCamera === 'front') {
       ctx.save();
       ctx.scale(-1, 1);
-      ctx.drawImage(video, 0, 0, originalWidth, originalHeight, -originalWidth, 0, originalWidth, originalHeight);
+      ctx.drawImage(
+        video,
+        0,
+        0,
+        originalWidth,
+        originalHeight,
+        -originalWidth,
+        0,
+        originalWidth,
+        originalHeight
+      );
       ctx.restore();
     } else {
-      ctx.drawImage(video, 0, 0, originalWidth, originalHeight, 0, 0, originalWidth, originalHeight);
+      ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
     }
 
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
+
+    // Crop and get bounding box + original dimensions
+    const { croppedData, box, originalWidth: ow, originalHeight: oh }: any =
+      await cropFaceFromImage(imageData, faceapi);
+
     setCapturedImage(imageData);
+    setCroppedImage(croppedData);
+    setCropBox(box);
+    setOriginalSize({ width: ow, height: oh });
+
     setCameraState('preview');
     stopCamera();
   };
@@ -649,7 +674,35 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   };
 
   const confirmPhoto = () => {
-    if (capturedImage) onNext(capturedImage);
+    if (croppedImage) onNext(croppedImage);
+  };
+
+  const computeDisplayBox = () => {
+    if (!cropBox || !previewRef.current || !capturedImage) return null;
+
+    const { width: imgW, height: imgH } = originalSize;
+    const container = previewRef.current;
+
+    // container dimensions
+    const contW = container.clientWidth;
+    const contH = container.clientHeight;
+
+    // scale factor for object-contain
+    const scale = Math.min(contW / imgW, contH / imgH);
+
+    const displayedW = imgW * scale;
+    const displayedH = imgH * scale;
+
+    // center offsets
+    const offsetX = (contW - displayedW) / 2;
+    const offsetY = (contH - displayedH) / 2;
+
+    return {
+      x: cropBox.x * scale + offsetX,
+      y: cropBox.y * scale + offsetY,
+      width: cropBox.width * scale,
+      height: cropBox.height * scale,
+    };
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -872,13 +925,51 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           )}
 
           {cameraState === 'preview' && capturedImage && (
-            <div className="relative w-full h-full flex items-center justify-center bg-black">
+            <div
+              ref={previewRef}
+              className="relative w-full h-full flex items-center justify-center bg-black"
+            >
+              {/* Full original image */}
               <img
                 src={capturedImage}
-                alt="Captured photo"
+                alt="Captured"
                 className="max-w-full max-h-full object-contain"
-                style={{ maxWidth: '100%', maxHeight: '100%', width: 'auto', height: 'auto' }}
               />
+
+              {(() => {
+                const displayBox = computeDisplayBox();
+                if (!displayBox) return null;
+
+                return (
+                  <>
+                    {/* Mask */}
+                    <div className="absolute inset-0 bg-black opacity-60 pointer-events-none"></div>
+
+                    {/* Highlight */}
+                    <div
+                      className="absolute border-4 border-white/90 rounded-md shadow-lg pointer-events-none"
+                      style={{
+                        left: `${displayBox.x}px`,
+                        top: `${displayBox.y}px`,
+                        width: `${displayBox.width}px`,
+                        height: `${displayBox.height}px`,
+                      }}
+                    />
+
+                    {/* Cropped overlay */}
+                    <img
+                      src={croppedImage ?? ""}
+                      className="absolute rounded-md pointer-events-none"
+                      style={{
+                        left: `${displayBox.x}px`,
+                        top: `${displayBox.y}px`,
+                        width: `${displayBox.width}px`,
+                        height: `${displayBox.height}px`,
+                      }}
+                    />
+                  </>
+                );
+              })()}
             </div>
           )}
 
