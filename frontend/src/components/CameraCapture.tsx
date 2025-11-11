@@ -77,7 +77,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         // Ensure TFJS backend, then load face-api.js dynamically
         try {
           await ensureTfBackendReady();
-          const module = await import('face-api.js');
+          const module = await import('@vladmandic/face-api');
           faceapi = module;
           setFaceApiAvailable(true);
           

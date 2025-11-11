@@ -41,7 +41,7 @@ export const useFaceDetection = (backgroundMode: boolean = false) => {
       // Ensure TFJS backend is ready, then load face-api.js dynamically
       try {
         await ensureTfBackendReady();
-        const module = await import('face-api.js');
+        const module = await import('@vladmandic/face-api');
         faceapi = module;
         setState(prev => ({ ...prev, faceApiAvailable: true }));
         
