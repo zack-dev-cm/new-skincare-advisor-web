@@ -61,6 +61,13 @@ export default function ShopifyTestPage() {
   const [randomVariants, setRandomVariants] = useState<StorefrontVariant[]>([]);
   const [isLoadingVariants, setIsLoadingVariants] = useState(false);
   const [cartTestResults, setCartTestResults] = useState<TestResult[]>([]);
+  
+  // Ajax Cart API Test States
+  const [ajaxCartResults, setAjaxCartResults] = useState<TestResult[]>([]);
+  const [ajaxVariantId, setAjaxVariantId] = useState('');
+  const [ajaxQuantity, setAjaxQuantity] = useState(1);
+  const [ajaxLineKey, setAjaxLineKey] = useState('');
+  const [ajaxNewQuantity, setAjaxNewQuantity] = useState(2);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -279,6 +286,162 @@ export default function ShopifyTestPage() {
     setCartTestResults(results);
   };
 
+  // Ajax Cart API Test Functions
+  const logAjaxResult = (message: string, success: boolean, data?: any, error?: string) => {
+    const timestamp = new Date().toLocaleTimeString();
+    setAjaxCartResults(prev => [{
+      success,
+      message: `[${timestamp}] ${message}`,
+      data,
+      error
+    }, ...prev]);
+  };
+
+  const testGetCart = async () => {
+    try {
+      const targetShop = shopifyDomain || detectedShop;
+      if (!targetShop) throw new Error('Provide a shop domain first');
+      
+      const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+      
+      logAjaxResult('Fetching cart...', true);
+      const response = await fetch(`${shopUrl}/cart.js`);
+      
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      const cart = await response.json();
+      logAjaxResult(
+        `Cart fetched successfully! ${cart.item_count} items, Total: ${cart.currency} ${(cart.total_price / 100).toFixed(2)}`,
+        true,
+        cart
+      );
+    } catch (error) {
+      logAjaxResult('Failed to fetch cart', false, undefined, error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  const testAddToCart = async () => {
+    try {
+      if (!ajaxVariantId) throw new Error('Enter a variant ID');
+      
+      const targetShop = shopifyDomain || detectedShop;
+      if (!targetShop) throw new Error('Provide a shop domain first');
+      
+      const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+      
+      logAjaxResult(`Adding variant ${ajaxVariantId} (qty: ${ajaxQuantity}) to cart...`, true);
+      
+      const response = await fetch(`${shopUrl}/cart/add.js`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: [{
+            id: ajaxVariantId,
+            quantity: ajaxQuantity,
+            properties: {
+              'test': 'true',
+              'added_from': 'shopify-test-page'
+            }
+          }]
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.description || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      logAjaxResult('Product added successfully!', true, result);
+      
+      // Auto-refresh cart
+      setTimeout(testGetCart, 500);
+    } catch (error) {
+      logAjaxResult('Failed to add to cart', false, undefined, error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  const testUpdateCart = async () => {
+    try {
+      if (!ajaxLineKey) throw new Error('Enter a line item key');
+      
+      const targetShop = shopifyDomain || detectedShop;
+      if (!targetShop) throw new Error('Provide a shop domain first');
+      
+      const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+      
+      logAjaxResult(`Updating line ${ajaxLineKey} to quantity ${ajaxNewQuantity}...`, true);
+      
+      const response = await fetch(`${shopUrl}/cart/change.js`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: ajaxLineKey,
+          quantity: ajaxNewQuantity
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.description || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      logAjaxResult('Cart updated successfully!', true, result);
+      
+      // Auto-refresh cart
+      setTimeout(testGetCart, 500);
+    } catch (error) {
+      logAjaxResult('Failed to update cart', false, undefined, error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  const testClearCart = async () => {
+    try {
+      const targetShop = shopifyDomain || detectedShop;
+      if (!targetShop) throw new Error('Provide a shop domain first');
+      
+      if (!confirm('Are you sure you want to clear the cart?')) return;
+      
+      const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+      
+      logAjaxResult('Clearing cart...', true);
+      
+      const response = await fetch(`${shopUrl}/cart/clear.js`, {
+        method: 'POST'
+      });
+
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      
+      logAjaxResult('Cart cleared successfully!', true);
+      
+      // Auto-refresh cart
+      setTimeout(testGetCart, 500);
+    } catch (error) {
+      logAjaxResult('Failed to clear cart', false, undefined, error instanceof Error ? error.message : 'Unknown error');
+    }
+  };
+
+  const openShopifyCart = () => {
+    const targetShop = shopifyDomain || detectedShop;
+    if (!targetShop) {
+      alert('Enter a shop domain first');
+      return;
+    }
+    const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+    window.open(`${shopUrl}/cart`, '_blank');
+  };
+
+  const openShopifyCheckout = () => {
+    const targetShop = shopifyDomain || detectedShop;
+    if (!targetShop) {
+      alert('Enter a shop domain first');
+      return;
+    }
+    const shopUrl = `https://${targetShop.replace(/^https?:\/\//, '').split('/')[0]}`;
+    window.open(`${shopUrl}/checkout`, '_blank');
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-6xl mx-auto px-4">
@@ -446,6 +609,193 @@ export default function ShopifyTestPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          {/* Ajax Cart API Synchronization Tests */}
+          <div className="mb-6 pb-6 border-b border-gray-200">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold">🛒 Cart Ajax API Synchronization Tests</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Test direct cart synchronization with Liquid theme using Cart Ajax API
+                </p>
+              </div>
+              <a
+                href="https://shopify.dev/docs/api/ajax/reference/cart"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                📚 View Docs
+              </a>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Test 1: Get Cart */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold text-gray-800 mb-2">1. Read Cart</h3>
+                <p className="text-xs text-gray-600 mb-3">GET /cart.js - Fetch current cart state</p>
+                <button
+                  onClick={testGetCart}
+                  disabled={!shopifyDomain}
+                  className="w-full bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 text-sm"
+                >
+                  Get Cart
+                </button>
+              </div>
+
+              {/* Test 2: Add to Cart */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold text-gray-800 mb-2">2. Add Product</h3>
+                <p className="text-xs text-gray-600 mb-3">POST /cart/add.js - Add variant to cart</p>
+                <div className="space-y-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="Variant ID (numeric)"
+                    value={ajaxVariantId}
+                    onChange={(e) => setAjaxVariantId(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="number"
+                    placeholder="Quantity"
+                    value={ajaxQuantity}
+                    onChange={(e) => setAjaxQuantity(parseInt(e.target.value) || 1)}
+                    min="1"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <button
+                  onClick={testAddToCart}
+                  disabled={!shopifyDomain || !ajaxVariantId}
+                  className="w-full bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm"
+                >
+                  Add to Cart
+                </button>
+              </div>
+
+              {/* Test 3: Update Cart */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold text-gray-800 mb-2">3. Update Quantity</h3>
+                <p className="text-xs text-gray-600 mb-3">POST /cart/change.js - Modify line item</p>
+                <div className="space-y-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="Line Item Key"
+                    value={ajaxLineKey}
+                    onChange={(e) => setAjaxLineKey(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                  <input
+                    type="number"
+                    placeholder="New Quantity"
+                    value={ajaxNewQuantity}
+                    onChange={(e) => setAjaxNewQuantity(parseInt(e.target.value) || 0)}
+                    min="0"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                  />
+                </div>
+                <button
+                  onClick={testUpdateCart}
+                  disabled={!shopifyDomain || !ajaxLineKey}
+                  className="w-full bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 disabled:opacity-50 text-sm"
+                >
+                  Update Cart
+                </button>
+              </div>
+
+              {/* Test 4: Clear Cart */}
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <h3 className="font-semibold text-gray-800 mb-2">4. Clear Cart</h3>
+                <p className="text-xs text-gray-600 mb-3">POST /cart/clear.js - Remove all items</p>
+                <button
+                  onClick={testClearCart}
+                  disabled={!shopifyDomain}
+                  className="w-full bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm mb-2"
+                >
+                  Clear Cart
+                </button>
+              </div>
+            </div>
+
+            {/* Theme Links */}
+            <div className="mt-4 flex gap-3">
+              <button
+                onClick={openShopifyCart}
+                disabled={!shopifyDomain}
+                className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 text-sm"
+              >
+                🛒 Open /cart (Theme)
+              </button>
+              <button
+                onClick={openShopifyCheckout}
+                disabled={!shopifyDomain}
+                className="flex-1 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 text-sm"
+              >
+                💳 Open /checkout
+              </button>
+            </div>
+
+            {/* Ajax Cart Results */}
+            {ajaxCartResults.length > 0 && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="font-semibold text-gray-700">Test Results:</h3>
+                  <button
+                    onClick={() => setAjaxCartResults([])}
+                    className="text-xs text-gray-500 hover:text-gray-700"
+                  >
+                    Clear
+                  </button>
+                </div>
+                <div className="space-y-2 max-h-96 overflow-y-auto">
+                  {ajaxCartResults.map((result, index) => (
+                    <div
+                      key={index}
+                      className={`p-3 rounded-lg border text-sm ${
+                        result.success ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'
+                      }`}
+                    >
+                      <div className="flex items-start space-x-2">
+                        {result.success ? (
+                          <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        ) : (
+                          <AlertCircle className="w-4 h-4 text-red-600 mt-0.5 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-xs">{result.message}</p>
+                          {result.data && (
+                            <details className="mt-2">
+                              <summary className="text-xs text-gray-600 cursor-pointer hover:text-gray-800">
+                                View Response Data
+                              </summary>
+                              <pre className="mt-2 text-xs bg-white p-2 rounded border overflow-x-auto">
+                                {JSON.stringify(result.data, null, 2)}
+                              </pre>
+                            </details>
+                          )}
+                          {result.error && (
+                            <p className="text-xs text-red-600 mt-1">Error: {result.error}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Helper Info */}
+            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <h4 className="font-semibold text-blue-900 text-sm mb-2">💡 Quick Tips:</h4>
+              <ul className="text-xs text-blue-800 space-y-1">
+                <li>• Use "Load Random Variants" above to get variant IDs for testing</li>
+                <li>• Line Item Key format: <code className="bg-blue-100 px-1 rounded">56539212317054:1:abc123...</code></li>
+                <li>• Get Line Keys from "Get Cart" response → items[].key</li>
+                <li>• Cart syncs automatically with Liquid theme</li>
+                <li>• Set quantity to 0 to remove an item</li>
+              </ul>
+            </div>
           </div>
 
           <div className="flex flex-wrap gap-4 mb-6">
