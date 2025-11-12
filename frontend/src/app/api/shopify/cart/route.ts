@@ -4,6 +4,50 @@ import { validateShopParameter } from '../../../../lib/shopify-oauth';
 
 const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
+// GET endpoint for retrieving cart
+export async function GET(request: NextRequest) {
+  try {
+    const sessionResolution = resolveSession(request);
+
+    if (!sessionResolution.ok) {
+      return NextResponse.json(
+        { error: sessionResolution.error, details: sessionResolution.details },
+        { status: sessionResolution.status }
+      );
+    }
+
+    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+      return NextResponse.json(
+        { error: 'Missing Shopify Storefront access token' },
+        { status: 500 }
+      );
+    }
+
+    const { shop } = sessionResolution.session;
+    const cartId = request.nextUrl.searchParams.get('cartId');
+
+    if (!cartId) {
+      return NextResponse.json(
+        { error: 'Missing cartId parameter' },
+        { status: 400 }
+      );
+    }
+
+    return await getCart(shop, cartId);
+
+  } catch (error) {
+    console.error('Cart GET error:', error);
+    return NextResponse.json(
+      { 
+        error: 'Failed to get cart',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// POST endpoint for cart mutations
 export async function POST(request: NextRequest) {
   try {
     const sessionResolution = resolveSession(request);
@@ -25,27 +69,57 @@ export async function POST(request: NextRequest) {
     const { shop } = sessionResolution.session;
 
     const body = await request.json();
-    const { action, cartId, lineId, variantId, quantity, customAttributes } = body;
+    const { action, cartId, lineId, variantId, quantity, customAttributes, lines } = body;
 
     switch (action) {
       case 'create_cart':
+        if (!variantId) {
+          return NextResponse.json(
+            { error: 'Missing variantId for create_cart' },
+            { status: 400 }
+          );
+        }
         return await createCart(shop, variantId, quantity, customAttributes);
       
       case 'add_to_cart':
+        if (!cartId || !variantId) {
+          return NextResponse.json(
+            { error: 'Missing cartId or variantId for add_to_cart' },
+            { status: 400 }
+          );
+        }
         return await addToCart(shop, cartId, variantId, quantity, customAttributes);
       
       case 'update_cart_item':
+        if (!cartId || !lineId) {
+          return NextResponse.json(
+            { error: 'Missing cartId or lineId for update_cart_item' },
+            { status: 400 }
+          );
+        }
         return await updateCartItem(shop, cartId, lineId, quantity);
       
       case 'remove_from_cart':
+        if (!cartId || !lineId) {
+          return NextResponse.json(
+            { error: 'Missing cartId or lineId for remove_from_cart' },
+            { status: 400 }
+          );
+        }
         return await removeFromCart(shop, cartId, lineId);
       
       case 'get_cart':
+        if (!cartId) {
+          return NextResponse.json(
+            { error: 'Missing cartId for get_cart' },
+            { status: 400 }
+          );
+        }
         return await getCart(shop, cartId);
       
       default:
         return NextResponse.json(
-          { error: 'Invalid action' },
+          { error: 'Invalid action. Must be one of: create_cart, add_to_cart, update_cart_item, remove_from_cart, get_cart' },
           { status: 400 }
         );
     }

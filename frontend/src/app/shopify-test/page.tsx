@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { ShoppingBag, AlertCircle, CheckCircle, Loader2, Play, X, ExternalLink, RefreshCw } from 'lucide-react';
 import Cart from '../../components/Cart';
 import CartDebug from '../../components/CartDebug';
+import * as CartAPI from '../../lib/cart-api';
 
 interface StorefrontVariant {
   id: string;
@@ -145,26 +146,38 @@ export default function ShopifyTestPage() {
       if (!targetShop) throw new Error('Provide a shop domain first');
       
       const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
-      logAjaxResult('Fetching cart via proxy...', true);
+      logAjaxResult('Fetching cart via Storefront API...', true);
       
-      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.details || errorData.error || `HTTP ${response.status}`);
+      const cartId = CartAPI.getStoredCartId();
+      if (!cartId) {
+        logAjaxResult('ℹ️ No cart exists yet. Add items to create a cart.', true);
+        return;
       }
       
-      const cart = await response.json();
+      const result = await CartAPI.getCart(normalizedShop, cartId);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get cart');
+      }
+      
+      const cart = result.cart!;
       
       // Auto-populate line key from first item
-      if (cart.items && cart.items.length > 0) {
-        setAjaxLineKey(cart.items[0].key);
+      if (cart.lines && cart.lines.length > 0) {
+        setAjaxLineKey(cart.lines[0].id);
       }
       
       logAjaxResult(
-        `✅ Cart: ${cart.item_count} items, Total: ${cart.currency} ${(cart.total_price / 100).toFixed(2)}`,
+        `✅ Cart: ${cart.lines.length} items, Total: ${cart.cost.totalAmount.currencyCode} ${cart.cost.totalAmount.amount}`,
         true,
-        { items: cart.items.map((i: any) => ({ key: i.key, title: i.product_title, qty: i.quantity })) }
+        { 
+          cartId: cart.id,
+          items: cart.lines.map((line) => ({ 
+            id: line.id, 
+            title: line.merchandise.product.title, 
+            qty: line.quantity 
+          })) 
+        }
       );
     } catch (error) {
       logAjaxResult('❌ Failed to fetch cart', false, undefined, error instanceof Error ? error.message : 'Unknown error');
@@ -181,26 +194,26 @@ export default function ShopifyTestPage() {
       const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
       logAjaxResult(`Adding variant ${ajaxVariantId} (qty: ${ajaxQuantity})...`, true);
       
-      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'add',
-          items: [{
-            id: ajaxVariantId,
-            quantity: ajaxQuantity,
-            properties: { 'test': 'true', 'added_from': 'shopify-test-page' }
-          }]
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.details || error.error || `HTTP ${response.status}`);
+      const cartId = CartAPI.getStoredCartId();
+      const attributes = [
+        { key: 'test', value: 'true' },
+        { key: 'added_from', value: 'shopify-test-page' }
+      ];
+      
+      let result;
+      if (!cartId) {
+        // Create new cart
+        result = await CartAPI.createCart(normalizedShop, ajaxVariantId, ajaxQuantity, attributes);
+      } else {
+        // Add to existing cart
+        result = await CartAPI.addToCart(normalizedShop, cartId, ajaxVariantId, ajaxQuantity, attributes);
       }
 
-      const result = await response.json();
-      logAjaxResult(`✅ Product added! Cart has ${result.item_count} items`, true, result);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to add to cart');
+      }
+
+      logAjaxResult(`✅ Product added! Cart has ${result.cart!.lines.length} items`, true, result.cart);
       
       // Auto-refresh cart
       setTimeout(testGetCart, 500);
@@ -211,31 +224,25 @@ export default function ShopifyTestPage() {
 
   const testUpdateCart = async () => {
     try {
-      if (!ajaxLineKey) throw new Error('Enter a line item key');
+      if (!ajaxLineKey) throw new Error('Enter a line item ID');
       
       const targetShop = shopifyDomain || detectedShop;
       if (!targetShop) throw new Error('Provide a shop domain first');
       
       const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
+      const cartId = CartAPI.getStoredCartId();
+      
+      if (!cartId) throw new Error('No cart found. Add items first.');
+      
       logAjaxResult(`Updating line to quantity ${ajaxNewQuantity}...`, true);
       
-      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'change',
-          id: ajaxLineKey,
-          quantity: ajaxNewQuantity
-        })
-      });
+      const result = await CartAPI.updateCartLine(normalizedShop, cartId, ajaxLineKey, ajaxNewQuantity);
 
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.details || error.error || `HTTP ${response.status}`);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to update cart');
       }
 
-      const result = await response.json();
-      logAjaxResult(`✅ Quantity updated! Cart has ${result.item_count} items`, true, result);
+      logAjaxResult(`✅ Quantity updated! Cart has ${result.cart!.lines.length} items`, true, result.cart);
       
       // Auto-refresh cart
       setTimeout(testGetCart, 500);
@@ -246,24 +253,11 @@ export default function ShopifyTestPage() {
 
   const testClearCart = async () => {
     try {
-      const targetShop = shopifyDomain || detectedShop;
-      if (!targetShop) throw new Error('Provide a shop domain first');
-      
       if (!confirm('Are you sure you want to clear the cart?')) return;
       
-      const normalizedShop = targetShop.replace(/^https?:\/\//, '').split('/')[0];
       logAjaxResult('Clearing cart...', true);
       
-      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ operation: 'clear' })
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({}));
-        throw new Error(error.details || error.error || `HTTP ${response.status}`);
-      }
+      CartAPI.clearCart();
       
       logAjaxResult('✅ Cart cleared successfully!', true);
       
@@ -327,22 +321,23 @@ export default function ShopifyTestPage() {
       switch (testId) {
         case 1: // App → Store: Add Product
           {
-            const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                operation: 'add',
-                items: [{ id: syncTestVariantId, quantity: 1, properties: { 'sync_test': 'test-1' } }]
-              })
-            });
+            const cartId = CartAPI.getStoredCartId();
+            const attributes = [{ key: 'sync_test', value: 'test-1' }];
+            
+            let result;
+            if (!cartId) {
+              result = await CartAPI.createCart(normalizedShop, syncTestVariantId, 1, attributes);
+            } else {
+              result = await CartAPI.addToCart(normalizedShop, cartId, syncTestVariantId, 1, attributes);
+            }
 
-            if (!response.ok) throw new Error(`Failed to add: ${response.statusText}`);
-            const cartData = await response.json();
+            if (!result.success) throw new Error(`Failed to add: ${result.error}`);
+            const cartData = result.cart!;
 
             updateSyncTest(testId, { 
               status: 'passed', 
-              message: `✅ Added to cart! ${cartData.item_count} items total. Verify at /cart on store.`,
-              data: { items: cartData.item_count }
+              message: `✅ Added to cart! ${cartData.lines.length} items total. Verify at /cart on store.`,
+              data: { items: cartData.lines.length }
             });
 
             window.open(`https://${normalizedShop}/cart`, '_blank');
@@ -351,24 +346,23 @@ export default function ShopifyTestPage() {
 
         case 3: // App → Store: Update Quantity
           {
-            const cartResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`);
-            if (!cartResponse.ok) throw new Error('Failed to fetch cart');
+            const cartId = CartAPI.getStoredCartId();
+            if (!cartId) throw new Error('No cart found. Run Test 1 first');
             
-            const cart = await cartResponse.json();
-            if (!cart.items || cart.items.length === 0) {
+            const cartResult = await CartAPI.getCart(normalizedShop, cartId);
+            if (!cartResult.success) throw new Error('Failed to fetch cart');
+            
+            const cart = cartResult.cart!;
+            if (!cart.lines || cart.lines.length === 0) {
               throw new Error('Cart is empty. Run Test 1 first');
             }
 
-            const firstItem = cart.items[0];
+            const firstItem = cart.lines[0];
             const newQuantity = firstItem.quantity + 1;
 
-            const updateResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ operation: 'change', id: firstItem.key, quantity: newQuantity })
-            });
+            const updateResult = await CartAPI.updateCartLine(normalizedShop, cartId, firstItem.id, newQuantity);
 
-            if (!updateResponse.ok) throw new Error('Failed to update quantity');
+            if (!updateResult.success) throw new Error('Failed to update quantity');
 
             updateSyncTest(testId, {
               status: 'passed',
@@ -381,28 +375,27 @@ export default function ShopifyTestPage() {
 
         case 5: // App → Store: Remove Product
           {
-            const cartResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`);
-            if (!cartResponse.ok) throw new Error('Failed to fetch cart');
+            const cartId = CartAPI.getStoredCartId();
+            if (!cartId) throw new Error('No cart found. Run Test 1 first');
             
-            const cart = await cartResponse.json();
-            if (!cart.items || cart.items.length === 0) {
+            const cartResult = await CartAPI.getCart(normalizedShop, cartId);
+            if (!cartResult.success) throw new Error('Failed to fetch cart');
+            
+            const cart = cartResult.cart!;
+            if (!cart.lines || cart.lines.length === 0) {
               throw new Error('Cart is empty. Run Test 1 first');
             }
 
-            const firstItem = cart.items[0];
+            const firstItem = cart.lines[0];
 
-            const removeResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ operation: 'change', id: firstItem.key, quantity: 0 })
-            });
+            const removeResult = await CartAPI.removeFromCart(normalizedShop, cartId, firstItem.id);
 
-            if (!removeResponse.ok) throw new Error('Failed to remove product');
-            const updatedCart = await removeResponse.json();
+            if (!removeResult.success) throw new Error('Failed to remove product');
+            const updatedCart = removeResult.cart!;
 
             updateSyncTest(testId, {
               status: 'passed',
-              message: `✅ Removed ${firstItem.product_title}! ${updatedCart.item_count} items remaining.`,
+              message: `✅ Removed ${firstItem.merchandise.product.title}! ${updatedCart.lines.length} items remaining.`,
             });
 
             window.open(`https://${normalizedShop}/cart`, '_blank');
@@ -411,17 +404,11 @@ export default function ShopifyTestPage() {
 
         case 7: // App → Store: Clear Cart
           {
-            const clearResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(normalizedShop)}`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ operation: 'clear' })
-            });
-
-            if (!clearResponse.ok) throw new Error('Failed to clear cart');
+            CartAPI.clearCart();
 
             updateSyncTest(testId, {
               status: 'passed',
-              message: '✅ Cart cleared! Verify at /cart - should be empty.',
+              message: '✅ Cart cleared! Cart ID removed from storage.',
             });
 
             window.open(`https://${normalizedShop}/cart`, '_blank');

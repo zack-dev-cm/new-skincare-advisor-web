@@ -3,18 +3,24 @@ import { getShopifySession } from '../../../../../lib/shopify-session-store';
 import { validateShopParameter } from '../../../../../lib/shopify-oauth';
 
 /**
- * Proxy endpoint for Shopify Cart Ajax API
+ * @deprecated This endpoint uses the Ajax Cart API which ONLY works for Shopify Themes.
  * 
- * This endpoint proxies requests to Shopify's Cart Ajax API to avoid CORS issues
- * when calling from an embedded app on a different domain.
+ * ⚠️ DO NOT USE THIS ENDPOINT ⚠️
  * 
- * Supported operations:
- * - GET /cart.js - Get cart state
- * - POST /cart/add.js - Add item(s) to cart
- * - POST /cart/change.js - Update line item quantity
- * - POST /cart/clear.js - Clear all items from cart
+ * The Ajax Cart API requires browser cookies from the customer's storefront session
+ * and cannot be used for:
+ * - Embedded apps
+ * - Headless storefronts
+ * - Custom applications
+ * 
+ * USE INSTEAD: /api/shopify/cart (Storefront API GraphQL)
+ * 
+ * See: CART_FIX_IMPLEMENTATION.md for migration guide
+ * 
+ * This endpoint is kept for backward compatibility but will fail with "fetch failed" errors.
  */
 export async function GET(request: NextRequest) {
+  console.warn('⚠️ DEPRECATED ENDPOINT: /api/shopify/cart/ajax is deprecated. Use /api/shopify/cart instead.');
   try {
     const shop = request.nextUrl.searchParams.get('shop') || 
                  request.headers.get('x-shopify-shop-domain') ||
@@ -70,6 +76,8 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  console.warn('⚠️ DEPRECATED ENDPOINT: /api/shopify/cart/ajax is deprecated. Use /api/shopify/cart instead.');
+  
   try {
     const shop = request.nextUrl.searchParams.get('shop') || 
                  request.headers.get('x-shopify-shop-domain') ||
