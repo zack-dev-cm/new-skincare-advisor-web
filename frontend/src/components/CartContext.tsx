@@ -165,7 +165,7 @@ interface CartContextType {
   updateCartItem: (lineId: string, quantity: number) => Promise<void>;
   removeFromCart: (lineId: string) => Promise<void>;
   getCart: (cartId: string) => Promise<void>;
-  clearCart: () => void;
+  clearCart: () => Promise<void>;
   isProductInCart: (variantId: string) => boolean;
   getCartItemLineId: (variantId: string) => string | null;
   refreshCart: () => Promise<void>;
@@ -500,10 +500,14 @@ export function CartProvider({ children }: CartProviderProps) {
   // Helper function to refresh cart from server
   const refreshCart = useCallback(async () => {
     try {
-      const shopifyUrl = getShopifyUrl();
+      const shop = getShopifyDomain();
+      if (!shop) {
+        console.error('No shop domain available');
+        return;
+      }
       
-      // Get cart using Ajax Cart API
-      const response = await fetch(`${shopifyUrl}/cart.js`);
+      // Use proxy endpoint to avoid CORS issues
+      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`);
       
       if (!response.ok) {
         console.error('Failed to refresh cart:', await response.text());
@@ -520,6 +524,7 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   }, []);
 
+  // Subscribe to App Bridge cart updates
   useEffect(() => {
     const app = getAppBridge();
     if (!app) return;
@@ -529,6 +534,44 @@ export function CartProvider({ children }: CartProviderProps) {
     return () => {
       unsubscribe();
     };
+  }, [refreshCart]);
+
+  // Automatic cart polling every 30 seconds to sync with Shopify store
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      refreshCart();
+    }, 30000); // Poll every 30 seconds
+
+    return () => clearInterval(intervalId);
+  }, [refreshCart]);
+
+  // Refresh cart when page gains focus (user returns to tab)
+  useEffect(() => {
+    const handleFocus = () => {
+      console.log('Page focused - refreshing cart');
+      refreshCart();
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        console.log('Page visible - refreshing cart');
+        refreshCart();
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshCart]);
+
+  // Initial cart load on mount
+  useEffect(() => {
+    console.log('CartContext mounted - loading initial cart');
+    refreshCart();
   }, [refreshCart]);
 
   const addToCart = async (
@@ -542,6 +585,11 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
+      const shop = getShopifyDomain();
+      if (!shop) {
+        throw new Error('No shop domain available');
+      }
+
       // Extract numeric variant ID from GraphQL ID
       const numericVariantId = variantId.includes('gid://') 
         ? variantId.split('/').pop() 
@@ -556,14 +604,14 @@ export function CartProvider({ children }: CartProviderProps) {
         }), {}) || {})
       };
 
-      // Use Ajax Cart API for embedded apps (syncs with Liquid theme cart)
-      const shopifyUrl = getShopifyUrl();
-      const cartAddResponse = await fetch(`${shopifyUrl}/cart/add.js`, {
+      // Use proxy endpoint to avoid CORS issues
+      const cartAddResponse = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          operation: 'add',
           items: [{
             id: numericVariantId,
             quantity: quantity,
@@ -574,12 +622,11 @@ export function CartProvider({ children }: CartProviderProps) {
 
       if (!cartAddResponse.ok) {
         const errorData = await cartAddResponse.json().catch(() => ({}));
-        throw new Error(errorData.description || 'Failed to add item to cart');
+        throw new Error(errorData.details || errorData.error || 'Failed to add item to cart');
       }
 
-      // Get updated cart from Ajax API
-      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
-      const ajaxCart = await cartResponse.json();
+      // The add.js endpoint returns the updated cart
+      const ajaxCart = await cartAddResponse.json();
 
       // Transform and update cart state
       const transformedCart = transformAjaxCartToCart(ajaxCart);
@@ -620,15 +667,19 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      const shopifyUrl = getShopifyUrl();
+      const shop = getShopifyDomain();
+      if (!shop) {
+        throw new Error('No shop domain available');
+      }
       
-      // Use Ajax Cart API /cart/change.js
-      const response = await fetch(`${shopifyUrl}/cart/change.js`, {
+      // Use proxy endpoint to avoid CORS issues
+      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          operation: 'change',
           id: lineId,
           quantity: quantity,
         }),
@@ -636,12 +687,11 @@ export function CartProvider({ children }: CartProviderProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.description || 'Failed to update cart item');
+        throw new Error(errorData.details || errorData.error || 'Failed to update cart item');
       }
 
-      // Get updated cart
-      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
-      const ajaxCart = await cartResponse.json();
+      // The change.js endpoint returns the updated cart
+      const ajaxCart = await response.json();
 
       // Transform and update state
       const transformedCart = transformAjaxCartToCart(ajaxCart);
@@ -672,15 +722,19 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SHOW_GLOBAL_LOADING' });
 
     try {
-      const shopifyUrl = getShopifyUrl();
+      const shop = getShopifyDomain();
+      if (!shop) {
+        throw new Error('No shop domain available');
+      }
       
-      // Remove item by setting quantity to 0 using Ajax Cart API
-      const response = await fetch(`${shopifyUrl}/cart/change.js`, {
+      // Remove item by setting quantity to 0 using proxy endpoint
+      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
+          operation: 'change',
           id: lineId,
           quantity: 0,
         }),
@@ -688,12 +742,11 @@ export function CartProvider({ children }: CartProviderProps) {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.description || 'Failed to remove item from cart');
+        throw new Error(errorData.details || errorData.error || 'Failed to remove item from cart');
       }
 
-      // Get updated cart
-      const cartResponse = await fetch(`${shopifyUrl}/cart.js`);
-      const ajaxCart = await cartResponse.json();
+      // The change.js endpoint returns the updated cart
+      const ajaxCart = await response.json();
 
       // Transform and update state
       const transformedCart = transformAjaxCartToCart(ajaxCart);
@@ -717,10 +770,13 @@ export function CartProvider({ children }: CartProviderProps) {
     dispatch({ type: 'SET_ERROR', payload: null });
 
     try {
-      const shopifyUrl = getShopifyUrl();
+      const shop = getShopifyDomain();
+      if (!shop) {
+        throw new Error('No shop domain available');
+      }
       
-      // Get cart using Ajax Cart API (cartId is not used with Ajax API)
-      const response = await fetch(`${shopifyUrl}/cart.js`);
+      // Get cart using proxy endpoint (cartId is not used with Ajax API)
+      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`);
 
       if (!response.ok) {
         throw new Error('Failed to get cart');
@@ -741,8 +797,47 @@ export function CartProvider({ children }: CartProviderProps) {
     }
   };
 
-  const clearCart = () => {
-    dispatch({ type: 'CLEAR_CART' });
+  const clearCart = async () => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    dispatch({ type: 'SET_ERROR', payload: null });
+    dispatch({ type: 'SHOW_GLOBAL_LOADING' });
+
+    try {
+      const shop = getShopifyDomain();
+      if (!shop) {
+        throw new Error('No shop domain available');
+      }
+      
+      // Clear cart using proxy endpoint
+      const response = await fetch(`/api/shopify/cart/ajax?shop=${encodeURIComponent(shop)}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          operation: 'clear'
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.details || errorData.error || 'Failed to clear cart');
+      }
+
+      // Clear local state
+      dispatch({ type: 'CLEAR_CART' });
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      dispatch({ 
+        type: 'SET_ERROR', 
+        payload: error instanceof Error ? error.message : 'Failed to clear cart' 
+      });
+    } finally {
+      setTimeout(() => {
+        dispatch({ type: 'SET_LOADING', payload: false });
+        dispatch({ type: 'HIDE_GLOBAL_LOADING' });
+      }, 1000);
+    }
   };
 
   const showCartToast = (product: {name: string; image: string; price: number}) => {
