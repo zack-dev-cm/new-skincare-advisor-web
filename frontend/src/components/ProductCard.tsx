@@ -55,11 +55,19 @@ export default function ProductCard({ product }: ProductCardProps) {
     setShowSuccess(false);
 
     try {
-      // Variant ID is already in the correct format from Storefront API
-      // (gid://shopify/ProductVariant/...)
-      const variantId = typeof selectedVariant.id === 'string' 
-        ? selectedVariant.id 
-        : `gid://shopify/ProductVariant/${selectedVariant.id}`;
+      // Convert variant ID to GraphQL format for Storefront API cart
+      let variantId: string;
+      
+      if (typeof selectedVariant.id === 'string' && selectedVariant.id.startsWith('gid://')) {
+        // Already in GraphQL format
+        variantId = selectedVariant.id;
+      } else {
+        // Numeric ID from Admin API - convert to GraphQL format
+        const numericId = typeof selectedVariant.id === 'string' 
+          ? selectedVariant.id 
+          : selectedVariant.id.toString();
+        variantId = `gid://shopify/ProductVariant/${numericId}`;
+      }
       
       // Prepare product info for the modal
       const productInfo = {

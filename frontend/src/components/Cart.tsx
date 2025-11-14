@@ -8,6 +8,7 @@ import { useCart } from './CartContext';
 export default function Cart() {
   const { state, updateCartItem, removeFromCart, clearCart, proceedToCheckout } = useCart();
   const { cart, loading, error } = state;
+  const [isClearing, setIsClearing] = React.useState(false);
 
   if (!cart || cart.lines.length === 0) {
     return (
@@ -41,6 +42,21 @@ export default function Cart() {
     proceedToCheckout();
   };
 
+  const handleClearCart = async () => {
+    if (!confirm('Sei sicuro di voler svuotare il carrello? Questa azione non può essere annullata.')) {
+      return;
+    }
+    
+    setIsClearing(true);
+    try {
+      await clearCart();
+    } catch (error) {
+      console.error('Failed to clear cart:', error);
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   const totalItems = cart.lines.reduce((sum, item) => sum + item.quantity, 0);
   const subtotal = parseFloat(cart.cost.subtotalAmount.amount);
   const total = parseFloat(cart.cost.totalAmount.amount);
@@ -59,10 +75,18 @@ export default function Cart() {
           </div>
         </div>
         <button
-          onClick={clearCart}
-          className="text-red-600 hover:text-red-700 text-sm font-medium"
+          onClick={handleClearCart}
+          disabled={loading || isClearing}
+          className="text-red-600 hover:text-red-700 text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-1"
         >
-          Svuota Carrello
+          {isClearing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span>Svuotamento...</span>
+            </>
+          ) : (
+            <span>Svuota Carrello</span>
+          )}
         </button>
       </div>
 
