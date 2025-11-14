@@ -20,13 +20,6 @@ interface CameraCaptureStepProps {
   };
 }
 
-interface FacePosition {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
@@ -74,9 +67,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [cropBox, setCropBox] = useState<any | null>(null);
   const [originalSize, setOriginalSize] = useState({ width: 0, height: 0 });
   const previewRef = useRef<HTMLDivElement>(null);
-  const [facePosition, setFacePosition] = useState<FacePosition | null>(null);
-  const [faceAngle, setFaceAngle] = useState<{ x: number, y: number, z: number } | null>(null);
-  const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const [brightness, setBrightness] = useState<number>(0);
   const [guidanceMessage, setGuidanceMessage] = useState<string>(
     faceDetection?.isLoading ? 'Loading face detection...' : ''
@@ -299,37 +289,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     }, 250);
   };
 
-  const calculateFaceAngle = (landmarks: any) => {
-    if (!landmarks || !landmarks.positions) {
-      return { yaw: 0, pitch: 0, roll: 0 };
-    }
-    const points = landmarks.positions;
-    const noseTip = points[30];
-    const leftEye = points[36];
-    const rightEye = points[45];
-    const leftMouth = points[48];
-    const rightMouth = points[54];
-    const chin = points[8];
-
-    const eyeVector = { x: rightEye.x - leftEye.x, y: rightEye.y - leftEye.y };
-    const mouthVector = { x: rightMouth.x - leftMouth.x, y: rightMouth.y - leftMouth.y };
-    const avgHorizontalVector = { x: (eyeVector.x + mouthVector.x) / 2, y: (eyeVector.y + mouthVector.y) / 2 };
-    const yaw = Math.atan2(avgHorizontalVector.y, avgHorizontalVector.x) * (180 / Math.PI);
-
-    const faceHeight = Math.abs(chin.y - ((leftEye.y + rightEye.y) / 2));
-    const noseToEyeDistance = Math.abs(noseTip.y - ((leftEye.y + rightEye.y) / 2));
-    const pitchRatio = faceHeight ? noseToEyeDistance / faceHeight : 0;
-    const pitch = (pitchRatio - 0.3) * 90;
-
-    const roll = Math.atan2(eyeVector.y, eyeVector.x) * (180 / Math.PI);
-
-    return {
-      yaw: Math.max(-45, Math.min(45, yaw)),
-      pitch: Math.max(-30, Math.min(30, pitch)),
-      roll: Math.max(-30, Math.min(30, roll))
-    };
-  };
-
   const detectFacePosition = async () => {
     // prevent parallel runs
     if (detectingRef.current) return;
@@ -384,8 +343,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
       setGuidanceType('positioning');
       clearOverlayCanvas();
-      setDetectedFaces([]);
-      setFaceAngle(null);
 
       // --- Face detection (no configurable options for @vladmandic builds) ---
       if (!modelsLoaded || !faceApiAvailable || !faceapi) {
@@ -404,32 +361,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         .withFaceLandmarks();
 
       detectedFacesRef.current = detections;
-      setDetectedFaces(detections);
 
       if (detections.length > 0) {
-        const detection = detections[0];
-        const { detection: box, landmarks } = detection;
-
-        const normalized = normalizeFaceBox(box);
-        const facePos = normalized ? {
-          x: normalized.x,
-          y: normalized.y,
-          width: normalized.width,
-          height: normalized.height
-        } : null;
-
-        setFacePosition(facePos);
-
-        if (landmarks) {
-          const angles = calculateFaceAngle(landmarks);
-          setFaceAngle(angles as any);
-        } else {
-          setFaceAngle({ x: 0, y: 0, z: 0 });
-        }
-
         updateGuidance(detections);
       } else {
-        setFaceAngle(null);
         updateGuidance([]);
       }
     } catch (err) {
@@ -525,6 +460,58 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     return { x, y, width, height };
   };
 
+  const processCapturedImage = async (imageData: string) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      let croppedData: string | null = null;
+      let box: any | null = null;
+      let ow = 0;
+      let oh = 0;
+
+      if (faceapi && modelsLoaded) {
+        try {
+          await ensureTfBackendReady();
+          const result: any = await cropFaceFromImage(imageData, faceapi);
+
+          croppedData = result?.croppedData ?? null;
+          box = result?.box ?? null;
+          ow = result?.originalWidth ?? 0;
+          oh = result?.originalHeight ?? 0;
+
+          if (croppedData) {
+            setCroppedImage(croppedData);
+            setCropBox(box);
+            setOriginalSize({ width: ow, height: oh });
+          } else {
+            // no face / crop – still allow preview and sending
+            setCroppedImage(null);
+            setCropBox(null);
+            setOriginalSize({ width: 0, height: 0 });
+          }
+        } catch (err) {
+          console.error('Error during face crop:', err);
+          setCroppedImage(null);
+          setCropBox(null);
+          setOriginalSize({ width: 0, height: 0 });
+        }
+      } else {
+        // models not ready – just show original
+        setCroppedImage(null);
+        setCropBox(null);
+        setOriginalSize({ width: 0, height: 0 });
+      }
+
+      setCapturedImage(imageData);
+      setCameraState('preview');
+      setShowDesktopGate(false);
+      stopCamera(); // stop any active stream
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const getDistanceGuidance = (faceBox: any): { needsAdjustment: boolean; message: string } => {
     if (!videoRef.current || !faceBox) {
       return { needsAdjustment: false, message: '' };
@@ -540,10 +527,11 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const faceAreaRatio = faceArea / frameArea;
 
     if (faceAreaRatio < 0.1) {
-      return { needsAdjustment: true, message: 'Move closer to the camera' };
+      return { needsAdjustment: true, message: "Move closer to the camera" };
     }
-    if (faceAreaRatio > 0.25) {
-      return { needsAdjustment: true, message: 'Move a bit farther from the camera' };
+
+    if (faceAreaRatio > 0.70) {
+      return { needsAdjustment: true, message: "Move slightly back" };
     }
     return { needsAdjustment: false, message: '' };
   };
@@ -571,37 +559,47 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
   const areLandmarksInGuideBox = (landmarks: any[], faceBox: any): boolean => {
     if (!videoRef.current) return false;
+
     const video = videoRef.current;
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
 
-    const guideBoxWidth = 192; // w-48
-    const guideBoxHeight = 240; // h-60
+    if (!vw || !vh) return false;
 
-    const videoCenterX = video.clientWidth / 2;
-    const videoCenterY = video.clientHeight / 2;
+    // Define a CENTER REGION (percentage-based)
+    // Adjust these to your preference:
+    const regionWidthRatio = 1;   // 80% of width
+    const regionHeightRatio = 1;  // 80% of height
 
-    const scaleX = video.clientWidth / video.videoWidth;
-    const scaleY = video.clientHeight / video.videoHeight;
+    const regionWidth = vw * regionWidthRatio;
+    const regionHeight = vh * regionHeightRatio;
 
-    const guideBoxLeft = (videoCenterX - guideBoxWidth / 2) / scaleX;
-    const guideBoxRight = (videoCenterX + guideBoxWidth / 2) / scaleX;
-    const guideBoxTop = (videoCenterY - guideBoxHeight / 2) / scaleY;
-    const guideBoxBottom = (videoCenterY + guideBoxHeight / 2) / scaleY;
+    // Region boundaries
+    const left = (vw - regionWidth) / 2;
+    const right = left + regionWidth;
+    const top = (vh - regionHeight) / 2;
+    const bottom = top + regionHeight;
 
-    const keyLandmarks = [0, 16, 8, 36, 45, 48, 54, 27, 30];
-    let landmarksInBox = 0;
-    const requiredLandmarks = 5;
+    // Key facial landmark indices
+    const keyIndices = [0, 16, 8, 36, 45, 27, 30]; // cheeks, chin, eyes, nose
 
-    for (const index of keyLandmarks.slice(0, requiredLandmarks)) {
-      const landmark = landmarks[index];
+    let insideCount = 0;
+    const requiredInside = 4; // require at least 4 points inside
+
+    for (const idx of keyIndices) {
+      const lm = landmarks[idx];
       if (
-        landmark &&
-        landmark.x >= guideBoxLeft && landmark.x <= guideBoxRight &&
-        landmark.y >= guideBoxTop && landmark.y <= guideBoxBottom
+        lm &&
+        lm.x >= left &&
+        lm.x <= right &&
+        lm.y >= top &&
+        lm.y <= bottom
       ) {
-        landmarksInBox++;
+        insideCount++;
       }
     }
-    return landmarksInBox >= requiredLandmarks;
+
+    return insideCount >= requiredInside;
   };
 
   // guidance timeout effect
@@ -655,16 +653,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
 
     // Crop and get bounding box + original dimensions
-    const { croppedData, box, originalWidth: ow, originalHeight: oh }: any =
-      await cropFaceFromImage(imageData, faceapi);
-
-    setCapturedImage(imageData);
-    setCroppedImage(croppedData);
-    setCropBox(box);
-    setOriginalSize({ width: ow, height: oh });
-
-    setCameraState('preview');
-    stopCamera();
+    await processCapturedImage(imageData);
   };
 
   const retakePhoto = () => {
@@ -674,7 +663,15 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   };
 
   const confirmPhoto = () => {
-    if (croppedImage) onNext(croppedImage);
+    if (croppedImage) {
+      onNext(croppedImage);
+    } else if (capturedImage) {
+      // fallback: send full image
+      onNext(capturedImage);
+    } else {
+      // nothing to send – you could show an error/toast here if you want
+      console.warn('No image available to send');
+    }
   };
 
   const computeDisplayBox = () => {
@@ -705,18 +702,15 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     };
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       const imageData = e.target?.result as string;
-      if (imageData) {
-        setCapturedImage(imageData);
-        setCameraState('preview');
-        setShowDesktopGate(false);
-        stopCamera();
-      }
+
+      if (!imageData) return;
+      await processCapturedImage(imageData);
     };
     reader.readAsDataURL(file);
   };
@@ -753,11 +747,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               {session && (
                 <DesktopPhotoReceiver
                   session={session}
-                  onPhotoReceived={(image) => {
-                    setCapturedImage(image);
-                    setCameraState('preview');
-                    setShowDesktopGate(false);
-                    console.log('Photo received, switching to preview step');
+                  onPhotoReceived={async (image) => {
+                    console.log('Photo received, processing…');
+                    await processCapturedImage(image);
                   }}
                 />
               )}
@@ -830,17 +822,24 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 autoPlay
                 playsInline
                 muted
-                className={`max-w-full max-h-full object-contain ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+                className={`w-full h-full object-cover ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
                 style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  display: 'block',
+                  width: '100%',
+                  height: '100%',
+                  objectFit: 'cover',
                   transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
                 }}
               />
-
+              {guidanceType == 'detecting' && (
+                <motion.div
+                  key="blur-overlay"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 backdrop-blur-sm pointer-events-none z-10"
+                />
+              )}
               {/* Face guide overlay */}
               {guidanceMessage !== 'Center your face in the guide box' && (
                 <AnimatePresence>
@@ -933,43 +932,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               <img
                 src={capturedImage}
                 alt="Captured"
-                className="max-w-full max-h-full object-contain"
+                className="w-full h-full object-cover"
               />
-
-              {(() => {
-                const displayBox = computeDisplayBox();
-                if (!displayBox) return null;
-
-                return (
-                  <>
-                    {/* Mask */}
-                    <div className="absolute inset-0 bg-black opacity-60 pointer-events-none"></div>
-
-                    {/* Highlight */}
-                    <div
-                      className="absolute border-4 border-white/90 rounded-md shadow-lg pointer-events-none"
-                      style={{
-                        left: `${displayBox.x}px`,
-                        top: `${displayBox.y}px`,
-                        width: `${displayBox.width}px`,
-                        height: `${displayBox.height}px`,
-                      }}
-                    />
-
-                    {/* Cropped overlay */}
-                    <img
-                      src={croppedImage ?? ""}
-                      className="absolute rounded-md pointer-events-none"
-                      style={{
-                        left: `${displayBox.x}px`,
-                        top: `${displayBox.y}px`,
-                        width: `${displayBox.width}px`,
-                        height: `${displayBox.height}px`,
-                      }}
-                    />
-                  </>
-                );
-              })()}
             </div>
           )}
 
