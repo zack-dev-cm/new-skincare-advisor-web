@@ -451,7 +451,7 @@ export function CartProvider({ children }: CartProviderProps) {
     try {
       const shop = getShopifyDomain();
       if (!shop) {
-        console.error('No shop domain available');
+        console.log('No shop domain available');
         return;
       }
       
