@@ -22,8 +22,11 @@ interface CameraCaptureStepProps {
 
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false;
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    window.innerWidth <= 768;
+  return (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    ) || window.innerWidth <= 768
+  );
 };
 
 const BrightnessBar: React.FC<{ value: number }> = ({ value }) => {
@@ -71,11 +74,12 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
   const [guidanceMessage, setGuidanceMessage] = useState<string>(
     faceDetection?.isLoading ? 'Loading face detection...' : ''
   );
-  const [guidanceType, setGuidanceType] = useState<'loading' | 'detecting' | 'positioning' | 'ready'>(
-    faceDetection?.isLoading ? 'loading' : 'detecting'
-  );
+  const [guidanceType, setGuidanceType] = useState<
+    'loading' | 'detecting' | 'positioning' | 'ready'
+  >(faceDetection?.isLoading ? 'loading' : 'detecting');
   const [lastFaceDetectionTime, setLastFaceDetectionTime] = useState<number>(0);
   const [session, setSession] = useState<string>('');
+  const [imageSource, setImageSource] = useState<'camera' | 'upload'>('camera');
 
   // from props
   const modelsLoaded = faceDetection?.modelsLoaded ?? false;
@@ -122,7 +126,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     console.log('📸 Camera step - Face detection status:', {
       modelsLoaded,
       faceApiAvailable,
-      hasFaceapi: !!faceapi
+      hasFaceapi: !!faceapi,
     });
   }, [modelsLoaded, faceApiAvailable, faceapi]);
 
@@ -149,9 +153,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         video: {
           facingMode: facingMode === 'front' ? 'user' : 'environment',
           width: { ideal: 1920 },
-          height: { ideal: 1080 }
+          height: { ideal: 1080 },
         },
-        audio: false
+        audio: false,
       };
 
       const newStream = await navigator.mediaDevices.getUserMedia(constraints);
@@ -168,7 +172,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         video.srcObject = newStream;
 
         await new Promise<void>((resolve, reject) => {
-          const timeout = setTimeout(() => reject(new Error('Video timeout')), 5000);
+          const timeout = setTimeout(
+            () => reject(new Error('Video timeout')),
+            5000
+          );
           const onLoadedMetadata = () => {
             clearTimeout(timeout);
             video.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -200,7 +207,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
       // Fallback
       try {
-        const fallbackStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const fallbackStream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: false,
+        });
         if (!isMountedRef.current) {
           fallbackStream.getTracks().forEach((t) => t.stop());
           return;
@@ -213,7 +223,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
           video.srcObject = fallbackStream;
 
           await new Promise<void>((resolve, reject) => {
-            const timeout = setTimeout(() => reject(new Error('Fallback timeout')), 5000);
+            const timeout = setTimeout(
+              () => reject(new Error('Fallback timeout')),
+              5000
+            );
             const onLoadedMetadata = () => {
               clearTimeout(timeout);
               video.removeEventListener('loadedmetadata', onLoadedMetadata);
@@ -247,12 +260,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       initializationInProgressRef.current = false;
     }
 
-    function onError(e: Event) { /* noop helper for above */ }
+    function onError(e: Event) {
+      /* noop helper for above */
+    }
   };
 
   const stopCamera = () => {
     if (stream) {
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       setStream(null);
     }
     if (detectionTimerRef.current) {
@@ -269,14 +284,20 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     setCurrentCamera(newCamera);
     if (isCameraActive) {
       stopCamera();
-      setTimeout(() => { if (isMountedRef.current) startCamera(newCamera); }, 100);
+      setTimeout(() => {
+        if (isMountedRef.current) startCamera(newCamera);
+      }, 100);
     }
   };
 
   const startFaceDetection = async () => {
     if (!videoRef.current) return;
     if (!modelsLoaded) return;
-    try { await ensureTfBackendReady(); } catch { /* ignore */ }
+    try {
+      await ensureTfBackendReady();
+    } catch {
+      /* ignore */
+    }
 
     if (detectionTimerRef.current) {
       clearInterval(detectionTimerRef.current);
@@ -295,11 +316,18 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     detectingRef.current = true;
 
     try {
-      if (!videoRef.current) { detectingRef.current = false; return; }
+      if (!videoRef.current) {
+        detectingRef.current = false;
+        return;
+      }
       const video = videoRef.current;
 
       // video must be ready
-      if (video.readyState < 2 || video.videoWidth === 0 || video.videoHeight === 0) {
+      if (
+        video.readyState < 2 ||
+        video.videoWidth === 0 ||
+        video.videoHeight === 0
+      ) {
         detectingRef.current = false;
         return;
       }
@@ -314,12 +342,19 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       const tempCtx = tempCanvas.getContext('2d');
       if (tempCtx) {
         tempCtx.drawImage(video, 0, 0, tempCanvas.width, tempCanvas.height);
-        const frameData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+        const frameData = tempCtx.getImageData(
+          0,
+          0,
+          tempCanvas.width,
+          tempCanvas.height
+        );
         let totalLuminance = 0;
         let pixelCount = 0;
         const data = frameData.data;
         for (let i = 0; i < data.length; i += 16) {
-          const r = data[i], g = data[i + 1], b = data[i + 2];
+          const r = data[i],
+            g = data[i + 1],
+            b = data[i + 2];
           totalLuminance += (0.299 * r + 0.587 * g + 0.114 * b) / 255;
           pixelCount++;
         }
@@ -327,9 +362,12 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         setBrightness(Math.round(avgLuminance * 100));
 
         let brightnessMsg = '';
-        if (avgLuminance < 0.20) brightnessMsg = 'Face toward a light source - lighting is too dark';
-        else if (avgLuminance > 0.80) brightnessMsg = 'Move away from bright light - lighting is too bright';
-        else if (avgLuminance < 0.35) brightnessMsg = 'Turn toward more light for better visibility';
+        if (avgLuminance < 0.2)
+          brightnessMsg = 'Face toward a light source - lighting is too dark';
+        else if (avgLuminance > 0.8)
+          brightnessMsg = 'Move away from bright light - lighting is too bright';
+        else if (avgLuminance < 0.35)
+          brightnessMsg = 'Turn toward more light for better visibility';
 
         if (brightnessMsg) {
           if (guidanceMessage !== brightnessMsg) {
@@ -344,7 +382,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       setGuidanceType('positioning');
       clearOverlayCanvas();
 
-      // --- Face detection (no configurable options for @vladmandic builds) ---
+      // --- Face detection ---
       if (!modelsLoaded || !faceApiAvailable || !faceapi) {
         // wait for models
         setGuidanceMessage('Loading recognition models...');
@@ -353,7 +391,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
         return;
       }
 
-      // Create default options object — do NOT set inputSize/scoreThreshold in this build
       const options = new faceapi.TinyFaceDetectorOptions();
 
       const detections = await faceapi
@@ -447,14 +484,22 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     }
   };
 
-  const normalizeFaceBox = (rawBox: any): { x: number; y: number; width: number; height: number } | null => {
+  const normalizeFaceBox = (
+    rawBox: any
+  ): { x: number; y: number; width: number; height: number } | null => {
     if (!rawBox || typeof rawBox !== 'object') return null;
-    const candidate = (rawBox.box && typeof rawBox.box === 'object') ? rawBox.box : rawBox;
+    const candidate =
+      rawBox.box && typeof rawBox.box === 'object' ? rawBox.box : rawBox;
     const x = Number((candidate as any).x);
     const y = Number((candidate as any).y);
     const width = Number((candidate as any).width);
     const height = Number((candidate as any).height);
-    if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(width) || !Number.isFinite(height)) {
+    if (
+      !Number.isFinite(x) ||
+      !Number.isFinite(y) ||
+      !Number.isFinite(width) ||
+      !Number.isFinite(height)
+    ) {
       return null;
     }
     return { x, y, width, height };
@@ -512,7 +557,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     }
   };
 
-  const getDistanceGuidance = (faceBox: any): { needsAdjustment: boolean; message: string } => {
+  const getDistanceGuidance = (
+    faceBox: any
+  ): { needsAdjustment: boolean; message: string } => {
     if (!videoRef.current || !faceBox) {
       return { needsAdjustment: false, message: '' };
     }
@@ -522,36 +569,50 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     if (!frameWidth || !frameHeight) {
       return { needsAdjustment: false, message: '' };
     }
-    const faceArea = Math.max(1, Number(faceBox.width)) * Math.max(1, Number(faceBox.height));
+    const faceArea =
+      Math.max(1, Number(faceBox.width)) *
+      Math.max(1, Number(faceBox.height));
     const frameArea = frameWidth * frameHeight;
     const faceAreaRatio = faceArea / frameArea;
 
     if (faceAreaRatio < 0.1) {
-      return { needsAdjustment: true, message: "Move closer to the camera" };
+      return { needsAdjustment: true, message: 'Move closer to the camera' };
     }
 
-    if (faceAreaRatio > 0.70) {
-      return { needsAdjustment: true, message: "Move slightly back" };
+    if (faceAreaRatio > 0.7) {
+      return { needsAdjustment: true, message: 'Move slightly back' };
     }
     return { needsAdjustment: false, message: '' };
   };
 
-  const getAngleGuidance = (landmarks: any[], faceBox: any): { shouldCorrect: boolean; message: string } => {
-    if (!landmarks || landmarks.length < 68) return { shouldCorrect: false, message: '' };
+  const getAngleGuidance = (
+    landmarks: any[],
+    faceBox: any
+  ): { shouldCorrect: boolean; message: string } => {
+    if (!landmarks || landmarks.length < 68)
+      return { shouldCorrect: false, message: '' };
     const leftCheek = landmarks[0];
     const rightCheek = landmarks[16];
     const noseTip = landmarks[30];
     const noseBridge = landmarks[27];
-    if (!leftCheek || !rightCheek || !noseTip || !noseBridge) return { shouldCorrect: false, message: '' };
+    if (!leftCheek || !rightCheek || !noseTip || !noseBridge)
+      return { shouldCorrect: false, message: '' };
 
-    const leftDistance = Math.hypot(leftCheek.x - noseTip.x, leftCheek.y - noseTip.y);
-    const rightDistance = Math.hypot(rightCheek.x - noseTip.x, rightCheek.y - noseTip.y);
+    const leftDistance = Math.hypot(
+      leftCheek.x - noseTip.x,
+      leftCheek.y - noseTip.y
+    );
+    const rightDistance = Math.hypot(
+      rightCheek.x - noseTip.x,
+      rightCheek.y - noseTip.y
+    );
     const asym = Math.abs(leftDistance - rightDistance);
     const avg = (leftDistance + rightDistance) / 2;
     const ratio = avg > 0 ? asym / avg : 0;
 
     if (ratio > 0.25) {
-      if (leftDistance > rightDistance) return { shouldCorrect: true, message: 'Turn your head slightly right' };
+      if (leftDistance > rightDistance)
+        return { shouldCorrect: true, message: 'Turn your head slightly right' };
       return { shouldCorrect: true, message: 'Turn your head slightly left' };
     }
     return { shouldCorrect: false, message: '' };
@@ -567,9 +628,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
     if (!vw || !vh) return false;
 
     // Define a CENTER REGION (percentage-based)
-    // Adjust these to your preference:
-    const regionWidthRatio = 1;   // 80% of width
-    const regionHeightRatio = 1;  // 80% of height
+    const regionWidthRatio = 1;
+    const regionHeightRatio = 1;
 
     const regionWidth = vw * regionWidthRatio;
     const regionHeight = vh * regionHeightRatio;
@@ -652,6 +712,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
 
     const imageData = canvas.toDataURL('image/jpeg', 1.0);
 
+    // Mark as camera image for preview style
+    setImageSource('camera');
+
     // Crop and get bounding box + original dimensions
     await processCapturedImage(imageData);
   };
@@ -669,40 +732,13 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       // fallback: send full image
       onNext(capturedImage);
     } else {
-      // nothing to send – you could show an error/toast here if you want
       console.warn('No image available to send');
     }
   };
 
-  const computeDisplayBox = () => {
-    if (!cropBox || !previewRef.current || !capturedImage) return null;
-
-    const { width: imgW, height: imgH } = originalSize;
-    const container = previewRef.current;
-
-    // container dimensions
-    const contW = container.clientWidth;
-    const contH = container.clientHeight;
-
-    // scale factor for object-contain
-    const scale = Math.min(contW / imgW, contH / imgH);
-
-    const displayedW = imgW * scale;
-    const displayedH = imgH * scale;
-
-    // center offsets
-    const offsetX = (contW - displayedW) / 2;
-    const offsetY = (contH - displayedH) / 2;
-
-    return {
-      x: cropBox.x * scale + offsetX,
-      y: cropBox.y * scale + offsetY,
-      width: cropBox.width * scale,
-      height: cropBox.height * scale,
-    };
-  };
-
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
@@ -710,6 +746,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
       const imageData = e.target?.result as string;
 
       if (!imageData) return;
+
+      // Mark as upload image for preview style
+      setImageSource('upload');
+
       await processCapturedImage(imageData);
     };
     reader.readAsDataURL(file);
@@ -740,7 +780,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 )}
               </div>
               <div className="flex flex-col gap-2 text-center text-white">
-                <h2 className="text-xl sm:text-2xl">Scan this QR code to take a photo with your smartphone</h2>
+                <h2 className="text-xl sm:text-2xl">
+                  Scan this QR code to take a photo with your smartphone
+                </h2>
               </div>
             </div>
             <div className="mt-8 w-full flex flex-col items-center justify-center">
@@ -749,6 +791,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   session={session}
                   onPhotoReceived={async (image) => {
                     console.log('Photo received, processing…');
+                    // Treat QR photos as uploaded image for preview behavior
+                    setImageSource('upload');
                     await processCapturedImage(image);
                   }}
                 />
@@ -806,7 +850,10 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               <div className="text-white text-center p-4">
                 <p className="mb-4">{error}</p>
                 <button
-                  onClick={() => { setError(null); startCamera(); }}
+                  onClick={() => {
+                    setError(null);
+                    startCamera();
+                  }}
                   className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
                 >
                   Riprova
@@ -822,12 +869,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 autoPlay
                 playsInline
                 muted
-                className={`w-full h-full object-cover ${currentCamera === 'front' ? 'scale-x-[-1]' : ''}`}
+                className={`w-full h-full object-cover ${
+                  currentCamera === 'front' ? 'scale-x-[-1]' : ''
+                }`}
                 style={{
                   width: '100%',
                   height: '100%',
                   objectFit: 'cover',
-                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none'
+                  transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none',
                 }}
               />
               {guidanceType == 'detecting' && (
@@ -857,19 +906,21 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                       style={{
                         width: '12rem',
                         height: '15rem',
-                        boxShadow: '0 12px 40px rgba(139, 75, 241, 0.8), 0 0 80px rgba(196, 24, 212, 0.23)',
+                        boxShadow:
+                          '0 12px 40px rgba(139, 75, 241, 0.8), 0 0 80px rgba(196, 24, 212, 0.23)',
                         filter: 'blur(10px)',
                         transform: 'translateZ(0)',
-                        pointerEvents: 'none'
+                        pointerEvents: 'none',
                       }}
                     />
                     <div
                       className="relative w-48 h-60 rounded-lg"
                       style={{
                         border: '2px solid rgba(132, 45, 245, 0.95)',
-                        background: 'linear-gradient(180deg, rgba(29, 123, 231, 0.02), rgba(255,255,255,0))',
+                        background:
+                          'linear-gradient(180deg, rgba(29, 123, 231, 0.02), rgba(255,255,255,0))',
                         boxShadow: '0 4px 18px rgba(48, 156, 245, 0.04) inset',
-                        pointerEvents: 'none'
+                        pointerEvents: 'none',
                       }}
                     />
                   </motion.div>
@@ -880,7 +931,8 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 <span
                   className="text-xs text-white mb-1"
                   style={{
-                    textShadow: '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
+                    textShadow:
+                      '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
                     filter: 'brightness(1.2)',
                   }}
                 >
@@ -928,11 +980,14 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
               ref={previewRef}
               className="relative w-full h-full flex items-center justify-center bg-black"
             >
-              {/* Full original image */}
               <img
                 src={capturedImage}
                 alt="Captured"
-                className="w-full h-full object-cover"
+                className={
+                  imageSource === 'upload'
+                    ? 'max-w-full max-h-full object-contain'
+                    : 'w-full h-full object-cover'
+                }
               />
             </div>
           )}

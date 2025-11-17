@@ -1,59 +1,107 @@
-export async function cropFaceFromImage(imageData: string, faceapi: any) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = imageData;
+export interface CroppedFaceResult {
+  croppedData: string | null;
+  originalWidth: number;
+  originalHeight: number;
+  box: { x: number; y: number; width: number; height: number } | null;
+}
 
-      img.onload = async () => {
-        const detection = await faceapi
-          .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
-          .withFaceLandmarks();
+export async function cropFaceFromImage(
+  imageData: string,
+  faceapi: any
+): Promise<CroppedFaceResult> {
+  // Load image from data URL
+  const img = await faceapi.fetchImage(imageData);
+  const originalWidth = img.naturalWidth || img.width;
+  const originalHeight = img.naturalHeight || img.height;
 
-        if (!detection || !detection.detection) {
-          resolve({
-            croppedData: imageData,
-            box: null,
-            originalWidth: img.width,
-            originalHeight: img.height
-          });
-          return;
-        }
+  if (!originalWidth || !originalHeight) {
+    console.warn('cropFaceFromImage: invalid image dimensions');
+    return {
+      croppedData: null,
+      originalWidth,
+      originalHeight,
+      box: null,
+    };
+  }
 
-        const { box } = detection.detection;
+  // Detect a single face with landmarks
+  const detection = await faceapi
+    .detectSingleFace(img, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks();
 
-        const cropX = Math.max(0, Math.round(box.x));
-        const cropY = Math.max(0, Math.round(box.y));
-        const cropWidth = Math.min(img.width - cropX, Math.round(box.width));
-        const cropHeight = Math.min(img.height - cropY, Math.round(box.height));
+  if (!detection) {
+    console.warn('cropFaceFromImage: no face detected');
+    return {
+      croppedData: null,
+      originalWidth,
+      originalHeight,
+      box: null,
+    };
+  }
 
-        const cropCanvas = document.createElement("canvas");
-        cropCanvas.width = cropWidth;
-        cropCanvas.height = cropHeight;
-        const ctx = cropCanvas.getContext("2d")!;
-        ctx.drawImage(
-          img,
-          cropX,
-          cropY,
-          cropWidth,
-          cropHeight,
-          0,
-          0,
-          cropWidth,
-          cropHeight
-        );
+  const faceBox = detection.detection.box;
+  let { x, y, width, height } = faceBox;
 
-        const croppedData = cropCanvas.toDataURL("image/jpeg", 1.0);
+  // --- ONLY ADD SPACE ON TOP (FOREHEAD) ---
+  const extraTop = height * 0.4; // ~15% of face height above
 
-        resolve({
-          croppedData,
-          box: { x: cropX, y: cropY, width: cropWidth, height: cropHeight },
-          originalWidth: img.width,
-          originalHeight: img.height
-        });
-      };
-    } catch (err) {
-      reject(err);
-    }
-  });
+  let cropX = x;
+  let cropY = y - extraTop;
+  let cropW = width;
+  let cropH = height + extraTop;
+
+  // Clamp to image bounds (only what’s needed)
+  if (cropY < 0) {
+    cropH += cropY; // reduce height by how much we went above
+    cropY = 0;
+  }
+  if (cropY + cropH > originalHeight) {
+    cropH = originalHeight - cropY;
+  }
+
+  // Safety clamp
+  cropW = Math.max(1, cropW);
+  cropH = Math.max(1, cropH);
+
+  // Create canvas and draw cropped region
+  const canvas = document.createElement('canvas');
+  canvas.width = cropW;
+  canvas.height = cropH;
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) {
+    console.warn('cropFaceFromImage: could not get canvas context');
+    return {
+      croppedData: null,
+      originalWidth,
+      originalHeight,
+      box: null,
+    };
+  }
+
+  ctx.drawImage(
+    img,
+    cropX,
+    cropY,
+    cropW,
+    cropH,
+    0,
+    0,
+    cropW,
+    cropH
+  );
+
+  const croppedData = canvas.toDataURL('image/jpeg', 0.95);
+
+  return {
+    croppedData,
+    originalWidth,
+    originalHeight,
+    box: {
+      x: cropX,
+      y: cropY,
+      width: cropW,
+      height: cropH,
+    },
+  };
 }
