@@ -49,7 +49,7 @@ const BrightnessBar: React.FC<{ value: number }> = ({ value }) => {
             filter: 'brightness(1.2)',
           }}
           transition={{ duration: 0.25 }}
-          className="w-4 h-4 bg-white rounded-sm"
+          className="w-4 h-8 bg-white rounded-sm"
         />
       ))}
     </div>
@@ -879,16 +879,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none',
                 }}
               />
-              {guidanceType == 'detecting' && (
-                <motion.div
-                  key="blur-overlay"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-black/60 backdrop-blur-sm pointer-events-none z-10"
-                />
-              )}
+              
               {/* Face guide overlay */}
               {guidanceMessage !== 'Center your face in the guide box' && (
                 <AnimatePresence>
@@ -927,20 +918,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                 </AnimatePresence>
               )}
 
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center">
-                <span
-                  className="text-xs text-white mb-1"
-                  style={{
-                    textShadow:
-                      '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
-                    filter: 'brightness(1.2)',
-                  }}
-                >
-                  Lighting
-                </span>
-                <BrightnessBar value={brightness} />
-              </div>
-
               {/* Dynamic Guidance Text */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
                 <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
@@ -972,9 +949,35 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   </AnimatePresence>
                 </div>
               </div>
+
+              {(brightness < 35 || brightness > 80) && (
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center w-full h-full backdrop-blur-md pointer-events-none"
+                  style={{
+                    background: `linear-gradient(
+                      to top,
+                      rgba(0, 0, 0, 0.45) 0%,
+                      rgba(0, 0, 0, 0.25) 35%,
+                      rgba(0, 0, 0, 0) 100%
+                    )`
+                  }}
+                >
+                  <span
+                    className="text-xs text-white mb-1"
+                    style={{
+                      textShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
+                      filter: 'brightness(1.2)',
+                    }}
+                  >
+                    Checking the light...
+                  </span>
+
+                  <BrightnessBar value={brightness} />
+                  <span className="text-xs text-white mt-6">{guidanceMessage}</span>
+                </div>
+              )}
             </div>
           )}
-
+          
           {cameraState === 'preview' && capturedImage && (
             <div
               ref={previewRef}
