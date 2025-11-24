@@ -30,17 +30,16 @@ const requestSchema = Joi.object({
 });
 
 // Rate limiter specifico per upload
-// Rate limiter per upload - DISABILITATO per test di carico
-// const uploadRateLimiter = rateLimitMiddleware({
-//   limit: 20, // 20 upload per ora
-//   window: '1h',
-//   keyGenerator: (context) => {
-//     // Usa user ID se autenticato, altrimenti IP
-//     return context.req.headers['x-user-id'] || 
-//            context.req.headers['x-forwarded-for'] || 
-//            'anonymous';
-//   }
-// });
+const uploadRateLimiter = rateLimitMiddleware({
+  limit: 30, // 30 upload per ora per utente
+  window: '1h',
+  keyGenerator: (context) => {
+    // Priorità: user ID > IP > anonymous
+    return context.req.headers['x-user-id'] || 
+           context.req.headers['x-forwarded-for'] || 
+           'anonymous';
+  }
+});
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
@@ -63,9 +62,8 @@ module.exports = async function (context, req) {
   
   try {
     // Rate limiting
-    // Rate limiting - DISABILITATO per test di carico
-    // const rateLimitPassed = await uploadRateLimiter(context);
-    // if (!rateLimitPassed) return; // Response già impostata dal middleware
+    const rateLimitPassed = await uploadRateLimiter(context);
+    if (!rateLimitPassed) return; // Response già impostata dal middleware
 
     // Validazione input
     const { error, value } = requestSchema.validate(req.body);
@@ -89,9 +87,10 @@ module.exports = async function (context, req) {
 
     const { mimeType, metadata = {} } = value;
     
-    // Genera nome file univoco
+    // Genera inferenceId (UUID) e nome file univoco
+    const inferenceId = uuid();
     const ext = mimeType.split('/')[1];
-    const fileName = `${uuid()}.${ext}`;
+    const fileName = `${inferenceId}.${ext}`;
     const blobName = `uploads/${new Date().toISOString().split('T')[0]}/${fileName}`;
 
     // Inizializza blob client
@@ -100,18 +99,14 @@ module.exports = async function (context, req) {
     // Genera SAS token con permessi limitati
     const sasToken = await generateSasToken(blobClient, 'w'); // Solo scrittura
     const uploadUrl = `${blobClient.url}?${sasToken}`;
-    
-    // URL per lettura (senza SAS se container è pubblico, altrimenti con SAS read-only)
-    const readUrl = await getReadUrl(blobClient);
 
     // Log evento
     logger.info('Upload URL generated', {
       blobName,
+      inferenceId,
       mimeType,
       metadata,
       uploadUrl: uploadUrl,
-      readUrl: readUrl,
-      blobClientUrl: blobClient.url,
       duration: Date.now() - startTime
     });
     
@@ -130,8 +125,7 @@ module.exports = async function (context, req) {
       },
       body: {
         uploadUrl,
-        blobUrl: readUrl,
-        blobName,
+        inferenceId,
         expiresAt: new Date(Date.now() + config.limits.uploadUrlTTL * 1000).toISOString()
       }
     };

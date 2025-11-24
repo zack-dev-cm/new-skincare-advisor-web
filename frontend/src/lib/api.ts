@@ -57,8 +57,8 @@ api.interceptors.response.use(
 
 export interface UploadUrlResponse {
   uploadUrl: string;
-  blobName: string;
-  blobUrl?: string; // Public URL for the uploaded blob
+  inferenceId: string;
+  expiresAt: string;
 }
 
 export interface AnalysisResponse {
@@ -228,7 +228,7 @@ export async function uploadImageFile(file: File): Promise<string> {
 
   try {
     // Get upload URL with correct MIME type
-    const { uploadUrl, blobUrl, blobName } = await getUploadUrl(file.type);
+    const { uploadUrl, inferenceId } = await getUploadUrl(file.type);
     
     // Upload file to Azure Blob Storage
     const uploadResponse = await fetch(uploadUrl, {
@@ -244,8 +244,8 @@ export async function uploadImageFile(file: File): Promise<string> {
       throw new Error(`Upload failed with status ${uploadResponse.status}`);
     }
     
-    // Return public URL or construct from blobName
-    return blobUrl || blobName;
+    // Return inferenceId instead of URL
+    return inferenceId;
   } catch (error) {
     console.error('File upload failed:', error);
     throw error;
@@ -356,7 +356,7 @@ export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
     }
     
     // Get upload URL
-    const { uploadUrl, blobUrl, blobName } = await getUploadUrl(blob.type);
+    const { uploadUrl, inferenceId } = await getUploadUrl(blob.type);
     
     // Upload to Azure Blob Storage
     const uploadResponse = await fetch(uploadUrl, {
@@ -372,8 +372,8 @@ export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
       throw new Error(`Upload failed with status ${uploadResponse.status}`);
     }
     
-    // Return public URL or construct from blobName
-    return blobUrl || blobName;
+    // Return inferenceId instead of URL
+    return inferenceId;
   } catch (error) {
     console.error('Base64 upload failed:', error);
     throw error;
@@ -389,21 +389,25 @@ export async function analyzeSkinWithRecommendations(
   metadata?: ImageMetadata
 ): Promise<AnalysisResponse> {
   try {
-    let imageUrl: string;
+    let inferenceId: string;
+    let mimeType: string;
     
     // Upload image based on source type
     if (typeof imageSource === 'string') {
-      // Base64 data URL from camera
-      imageUrl = await uploadBase64Image(imageSource);
+      // Base64 data URL from camera - extract mimeType from data URL
+      const mimeMatch = imageSource.match(/data:([^;]+)/);
+      mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      inferenceId = await uploadBase64Image(imageSource);
     } else {
       // File from upload
-      imageUrl = await uploadImageFile(imageSource);
+      mimeType = imageSource.type || 'image/jpeg';
+      inferenceId = await uploadImageFile(imageSource);
     }
     
     // Prepare inference request
     const resolvedShopDomain = userData?.shop_domain || getShopifyDomain();
     const requestBody = {
-      imageUrl,
+      inferenceId,
       userData: {
         ...(userData || {}),
         ...(resolvedShopDomain ? { shop_domain: resolvedShopDomain } : {})
@@ -411,6 +415,7 @@ export async function analyzeSkinWithRecommendations(
       includeRecommendations: true,
       metadata: {
         ...metadata,
+        mimeType,
         apiVersion: '1.0',
         clientTimestamp: Date.now()
       }

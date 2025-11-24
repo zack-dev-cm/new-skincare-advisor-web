@@ -195,10 +195,10 @@ function runFlow(artifact, options = {}) {
 
   const uploadPayload = safeJson(uploadUrlRes.body);
   const uploadUrl = uploadPayload?.uploadUrl;
-  const blobUrl = uploadPayload?.blobUrl || uploadPayload?.blobName;
+  const inferenceId = uploadPayload?.inferenceId;
 
-  if (!uploadUrl || !blobUrl) {
-    console.error(`Upload URL response priva di uploadUrl/blobUrl: ${uploadUrlRes.body?.slice?.(0, 256)}`);
+  if (!uploadUrl || !inferenceId) {
+    console.error(`Upload URL response priva di uploadUrl/inferenceId: ${uploadUrlRes.body?.slice?.(0, 256)}`);
     return {
       upload: uploadUrlRes,
       uploadPut: null,
@@ -241,7 +241,7 @@ function runFlow(artifact, options = {}) {
     };
   }
 
-  const payload = buildInferPayload(blobUrl);
+  const payload = buildInferPayload(inferenceId, UPLOAD_MIME_TYPE);
   const inferRes = http.post(
     INFER_URL,
     JSON.stringify(payload),
@@ -306,13 +306,14 @@ function recordResult(result) {
   else if (result.infer.status >= 400) statusOtherErr.add(1);
 }
 
-function buildInferPayload(imageUrl) {
+function buildInferPayload(inferenceId, mimeType) {
   return {
-    imageUrl,
+    inferenceId,
     userData: BASE_USER_DATA,
     includeRecommendations: true,
     metadata: {
       ...BASE_METADATA,
+      mimeType,
       clientTimestamp: Date.now(),
     },
   };

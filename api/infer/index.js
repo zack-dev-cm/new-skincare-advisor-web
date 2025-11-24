@@ -21,8 +21,9 @@ const requestSchema = Joi.object({
   imageUrl: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .max(2048)
-    .required()
+    .optional()
     .custom((value, helpers) => {
+      if (!value) return value; // Se non fornito, skip validation
       // Durante i test, permette URL pubblici
       const isTestEnvironment = process.env.NODE_ENV === 'test' || process.env.JEST_WORKER_ID;
       const isValidPublicUrl = value.startsWith('https://') && (value.includes('.jpg') || value.includes('.jpeg') || value.includes('.png'));
@@ -36,6 +37,8 @@ const requestSchema = Joi.object({
     .messages({
       'custom.invalidStorageUrl': 'URL deve essere un Azure Blob Storage valido'
     }),
+  
+  inferenceId: Joi.string().uuid().optional(),
   
   sync: Joi.boolean().default(true),
   userId: Joi.string().max(100).optional(),
@@ -64,15 +67,30 @@ const requestSchema = Joi.object({
     fileSize: Joi.number().integer().min(0).optional(),
     timestamp: Joi.number().integer().min(0).optional(),
     apiVersion: Joi.string().max(20).optional(),
-    clientTimestamp: Joi.number().integer().min(0).optional()
+    clientTimestamp: Joi.number().integer().min(0).optional(),
+    mimeType: Joi.string().max(50).optional()
   }).optional()
+}).custom((value, helpers) => {
+  // Almeno uno tra imageUrl e inferenceId deve essere presente
+  if (!value.imageUrl && !value.inferenceId) {
+    return helpers.error('custom.missingImageIdentifier');
+  }
+  return value;
+}).messages({
+  'custom.missingImageIdentifier': 'imageUrl o inferenceId deve essere fornito'
 });
 
-// Rate limiter per inferenze - DISABILITATO per test di carico
-// const inferRateLimiter = rateLimitMiddleware({
-//   limit: 50, // 50 inferenze per ora
-//   window: '1h'
-// });
+// Rate limiter per inferenze
+const inferRateLimiter = rateLimitMiddleware({
+  limit: 20, // 20 inferenze per ora per utente
+  window: '1h',
+  keyGenerator: (context) => {
+    // Priorità: user ID > IP > anonymous
+    return context.req.headers['x-user-id'] || 
+           context.req.headers['x-forwarded-for'] || 
+           'anonymous';
+  }
+});
 
 // Circuit breaker per Acne Detection Full API
 const acneBreaker = cache.createCircuitBreaker(callAcneDetectionFullAPI, {
@@ -168,9 +186,9 @@ module.exports = async function (context, req) {
   }
   
   try {
-    // Rate limiting - DISABILITATO per test di carico
-    // const rateLimitPassed = await inferRateLimiter(context);
-    // if (!rateLimitPassed) return;
+    // Rate limiting
+    const rateLimitPassed = await inferRateLimiter(context);
+    if (!rateLimitPassed) return;
 
     // Validazione schema
     const { error, value } = requestSchema.validate(req.body);
@@ -192,9 +210,40 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const { imageUrl, sync, userId, webhookUrl, userData, includeRecommendations, metadata } = value;
+    const { imageUrl: providedImageUrl, inferenceId, sync, userId, webhookUrl, userData, includeRecommendations, metadata } = value;
 
-    // Validazione input
+    // Ricostruisci imageUrl se inferenceId è fornito
+    let imageUrl = providedImageUrl;
+    if (inferenceId && !imageUrl) {
+      const accountName = await config.azure.storage.getAccount();
+      const container = config.azure.storage.container;
+      const today = new Date().toISOString().split('T')[0];
+      // Determina estensione dal mimeType nei metadata o default jpeg
+      let ext = 'jpeg'; // default
+      if (metadata?.mimeType) {
+        const mimeExt = metadata.mimeType.split('/')[1];
+        // Normalizza estensioni comuni
+        if (mimeExt === 'jpg' || mimeExt === 'jpeg') {
+          ext = 'jpeg';
+        } else if (mimeExt === 'png') {
+          ext = 'png';
+        } else if (mimeExt === 'webp') {
+          ext = 'webp';
+        } else {
+          ext = mimeExt;
+        }
+      }
+      imageUrl = `https://${accountName}.blob.core.windows.net/${container}/uploads/${today}/${inferenceId}.${ext}`;
+      
+      logger.info('Reconstructed imageUrl from inferenceId', {
+        inferenceId,
+        imageUrl,
+        ext,
+        mimeType: metadata?.mimeType
+      });
+    }
+
+    // Validazione input - almeno uno deve essere presente (già validato nello schema)
     if (!imageUrl) {
       logger.warn('Validation failed', { error: 'URL immagine richiesta' });
       context.res = {
@@ -218,6 +267,7 @@ module.exports = async function (context, req) {
     // Debug logging
     logger.info('URL validation debug', {
       imageUrl,
+      inferenceId,
       isTestEnvironment,
       isValidAzureUrl,
       isValidPublicUrl,
@@ -407,7 +457,7 @@ module.exports = async function (context, req) {
 
     // Build final result matching JavaScript structure EXACTLY
     let finalResult = {
-      inference_id: uuidv4(),
+      inference_id: inferenceId || uuidv4(),
       // Add base64 image for frontend canvas rendering (with data URI prefix)
       base64: `data:image/jpeg;base64,${base64Image}`,
       // Include all acneFullData fields (predictions, spot-predictions, classifications, severities, image)

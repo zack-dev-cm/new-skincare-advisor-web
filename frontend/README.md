@@ -177,7 +177,7 @@ import { analyzeSkin, getUploadUrl } from '@/lib/api';
 const result = await analyzeSkin(imageDataUrl);
 
 // Get upload URL
-const { uploadUrl, blobName } = await getUploadUrl();
+const { uploadUrl, inferenceId } = await getUploadUrl();
 ```
 
 ## 📊 Performance
