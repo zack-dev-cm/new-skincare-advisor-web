@@ -230,6 +230,10 @@ export async function uploadImageFile(file: File): Promise<string> {
     // Get upload URL with correct MIME type
     const { uploadUrl, inferenceId } = await getUploadUrl(file.type);
     
+    if (!inferenceId) {
+      throw new Error('Upload URL response missing inferenceId');
+    }
+    
     // Upload file to Azure Blob Storage
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
@@ -358,6 +362,10 @@ export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
     // Get upload URL
     const { uploadUrl, inferenceId } = await getUploadUrl(blob.type);
     
+    if (!inferenceId) {
+      throw new Error('Upload URL response missing inferenceId');
+    }
+    
     // Upload to Azure Blob Storage
     const uploadResponse = await fetch(uploadUrl, {
       method: 'PUT',
@@ -404,6 +412,11 @@ export async function analyzeSkinWithRecommendations(
       inferenceId = await uploadImageFile(imageSource);
     }
     
+    // Validate inferenceId was received
+    if (!inferenceId) {
+      throw new Error('Failed to get inferenceId from upload');
+    }
+    
     // Prepare inference request
     const resolvedShopDomain = userData?.shop_domain || getShopifyDomain();
     const requestBody = {
@@ -420,6 +433,8 @@ export async function analyzeSkinWithRecommendations(
         clientTimestamp: Date.now()
       }
     };
+    
+    console.log('Calling /infer with inferenceId:', inferenceId);
     
     // Call inference API
     const response = await api.post('/infer', requestBody);

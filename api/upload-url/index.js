@@ -96,9 +96,17 @@ module.exports = async function (context, req) {
     // Inizializza blob client
     const blobClient = await getBlobClient(blobName);
     
-    // Genera SAS token con permessi limitati
+    // Genera SAS token con permessi limitati (solo scrittura, no lettura)
+    // NOTA: L'uploadUrl contiene il path completo del blob, necessario per upload diretto.
+    // Il token SAS ha solo permessi di scrittura (sp=w) e scade dopo 15 minuti.
+    // Il path è visibile ma il file non può essere scaricato senza permessi di lettura.
     const sasToken = await generateSasToken(blobClient, 'w'); // Solo scrittura
     const uploadUrl = `${blobClient.url}?${sasToken}`;
+    
+    // Verifica che il token abbia solo permessi di scrittura
+    if (!sasToken.includes('sp=w') || sasToken.includes('sp=rw') || sasToken.includes('sp=r')) {
+      logger.warn('SAS token may have incorrect permissions', { sasToken: sasToken.substring(0, 50) });
+    }
 
     // Log evento
     logger.info('Upload URL generated', {
