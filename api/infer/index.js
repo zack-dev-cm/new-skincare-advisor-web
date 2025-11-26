@@ -18,6 +18,10 @@ const disableCache =
 
 // Schema di validazione robusto
 const requestSchema = Joi.object({
+  mode: Joi.string()
+    .valid('full', 'recommendationOnly')
+    .default('full'),
+
   imageUrl: Joi.string()
     .uri({ scheme: ['http', 'https'] })
     .max(2048)
@@ -43,6 +47,34 @@ const requestSchema = Joi.object({
   sync: Joi.boolean().default(true),
   userId: Joi.string().max(100).optional(),
   webhookUrl: Joi.string().uri().max(512).optional(),
+
+  // Dati di analisi passati dal client in modalità recommendationOnly
+  acneData: Joi.object({
+    acne_classification: Joi.string().max(50).optional(),
+    acne_severity: Joi.string().max(50).optional(),
+    spot_severity: Joi.string().max(50).optional(),
+    erythema: Joi.boolean().optional()
+  }).optional(),
+
+  skinMetrics: Joi.object({
+    acne: Joi.number().optional(),
+    spots: Joi.number().optional(),
+    dryness: Joi.number().optional(),
+    wrinkles: Joi.number().optional(),
+    pores: Joi.number().allow(null).optional(),
+    redness: Joi.number().optional(),
+    laxity: Joi.number().optional()
+  }).optional(),
+
+  skinBenchmarks: Joi.object({
+    acne: Joi.number().optional(),
+    spots: Joi.number().optional(),
+    dryness: Joi.number().optional(),
+    wrinkles: Joi.number().optional(),
+    pores: Joi.number().allow(null).optional(),
+    redness: Joi.number().optional(),
+    laxity: Joi.number().optional()
+  }).optional(),
   
   // Dati utente opzionali per raccomandazioni prodotti
   userData: Joi.object({
@@ -71,8 +103,8 @@ const requestSchema = Joi.object({
     mimeType: Joi.string().max(50).optional()
   }).optional()
 }).custom((value, helpers) => {
-  // Almeno uno tra imageUrl e inferenceId deve essere presente
-  if (!value.imageUrl && !value.inferenceId) {
+  // In modalità full, almeno uno tra imageUrl e inferenceId deve essere presente
+  if (value.mode !== 'recommendationOnly' && !value.imageUrl && !value.inferenceId) {
     return helpers.error('custom.missingImageIdentifier');
   }
   return value;
@@ -210,9 +242,123 @@ module.exports = async function (context, req) {
       return;
     }
 
-    const { imageUrl: providedImageUrl, inferenceId, sync, userId, webhookUrl, userData, includeRecommendations, metadata } = value;
+    const {
+      mode,
+      imageUrl: providedImageUrl,
+      inferenceId,
+      sync,
+      userId,
+      webhookUrl,
+      userData,
+      includeRecommendations,
+      metadata,
+      acneData,
+      skinMetrics: clientSkinMetrics,
+      skinBenchmarks: clientSkinBenchmarks
+    } = value;
 
-    // Ricostruisci imageUrl se inferenceId è fornito
+    // Modalità solo raccomandazioni: non richiede immagine né analisi pelle
+    if (mode === 'recommendationOnly') {
+      const inference_id = inferenceId || uuidv4();
+
+      const normalizedAcneData = acneData || {};
+      const acneFullData = {
+        'acne-classification':
+          normalizedAcneData.acne_classification || 'no-acne',
+        'acne-severity':
+          normalizedAcneData.acne_severity || 'None',
+        'spot-severity':
+          normalizedAcneData.spot_severity || 'None',
+        image: { width: 0, height: 0 }
+      };
+
+      const erythema =
+        typeof normalizedAcneData.erythema === 'boolean'
+          ? normalizedAcneData.erythema
+          : false;
+
+      // Usa metriche/benchmark passate dal client se presenti
+      const metrics = clientSkinMetrics || null;
+      const benchmarks =
+        clientSkinBenchmarks ||
+        (metrics
+          ? getBenchmarks(
+              userData.ageRange || '26-35',
+              userData.gender || 'female'
+            )
+          : null);
+
+      let finalResult = {
+        inference_id,
+        acneFullData,
+        erythema,
+        skinMetrics: metrics || undefined,
+        skinBenchmarks: benchmarks || undefined,
+        isNewScan: true,
+        userData: userData,
+        recommendationMode: 'recommendationOnly'
+      };
+
+      // Enrich con raccomandazioni mantenendo la stessa firma delle funzioni
+      if (includeRecommendations) {
+        const enriched = await enrichWithRecommendations(finalResult, userData);
+        finalResult = {
+          ...enriched,
+          recommendationData: enriched.recommendations
+        };
+        if (!finalResult.recommendations_meta) {
+          finalResult.recommendations_meta = {};
+        }
+        if (!finalResult.recommendations_meta.deprecated_fields) {
+          finalResult.recommendations_meta.deprecated_fields = [];
+        }
+        if (
+          !finalResult.recommendations_meta.deprecated_fields.includes(
+            'recommendationData'
+          )
+        ) {
+          finalResult.recommendations_meta.deprecated_fields.push(
+            'recommendationData'
+          );
+        }
+      }
+
+      context.res = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers':
+            'Content-Type, Authorization, x-user-id, x-forwarded-for'
+        },
+        // In modalità recommendationOnly ritorniamo solo le recommendations
+        body: includeRecommendations ? finalResult.recommendations : null
+      };
+
+      const duration = Date.now() - startTime;
+      logger.info('Inference completed (recommendationOnly)', {
+        mode,
+        inference_id,
+        duration,
+        cached: false,
+        metadata: metadata || null
+      });
+
+      logger.trackEvent(
+        'InferenceCompleted',
+        {
+          userId,
+          mode,
+          cached: false,
+          metadata: metadata || null
+        },
+        { duration }
+      );
+
+      return;
+    }
+
+    // Ricostruisci imageUrl se inferenceId è fornito (modalità full)
     let imageUrl = providedImageUrl;
     if (inferenceId && !imageUrl) {
       const accountName = await config.azure.storage.getAccount();

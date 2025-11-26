@@ -1,0 +1,99 @@
+{
+  "startTime": "2025-11-26T15:43:51.448Z",
+  "metrics": {
+    "http_req_duration": {
+      "type": "trend",
+      "contains": "time",
+      "values": {
+        "p(90)": 4069.278509999999,
+        "p(95)": 4530.910509999999,
+        "avg": 803.8395841660835,
+        "min": 26.8625,
+        "med": 38.43855,
+        "max": 7951.7921
+      },
+      "thresholds": {
+        "p(95)<5000": {
+          "ok": true
+        }
+      }
+    },
+    "http_req_failed": {
+      "contains": "default",
+      "values": {
+        "passes": 4684,
+        "fails": 1000,
+        "rate": 0.8240675580577058
+      },
+      "thresholds": {
+        "rate<0.05": {
+          "ok": false
+        }
+      },
+      "type": "rate"
+    },
+    "http_reqs": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 5684,
+        "rate": 47.19754774495502
+      }
+    },
+    "infer_duration": {
+      "values": {
+        "max": 7951.7921,
+        "p(90)": 4069.278509999999,
+        "p(95)": 4530.910509999999,
+        "avg": 803.8395841660835,
+        "min": 26.8625,
+        "med": 38.43855
+      },
+      "type": "trend",
+      "contains": "default"
+    },
+    "infer_ok": {
+      "values": {
+        "rate": 0.17593244194229415,
+        "passes": 1000,
+        "fails": 4684
+      },
+      "type": "rate",
+      "contains": "default"
+    },
+    "infer_reqs": {
+      "values": {
+        "count": 5684,
+        "rate": 47.19754774495502
+      },
+      "type": "counter",
+      "contains": "default"
+    },
+    "infer_status_429": {
+      "type": "counter",
+      "contains": "default",
+      "values": {
+        "count": 4684,
+        "rate": 38.89396791649706
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": false
+        }
+      }
+    },
+    "infer_status_503": {
+      "values": {
+        "count": 0,
+        "rate": 0
+      },
+      "thresholds": {
+        "count==0": {
+          "ok": true
+        }
+      },
+      "type": "counter",
+      "contains": "default"
+    }
+  }
+}

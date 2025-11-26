@@ -28,13 +28,45 @@ function determineRecommendationStrategy(inferenceResult, userData) {
     };
   } else {
     // Calculate priority skin condition for adults or non-acne users
-    // Use pre-calculated skinMetrics if available, otherwise calculate
-    const metrics = inferenceResult.skinMetrics || calculateSkinMetrics(
-      inferenceResult.acneFullData,
-      inferenceResult.laxityRednessData,
-      inferenceResult.wrinklesData
-    );
-    const benchmarks = inferenceResult.skinBenchmarks || getBenchmarks(ageRange, userData.gender || 'female');
+    let metrics;
+    let benchmarks;
+
+    // In modalità recommendationOnly evitiamo di calcolare metriche da dati di analisi mancanti
+    if (inferenceResult.recommendationMode === 'recommendationOnly') {
+      metrics = inferenceResult.skinMetrics || null;
+      benchmarks =
+        inferenceResult.skinBenchmarks ||
+        (metrics
+          ? getBenchmarks(ageRange, userData.gender || 'female')
+          : null);
+
+      if (!metrics || !benchmarks) {
+        const skinCondition = 'dryness';
+        logger.info('Using SkinRecommendationFunction (default condition) in recommendationOnly mode', {
+          ageRange,
+          skinCondition
+        });
+
+        return {
+          useAcneApi: false,
+          skinCondition,
+          ageRange
+        };
+      }
+    } else {
+      // Use pre-calculated skinMetrics if available, otherwise calculate
+      metrics =
+        inferenceResult.skinMetrics ||
+        calculateSkinMetrics(
+          inferenceResult.acneFullData,
+          inferenceResult.laxityRednessData,
+          inferenceResult.wrinklesData
+        );
+      benchmarks =
+        inferenceResult.skinBenchmarks ||
+        getBenchmarks(ageRange, userData.gender || 'female');
+    }
+
     const skinCondition = calculatePrioritySkinCondition(metrics, benchmarks);
     
     logger.info('Using SkinRecommendationFunction (skin conditions)', { 

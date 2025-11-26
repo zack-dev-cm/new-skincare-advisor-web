@@ -37,6 +37,7 @@ export const options = isBaselineMode ? {
 
 // Endpoint e payload (override via env se necessario)
 const INFER_URL = __ENV.INFER_URL || 'https://new-skincare-advisor-api-fqc8dffvg5ghene2.westeurope-01.azurewebsites.net/api/infer';
+const INFER_MODE = (__ENV.INFER_MODE || 'full').toLowerCase(); // 'full' | 'recommendationonly'
 const IMAGE_URL = __ENV.IMAGE_URL || 'https://stdermaselfprdwesteurope.blob.core.windows.net/selfies/uploads/2025-10-31/f9b1f0f9-8c57-4a1e-9bab-53fbe70229e8.jpeg';
 
 const BASE_PAYLOAD = {
@@ -195,6 +196,42 @@ function executeRequest() {
 }
 
 function buildPayload() {
+  if (INFER_MODE === 'recommendationonly') {
+    // Nuova modalità: bypass analisi pelle, solo raccomandazioni
+    return {
+      mode: 'recommendationOnly',
+      sync: true,
+      includeRecommendations: true,
+      userData: {
+        ...BASE_PAYLOAD.userData,
+        // Normalizza un po' i valori test per coerenza con backend
+        gender: 'female',
+        ageRange: '26-35',
+      },
+      acneData: {
+        acne_classification: 'papulopustolosa',
+        acne_severity: 'Moderate',
+        spot_severity: 'None',
+        erythema: false,
+      },
+      skinMetrics: {
+        acne: 2,
+        spots: 1,
+        dryness: 3,
+        wrinkles: 1,
+        pores: null,
+        redness: 2,
+        laxity: 1,
+      },
+      metadata: {
+        apiVersion: BASE_PAYLOAD.metadata.apiVersion,
+        clientTimestamp: Date.now(),
+        source: `${BASE_PAYLOAD.metadata.source}-reco-only`,
+      },
+    };
+  }
+
+  // Modalità full attuale (analisi pelle completa)
   return {
     imageUrl: BASE_PAYLOAD.imageUrl,
     userData: BASE_PAYLOAD.userData,
