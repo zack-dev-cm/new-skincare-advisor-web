@@ -87,6 +87,36 @@ export default function ResultsStep({
   // Cart functionality
   const { addToCart } = useCart();
 
+  // Helper: extract a Shopify variant ID from various possible fields
+  const extractVariantId = (product: any): string | null => {
+    if (!product) return null;
+
+    const candidates = [
+      product.shopify_variant_id,
+      product.shopify_product_id,
+      product.shopify_variant_gid,
+      product.shopify_product_gid,
+      product.shopify_variant,
+      product.shopify_product,
+      product.variant_id,
+      product.variantId,
+      product.variant,
+    ];
+
+    const raw = candidates.find((v) => v !== undefined && v !== null && v !== 0);
+    if (!raw) return null;
+
+    let id = raw.toString();
+
+    // If the backend already returns a Shopify GID, strip it down to the numeric ID
+    if (id.startsWith('gid://shopify/ProductVariant/')) {
+      const parts = id.split('/');
+      id = parts[parts.length - 1];
+    }
+
+    return id;
+  };
+
   // Scroll to top when tab changes
   useEffect(() => {
     // Find the scrollable parent container and scroll to top
@@ -123,13 +153,13 @@ export default function ResultsStep({
             console.log('Main product:', module.main_product);
             
             // Main product
-            if (module.main_product?.shopify_product_id) {
-              const variantId = module.main_product.shopify_product_id;
-              console.log('Found main product variant ID:', variantId);
-              allVariantIds.push(variantId);
-              productMapping[variantId] = { type: 'main', categoryIndex, moduleIndex };
+            const mainVariantId = extractVariantId(module.main_product);
+            if (mainVariantId) {
+              console.log('Found main product variant ID:', mainVariantId);
+              allVariantIds.push(mainVariantId);
+              productMapping[mainVariantId] = { type: 'main', categoryIndex, moduleIndex };
             } else {
-              console.log('No shopify_product_id found for main product');
+              console.log('No Shopify variant ID found for main product', module.main_product);
             }
 
             // Alternative products
@@ -137,13 +167,18 @@ export default function ResultsStep({
               console.log('Alternative products:', module.alternative_products);
               module.alternative_products.forEach((altProduct: any, productIndex: number) => {
                 console.log(`Alternative product ${productIndex}:`, altProduct);
-                if (altProduct.shopify_product_id) {
-                  const variantId = altProduct.shopify_product_id;
-                  console.log('Found alternative product variant ID:', variantId);
-                  allVariantIds.push(variantId);
-                  productMapping[variantId] = { type: 'alternative', categoryIndex, moduleIndex, productIndex };
+                const altVariantId = extractVariantId(altProduct);
+                if (altVariantId) {
+                  console.log('Found alternative product variant ID:', altVariantId);
+                  allVariantIds.push(altVariantId);
+                  productMapping[altVariantId] = {
+                    type: 'alternative',
+                    categoryIndex,
+                    moduleIndex,
+                    productIndex,
+                  };
                 } else {
-                  console.log(`No shopify_product_id found for alternative product ${productIndex}`);
+                  console.log(`No Shopify variant ID found for alternative product ${productIndex}`, altProduct);
                 }
               });
             }
