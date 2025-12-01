@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getShopifySession } from '../../../../../lib/shopify-session-store';
 import { validateShopParameter } from '../../../../../lib/shopify-oauth';
+import { normalizeShopifyDomain } from '../../../../../lib/shopify';
 
 const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
 
@@ -19,16 +19,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const session = getShopifySession(shop!);
-    if (!session) {
-      return NextResponse.json(
-        {
-          error: 'Shop not authenticated',
-          details: 'Start OAuth at /api/shopify/auth/start?shop=your-store.myshopify.com',
-        },
-        { status: 401 }
-      );
-    }
+    const normalizedShop = normalizeShopifyDomain(shop!);
 
     if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
       return NextResponse.json(
@@ -111,7 +102,7 @@ export async function POST(request: NextRequest) {
 
     console.log('🔍 Fetching specific variants directly from Shopify...');
 
-    const response = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
+    const response = await fetch(`https://${normalizedShop}/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
         'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
