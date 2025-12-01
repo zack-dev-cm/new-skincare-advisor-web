@@ -1,3 +1,5 @@
+import { getShopifyDomain } from './shopify';
+
 export interface ShopifyProductVariant {
   id: string;
   title: string;
@@ -49,7 +51,12 @@ export interface TransformedProduct {
  */
 export async function fetchProductByVariantId(variantId: string): Promise<TransformedProduct | null> {
   try {
-    const response = await fetch('/api/shopify/products/by-variant-ids', {
+    const shopDomain = getShopifyDomain();
+    const url = shopDomain
+      ? `/api/shopify/products/by-variant-ids?shop=${encodeURIComponent(shopDomain)}`
+      : '/api/shopify/products/by-variant-ids';
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -83,7 +90,12 @@ export async function fetchProductByVariantId(variantId: string): Promise<Transf
  */
 export async function fetchProductsByVariantIds(variantIds: string[]): Promise<TransformedProduct[]> {
   try {
-    const response = await fetch('/api/shopify/products/by-variant-ids', {
+    const shopDomain = getShopifyDomain();
+    const url = shopDomain
+      ? `/api/shopify/products/by-variant-ids?shop=${encodeURIComponent(shopDomain)}`
+      : '/api/shopify/products/by-variant-ids';
+
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
