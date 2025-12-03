@@ -7,6 +7,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import DesktopPhotoReceiver from './DesktopPhotoReceiver';
 import { ensureTfBackendReady } from '@/lib/tfBackend';
 import { cropFaceFromImage } from '@/lib/imageCropper';
+import LightingBar from '../common/LightningBar';
 
 interface CameraCaptureStepProps {
   onNext: (imageData: string) => void;
@@ -26,33 +27,6 @@ const isMobileDevice = () => {
     /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
       navigator.userAgent
     ) || window.innerWidth <= 768
-  );
-};
-
-const BrightnessBar: React.FC<{ value: number }> = ({ value }) => {
-  const bars = [0, 25, 50, 75, 100];
-  const activeCount = Math.ceil((value / 100) * bars.length);
-
-  return (
-    <div className="flex items-center justify-center gap-1 mt-2">
-      {bars.map((_, i) => (
-        <motion.div
-          key={i}
-          initial={{ opacity: 0.4 }}
-          animate={{
-            opacity: i < activeCount ? 1 : 0.3,
-            scaleY: i < activeCount ? 1.05 : 1.0,
-          }}
-          style={{
-            boxShadow:
-              '0 0 8px rgba(255, 255, 255, 0.9), 0 0 16px rgba(68, 68, 68, 0.7)',
-            filter: 'brightness(1.2)',
-          }}
-          transition={{ duration: 0.25 }}
-          className="w-4 h-8 bg-white rounded-sm"
-        />
-      ))}
-    </div>
   );
 };
 
@@ -879,45 +853,6 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   transform: currentCamera === 'front' ? 'scaleX(-1)' : 'none',
                 }}
               />
-              
-              {/* Face guide overlay */}
-              {guidanceMessage !== 'Center your face in the guide box' && (
-                <AnimatePresence>
-                  <motion.div
-                    key="guide-overlay"
-                    initial={{ opacity: 0, scale: 0.98 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.98 }}
-                    transition={{ duration: 0.35, ease: 'easeOut' }}
-                    className="absolute inset-0 flex items-center justify-center pointer-events-none z-5"
-                  >
-                    <div
-                      aria-hidden
-                      className="absolute rounded-lg"
-                      style={{
-                        width: '12rem',
-                        height: '15rem',
-                        boxShadow:
-                          '0 12px 40px rgba(139, 75, 241, 0.8), 0 0 80px rgba(196, 24, 212, 0.23)',
-                        filter: 'blur(10px)',
-                        transform: 'translateZ(0)',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                    <div
-                      className="relative w-48 h-60 rounded-lg"
-                      style={{
-                        border: '2px solid rgba(132, 45, 245, 0.95)',
-                        background:
-                          'linear-gradient(180deg, rgba(29, 123, 231, 0.02), rgba(255,255,255,0))',
-                        boxShadow: '0 4px 18px rgba(48, 156, 245, 0.04) inset',
-                        pointerEvents: 'none',
-                      }}
-                    />
-                  </motion.div>
-                </AnimatePresence>
-              )}
-
               {/* Dynamic Guidance Text */}
               <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-20">
                 <div className="px-6 py-3 text-sm text-center max-w-xs text-white footer-medium">
@@ -949,6 +884,9 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                   </AnimatePresence>
                 </div>
               </div>
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center w-full h-full pointer-events-none">
+                <LightingBar brightness={brightness / 100} />
+              </div>
 
               {(brightness < 35 || brightness > 80) && (
                 <div className="absolute top-0 left-1/2 -translate-x-1/2 z-20 flex flex-col items-center justify-center w-full h-full backdrop-blur-md pointer-events-none"
@@ -961,18 +899,7 @@ export default function CameraCaptureStep({ onNext, onBack, faceDetection }: Cam
                     )`
                   }}
                 >
-                  <span
-                    className="text-xs text-white mb-1"
-                    style={{
-                      textShadow: '0 0 8px rgba(255, 255, 255, 0.9)',
-                      filter: 'brightness(1.2)',
-                    }}
-                  >
-                    Checking the light...
-                  </span>
-
-                  <BrightnessBar value={brightness} />
-                  <span className="text-xs text-white mt-6">{guidanceMessage}</span>
+                  <LightingBar brightness={brightness / 100} />
                 </div>
               )}
             </div>
