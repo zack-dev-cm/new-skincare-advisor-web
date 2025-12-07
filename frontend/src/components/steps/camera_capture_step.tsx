@@ -82,6 +82,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const [faceDetected, setFaceDetected] = useState(false)
   const [perfectAlignment, setPerfectAlignment] = useState(false)
   const [stableAlignment, setStableAlignment] = useState(false)
+	const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 })
 
   const [countdown, setCountdown] = useState<number | null>(null)
   const [showFlash, setShowFlash] = useState(false)
@@ -368,12 +369,19 @@ export default function CameraCaptureStep({ onNext }: Props) {
     if (cameraState === 'live') startCamera()
   }, [cameraState, startCamera])
 
-  /** Resize canvas to fullscreen */
-  const sizeCanvas = () => {
-    if (!overlayCanvasRef.current || !videoRef.current) return
-    overlayCanvasRef.current.width = window.innerWidth
-    overlayCanvasRef.current.height = window.innerHeight
-  }
+	/** Resize canvas & overlay to match the camera container */
+	const sizeCanvas = () => {
+		const canvas = overlayCanvasRef.current
+		if (!canvas) return
+		const parent = canvas.parentElement
+		if (!parent) return
+		const rect = parent.getBoundingClientRect()
+		const width = rect.width
+		const height = rect.height
+		canvas.width = width
+		canvas.height = height
+		setOverlaySize({ width, height })
+	}
 
   useLayoutEffect(() => {
     sizeCanvas()
@@ -441,20 +449,19 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
               <canvas
                 ref={overlayCanvasRef}
-                className="absolute inset-0 pointer-events-none"
+                className="absolute inset-0 pointer-events-none w-full h-full"
               />
 
-              <FaceFrameOverlay
-                hasFace={faceDetected}
-                isCentered={faceCentered}
-                zoomStatus={zoomStatus}
-                isPerfectAlignment={perfectAlignment}
-                windowSize={{
-                  width: window.innerWidth,
-                  height: window.innerHeight,
-                }}
-                processId="camera"
-              />
+		              {overlaySize.width > 0 && overlaySize.height > 0 && (
+		                <FaceFrameOverlay
+		                  hasFace={faceDetected}
+		                  isCentered={faceCentered}
+		                  zoomStatus={zoomStatus}
+		                  isPerfectAlignment={perfectAlignment}
+		                  windowSize={overlaySize}
+		                  processId="camera"
+		                />
+		              )}
 
               <LightingBar brightness={brightness} />
 
