@@ -202,14 +202,14 @@ export default function CameraCaptureStep({ onNext }: Props) {
 		const brightnessValue = calculateBrightness(video)
 		setBrightness(brightnessValue)
 
-		const results = faceResultsRef.current
-		if (!results || !results.multiFaceLandmarks?.length) {
+    const results = faceResultsRef.current
+    if (!results || !results.multiFaceLandmarks?.length) {
       setFaceDetected(false)
       setFaceCentered(false)
       setPerfectAlignment(false)
       return
     }
-    
+
     setFaceDetected(true)
 
     const windowSize = {
@@ -231,7 +231,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const lm = results.multiFaceLandmarks[0]
     const flipped = lm.map((pt: FaceMeshLandmark) => ({
       ...pt,
-      x: 1 - pt.x, // mirror for front camera
+      x: 1 - pt.x,
     }))
 
     const span = calculateFaceSpanNormalized(flipped)
@@ -239,37 +239,49 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setZoomStatus(newZoom)
 
     const visible = isFaceVisible(flipped, vw, vh)
-    setFaceCentered(isFaceInsideFrame(flipped, vw, vh, videoRect))
+    const centered = isFaceInsideFrame(flipped, vw, vh, videoRect)
+    setFaceCentered(centered)
 
     const nose = flipped[1]
+    const noseX = nose.x * vw
+    const noseY = nose.y * vh
+
+    // Map to display canvas coordinates
+    const scale = Math.max(cw / vw, ch / vh)
+    const scaledW = vw * scale
+    const scaledH = vh * scale
+    const offsetX = (scaledW - cw) / 2
+    const offsetY = (scaledH - ch) / 2
+    const displayX = noseX * scale - offsetX
+    const displayY = noseY * scale - offsetY
+
     const targetX = videoRect.x + videoRect.width / 2
     const targetY = videoRect.y + (videoRect.height * 2) / 3
 
-    const px = nose.x * vw
-    const py = nose.y * vh
-    const dx = px - targetX
-    const dy = py - targetY
-    const dist = Math.sqrt(dx * dx + dy * dy)
+    const dx = displayX - targetX
+    const dy = displayY - targetY
     const tolerance = Math.min(videoRect.width, videoRect.height) * 0.08
-
-    const aligned =
-      visible &&
-      faceCentered &&
-      newZoom === 'perfect' &&
-      dist < tolerance
+    const aligned = visible && centered && newZoom === 'perfect' && Math.hypot(dx, dy) < tolerance
 
     setPerfectAlignment(aligned)
 
-    if (!aligned) {
+    if (aligned) {
+      if (stabilizedTimerRef.current) clearTimeout(stabilizedTimerRef.current)
+      stabilizedTimerRef.current = setTimeout(() => setStableAlignment(true), 600)
+    } else {
       setStableAlignment(false)
-      return
     }
 
-    if (stabilizedTimerRef.current) clearTimeout(stabilizedTimerRef.current)
-    stabilizedTimerRef.current = setTimeout(
-      () => setStableAlignment(true),
-      600,
-    )
+    /** 👇 Draw nose guidance dot */
+    if (!aligned && centered && newZoom === 'perfect' && visible) {
+      ctx.beginPath()
+      ctx.arc(displayX, displayY, 10, 0, 2 * Math.PI)
+      ctx.fillStyle = 'white'
+      ctx.shadowColor = 'rgba(0,0,0,0.6)'
+      ctx.shadowBlur = 6
+      ctx.fill()
+      ctx.shadowBlur = 0
+    }
   }
 
   /** Countdown auto-trigger */
