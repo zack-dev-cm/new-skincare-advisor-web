@@ -223,7 +223,6 @@ export function CartProvider({ children }: CartProviderProps) {
   // Listen for cart updates from Shopify integration
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      console.log('CartContext received message:', event.data);
       
       if (event.data.type === 'CART_UPDATE_SUCCESS' || event.data.type === 'CART_INITIAL_STATE') {
         const cartData = event.data.payload.cart;
@@ -384,7 +383,7 @@ export function CartProvider({ children }: CartProviderProps) {
           }
         }
       } else {
-        console.log('Unhandled message type:', event.data.type);
+        
       }
     };
 
