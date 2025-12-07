@@ -4,9 +4,6 @@ import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
 
-// Import face detection hook
-import { useFaceDetection } from '../lib/useFaceDetection';
-
 // Import step components
 import {
   OnboardingStep,
@@ -86,8 +83,6 @@ const getProducts = async (): Promise<Product[]> => {
 
 export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false }: SkinAnalysisModalProps) {
   // Initialize face detection models when modal opens
-  // In fastMode, questo carica in BACKGROUND senza bloccare
-  const faceDetection = useFaceDetection(fastMode);
 
   // Helper functions to map user selections to API format
   const mapAgeToAgeRange = (ageSelection: string): string => {
@@ -434,7 +429,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <CameraCaptureStep
                 onNext={handleImageCapture}
                 onBack={handleBack}
-                faceDetection={faceDetection}
               />
             )}
 
