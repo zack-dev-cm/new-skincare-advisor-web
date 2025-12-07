@@ -4,19 +4,22 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
 import LogoWhite from '../app/RGB_Logo_White.png';
+import UploadingScreen from './common/UploadingScreen';
 
 interface ImagePreloaderProps {
   onComplete: () => void;
   children: React.ReactNode;
-  mode?: 'initial' | 'analysis'; // Nuova prop per differenziare le modalità di caricamento
-  analysisProgress?: number; // Progresso dell'analisi opzionale per la modalità analisi
+	  mode?: 'initial' | 'analysis'; // Nuova prop per differenziare le modalità di caricamento
+	  analysisProgress?: number; // Progresso dell'analisi opzionale per la modalità analisi
+	  analysisImageUrl?: string; // Immagine da mostrare durante l'analisi (per UploadingScreen)
 }
 
 export default function ImagePreloader({ 
   onComplete, 
   children, 
   mode = 'initial',
-  analysisProgress = 0 
+	  analysisProgress = 0,
+	  analysisImageUrl,
 }: ImagePreloaderProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -104,12 +107,21 @@ export default function ImagePreloader({
     loadImages();
   }, [onComplete, mode, analysisProgress]);
 
-  if (!isLoading) {
-    return <>{children}</>;
-  }
+	  if (!isLoading) {
+	    return <>{children}</>;
+	  }
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+	  // Durante la fase di analisi, usa l'UploadingScreen a schermo intero se è disponibile un'immagine
+	  if (mode === 'analysis' && analysisImageUrl) {
+	    return (
+	      <div className="fixed inset-0 z-50">
+	        <UploadingScreen imageUrl={analysisImageUrl} />
+	      </div>
+	    );
+	  }
+
+	  return (
+	    <div className="fixed inset-0 z-50 flex items-center justify-center">
       {/* Sfondo */}
       <div className="absolute inset-0 bg-black bg-opacity-50" />
       

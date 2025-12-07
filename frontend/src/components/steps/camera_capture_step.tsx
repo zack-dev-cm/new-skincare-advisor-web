@@ -123,8 +123,14 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setStreamError(null)
 
     try {
-      const faceMesh = await loadFaceMeshWithFallback()
-      faceMeshRef.current = faceMesh
+			const faceMesh = await loadFaceMeshWithFallback()
+			// Attach results handler *after* FaceMesh is loaded, so guidance &
+			// overlay run whenever we get new landmarks.
+			faceMesh.onResults((results: FaceMeshResults) => {
+				faceResultsRef.current = results
+				renderOverlay()
+			})
+			faceMeshRef.current = faceMesh
 
       const constraints: MediaStreamConstraints = {
         video: {
@@ -170,19 +176,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }
   }, [cameraSide, cleanup])
 
-  useEffect(() => {
-    return () => cleanup()
-  }, [cleanup])
-
-  /** FaceMesh result processing */
-  useEffect(() => {
-    if (!faceMeshRef.current) return
-
-    faceMeshRef.current.onResults((results: FaceMeshResults) => {
-      faceResultsRef.current = results
-      renderOverlay()
-    })
-  }, [])
+	useEffect(() => {
+		return () => cleanup()
+	}, [cleanup])
 
   const renderOverlay = () => {
     const canvas = overlayCanvasRef.current
@@ -200,14 +196,19 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const ch = canvas.height
     ctx.clearRect(0, 0, cw, ch)
 
-    const results = faceResultsRef.current
-    if (!results || !results.multiFaceLandmarks?.length) {
+		// Update lighting guidance on every frame where we have a valid video.
+		// Brightness is a value between 0 and 1.
+		const brightnessValue = calculateBrightness(video)
+		setBrightness(brightnessValue)
+
+		const results = faceResultsRef.current
+		if (!results || !results.multiFaceLandmarks?.length) {
       setFaceDetected(false)
       setFaceCentered(false)
       setPerfectAlignment(false)
       return
     }
-
+    
     setFaceDetected(true)
 
     const windowSize = {
@@ -511,13 +512,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
             <>
               <button
                 onClick={retakePhoto}
-                className="px-6 py-3 bg-gray-300 rounded-lg"
+                className="px-6 py-3 bg-gray-300 rounded-lg flex items-center gap-3"
               >
                 <Redo2 size={20} /> Retake
               </button>
               <button
                 onClick={confirmPhoto}
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg"
+                className="px-6 py-3 bg-primary-600 text-white rounded-lg flex items-center gap-3"
               >
                 <CheckCircle2 size={20} /> Send
               </button>

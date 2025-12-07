@@ -444,6 +444,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 <ImagePreloader 
                   mode="analysis" 
                   analysisProgress={loading ? 75 : 100}
+	                analysisImageUrl={capturedImage || ''}
                   onComplete={() => setLoading(false)}
                 >
                   <ResultsStep
