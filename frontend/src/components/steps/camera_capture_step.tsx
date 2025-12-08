@@ -263,7 +263,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const dy = displayY - targetDisplayY
     const tolerance = Math.min(videoRect.width * scale, videoRect.height * scale) * 0.08
 
-    const aligned = Math.sqrt(dx * dx + dy * dy) < tolerance
+    const aligned = visible && centered && newZoom === 'perfect' && Math.sqrt(dx * dx + dy * dy) < tolerance
     setPerfectAlignment(aligned)
 
     if (aligned) {
