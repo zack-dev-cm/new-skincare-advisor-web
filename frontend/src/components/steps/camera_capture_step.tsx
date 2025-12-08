@@ -62,6 +62,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const faceMeshRef = useRef<FaceMeshInstance | null>(null)
   const faceResultsRef = useRef<FaceMeshResults | null>(null)
   const cameraRef = useRef<MPCamera | null>(null)
+
   const frameReqRef = useRef<number | null>(null)
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -80,9 +81,11 @@ export default function CameraCaptureStep({ onNext }: Props) {
     useState<'too-close' | 'too-far' | 'perfect'>('too-far')
   const [faceCentered, setFaceCentered] = useState(false)
   const [faceDetected, setFaceDetected] = useState(false)
+
   const [perfectAlignment, setPerfectAlignment] = useState(false)
   const [stableAlignment, setStableAlignment] = useState(false)
-	const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 })
+
+  const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 })
 
   const [countdown, setCountdown] = useState<number | null>(null)
   const [showFlash, setShowFlash] = useState(false)
@@ -124,14 +127,12 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setStreamError(null)
 
     try {
-			const faceMesh = await loadFaceMeshWithFallback()
-			// Attach results handler *after* FaceMesh is loaded, so guidance &
-			// overlay run whenever we get new landmarks.
-			faceMesh.onResults((results: FaceMeshResults) => {
-				faceResultsRef.current = results
-				renderOverlay()
-			})
-			faceMeshRef.current = faceMesh
+      const faceMesh = await loadFaceMeshWithFallback()
+      faceMesh.onResults((results: FaceMeshResults) => {
+        faceResultsRef.current = results
+        renderOverlay()
+      })
+      faceMeshRef.current = faceMesh
 
       const constraints: MediaStreamConstraints = {
         video: {
@@ -184,6 +185,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const renderOverlay = () => {
     const canvas = overlayCanvasRef.current
     const video = videoRef.current
+    const results = faceResultsRef.current
+
     if (!canvas || !video) return
 
     const ctx = canvas.getContext('2d')
@@ -197,30 +200,23 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const ch = canvas.height
     ctx.clearRect(0, 0, cw, ch)
 
-		// Update lighting guidance on every frame where we have a valid video.
-		// Brightness is a value between 0 and 1.
-		const brightnessValue = calculateBrightness(video)
-		setBrightness(brightnessValue)
+    setBrightness(calculateBrightness(video))
 
-    const results = faceResultsRef.current
     if (!results || !results.multiFaceLandmarks?.length) {
       setFaceDetected(false)
-      setFaceCentered(false)
       setPerfectAlignment(false)
+      setStableAlignment(false)
       return
     }
 
     setFaceDetected(true)
 
-    const windowSize = {
-      width: cw,
-      height: ch,
-    }
-
-    const { videoRect } = getFaceFrameRect(windowSize, { top: 0, bottom: 0 }, {
-      width: vw,
-      height: vh,
-    })
+    const windowSize = { width: cw, height: ch }
+    const { videoRect } = getFaceFrameRect(
+      windowSize,
+      { top: 0, bottom: 0 },
+      { width: vw, height: vh },
+    )
 
     const zoomThresholds = calculateZoomThresholds(
       windowSize,
@@ -242,32 +238,39 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const centered = isFaceInsideFrame(flipped, vw, vh, videoRect)
     setFaceCentered(centered)
 
-    const nose = flipped[1]
-    const noseX = nose.x * vw
-    const noseY = nose.y * vh
-
-    // Map to display canvas coordinates
+    // DISPLAY (canvas) transform
     const scale = Math.max(cw / vw, ch / vh)
     const scaledW = vw * scale
     const scaledH = vh * scale
     const offsetX = (scaledW - cw) / 2
     const offsetY = (scaledH - ch) / 2
+
+    // Nose → display coords
+    const nose = flipped[1]
+    const noseX = nose.x * vw
+    const noseY = nose.y * vh
     const displayX = noseX * scale - offsetX
     const displayY = noseY * scale - offsetY
 
-    const targetX = videoRect.x + videoRect.width / 2
-    const targetY = videoRect.y + (videoRect.height * 2) / 3
+    // TARGET → convert into SAME coordinate space
+    const targetVideoX = videoRect.x + videoRect.width / 2
+    const targetVideoY = videoRect.y + (videoRect.height * 2) / 3
 
-    const dx = displayX - targetX
-    const dy = displayY - targetY
-    const tolerance = Math.min(videoRect.width, videoRect.height) * 0.08
+    const targetDisplayX = targetVideoX * scale - offsetX
+    const targetDisplayY = targetVideoY * scale - offsetY
+
+    const dx = displayX - targetDisplayX
+    const dy = displayY - targetDisplayY
+    const tolerance = Math.min(videoRect.width * scale, videoRect.height * scale) * 0.08
+
     const aligned = Math.sqrt(dx * dx + dy * dy) < tolerance
-    console.log(aligned);
     setPerfectAlignment(aligned)
 
     if (aligned) {
       if (stabilizedTimerRef.current) clearTimeout(stabilizedTimerRef.current)
-      stabilizedTimerRef.current = setTimeout(() => setStableAlignment(true), 600)
+      stabilizedTimerRef.current = setTimeout(() => {
+        setStableAlignment(true)
+      }, 600)
     } else {
       setStableAlignment(false)
     }
@@ -287,9 +290,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
   useEffect(() => {
     if (stableAlignment) {
       if (countdown === null) {
-        debounceTimerRef.current = setTimeout(() => {
-          if (stableAlignment) startCountdown()
-        }, 800)
+      debounceTimerRef.current = setTimeout(() => {
+        if (stableAlignment) startCountdown()
+      }, 800)
       }
     } else {
       if (countdownTimerRef.current) {
@@ -381,7 +384,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   }, [cameraState, startCamera])
 
 	/** Resize canvas & overlay to match the camera container */
-	const sizeCanvas = () => {
+  const sizeCanvas = () => {
 		const canvas = overlayCanvasRef.current
 		if (!canvas) return
 		const parent = canvas.parentElement
@@ -392,7 +395,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
 		canvas.width = width
 		canvas.height = height
 		setOverlaySize({ width, height })
-	}
+  }
 
   useLayoutEffect(() => {
     sizeCanvas()
@@ -457,22 +460,21 @@ export default function CameraCaptureStep({ onNext }: Props) {
                   transform: cameraSide === 'front' ? 'scaleX(-1)' : 'none',
                 }}
               />
-
               <canvas
                 ref={overlayCanvasRef}
                 className="absolute inset-0 pointer-events-none w-full h-full"
               />
 
-		              {overlaySize.width > 0 && overlaySize.height > 0 && (
-		                <FaceFrameOverlay
-		                  hasFace={faceDetected}
-		                  isCentered={faceCentered}
-		                  zoomStatus={zoomStatus}
-		                  isPerfectAlignment={perfectAlignment}
-		                  windowSize={overlaySize}
-		                  processId="camera"
-		                />
-		              )}
+              {overlaySize.width > 0 && overlaySize.height > 0 && (
+                <FaceFrameOverlay
+                  hasFace={faceDetected}
+                  isCentered={faceCentered}
+                  zoomStatus={zoomStatus}
+                  isPerfectAlignment={perfectAlignment}
+                  windowSize={overlaySize}
+                  processId="camera"
+                />
+              )}
 
               <LightingBar brightness={brightness} />
 

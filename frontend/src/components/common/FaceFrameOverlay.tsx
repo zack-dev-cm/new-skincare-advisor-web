@@ -310,7 +310,7 @@ export default function FaceFrameOverlay({
 					ref={textRef}
 					className={`text-white font-semibold px-4 py-2 rounded-lg transition-all duration-200 text-center max-w-[90%]`}
 					style={{
-						fontSize: 'clamp(1.5rem, 5vw, 2.5rem)',
+						fontSize: 'clamp(1rem, 5vw, 1.25rem)',
 						transform: isTextHighlighted ? 'scale(1.1)' : 'scale(1)',
 					}}
 				>
