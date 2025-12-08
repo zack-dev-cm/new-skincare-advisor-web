@@ -261,8 +261,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const dx = displayX - targetX
     const dy = displayY - targetY
     const tolerance = Math.min(videoRect.width, videoRect.height) * 0.08
-    const aligned = visible && centered && newZoom === 'perfect' && Math.hypot(dx, dy) < tolerance
-
+    const aligned = Math.sqrt(dx * dx + dy * dy) < tolerance
+    console.log(aligned);
     setPerfectAlignment(aligned)
 
     if (aligned) {
@@ -272,7 +272,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
       setStableAlignment(false)
     }
 
-    /** 👇 Draw nose guidance dot */
     if (!aligned && centered && newZoom === 'perfect' && visible) {
       ctx.beginPath()
       ctx.arc(displayX, displayY, 10, 0, 2 * Math.PI)
