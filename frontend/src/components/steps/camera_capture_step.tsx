@@ -267,7 +267,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setPerfectAlignment(aligned)
 
     if (aligned) {
-      if (stabilizedTimerRef.current) clearTimeout(stabilizedTimerRef.current)
+      if (stabilizedTimerRef.current) 
+        clearTimeout(stabilizedTimerRef.current)
       stabilizedTimerRef.current = setTimeout(() => {
         setStableAlignment(true)
       }, 600)
@@ -288,12 +289,16 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
   /** Countdown auto-trigger */
   useEffect(() => {
-    if (stableAlignment) {
-      if (countdown === null) {
+    if (perfectAlignment && countdown === null) {
+      // debounce so it doesn’t trigger instantly on flicker
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
+
       debounceTimerRef.current = setTimeout(() => {
-        if (stableAlignment) startCountdown()
-      }, 800)
-      }
+        // check again after debounce period
+        if (perfectAlignment) {
+          startCountdown()
+        }
+      }, 600)
     } else {
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current)
@@ -301,7 +306,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
         setCountdown(null)
       }
     }
-  }, [stableAlignment])
+  }, [perfectAlignment])
 
   const startCountdown = () => {
     setCountdown(3)
@@ -353,6 +358,18 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setCameraState('live')
     startCamera()
   }
+
+  useEffect(() => {
+    if (cameraState === 'live' && videoRef.current) {
+      const video = videoRef.current
+      const handleLoaded = () => {
+        sizeCanvas()
+      }
+
+      video.addEventListener('loadedmetadata', handleLoaded)
+      return () => video.removeEventListener('loadedmetadata', handleLoaded)
+    }
+  }, [cameraState])
 
   const confirmPhoto = () => {
     if (capturedImage) onNext(capturedImage)
