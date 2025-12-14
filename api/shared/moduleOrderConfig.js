@@ -22,6 +22,7 @@ function getDefaultConfig() {
       'SPF'
     ],
     skincare_evening: [
+      'Makeup Remover',
       'Cleansing',
       'Tonic/Serum',
       'Pimple Patches',
@@ -36,7 +37,6 @@ function getDefaultConfig() {
     ],
     makeup: [
       'Eye Makeup Remover',
-      'Makeup Remover',
       'BB Cream',
       'Concealer',
       'Foundation',
