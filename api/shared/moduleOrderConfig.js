@@ -22,6 +22,7 @@ function getDefaultConfig() {
       'SPF'
     ],
     skincare_evening: [
+      'Eye Makeup Remover',
       'Makeup Remover',
       'Cleansing',
       'Tonic/Serum',
@@ -36,10 +37,8 @@ function getDefaultConfig() {
       'Lip Scrub'
     ],
     makeup: [
-      'Eye Makeup Remover',
-      'BB Cream',
-      'Concealer',
-      'Foundation',
+      'Concealer',      
+      'BB Cream/Foundation',
       'Powder',
       'Bronzer',
       'Blush',
