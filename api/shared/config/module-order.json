@@ -9,6 +9,7 @@
     "SPF"
   ],
   "skincare_evening": [
+    "Eye Makeup Remover",
     "Makeup Remover",
     "Cleansing",
     "Tonic/Serum",
@@ -23,9 +24,8 @@
     "Lip Scrub"
   ],
   "makeup": [
-    "Eye Makeup Remover",
-    "BB Cream/Foundation",
     "Concealer",
+    "BB Cream/Foundation",
     "Powder",
     "Bronzer",
     "Blush",
