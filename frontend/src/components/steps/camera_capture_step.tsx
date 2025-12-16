@@ -67,6 +67,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const stabilizedTimerRef = useRef<NodeJS.Timeout | null>(null)
+  const perfectAlignmentRef = useRef<boolean>(false)
 
   const [isCameraReady, setIsCameraReady] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
@@ -206,6 +207,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
       setFaceDetected(false)
       setPerfectAlignment(false)
       setStableAlignment(false)
+      perfectAlignmentRef.current = false
       return
     }
 
@@ -265,6 +267,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
     const aligned = visible && centered && newZoom === 'perfect' && Math.sqrt(dx * dx + dy * dy) < tolerance
     setPerfectAlignment(aligned)
+    perfectAlignmentRef.current = aligned
 
     if (aligned) {
       if (stabilizedTimerRef.current) 
@@ -290,27 +293,40 @@ export default function CameraCaptureStep({ onNext }: Props) {
   /** Countdown auto-trigger */
   useEffect(() => {
     if (perfectAlignment && countdown === null) {
-      // debounce so it doesn’t trigger instantly on flicker
+      // debounce so it doesn't trigger instantly on flicker
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
       debounceTimerRef.current = setTimeout(() => {
         // check again after debounce period
-        if (perfectAlignment) {
+        if (perfectAlignmentRef.current && countdown === null) {
           startCountdown()
         }
       }, 600)
     } else {
+      // Stop countdown and clear debounce if alignment is lost
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current)
+        debounceTimerRef.current = null
+      }
       if (countdownTimerRef.current) {
         clearInterval(countdownTimerRef.current)
         countdownTimerRef.current = null
         setCountdown(null)
       }
     }
-  }, [perfectAlignment])
+  }, [perfectAlignment, countdown])
 
   const startCountdown = () => {
     setCountdown(3)
     countdownTimerRef.current = setInterval(() => {
+      // Check if alignment is still valid before continuing countdown
+      if (!perfectAlignmentRef.current) {
+        clearInterval(countdownTimerRef.current!)
+        countdownTimerRef.current = null
+        setCountdown(null)
+        return
+      }
+
       setCountdown((prev) => {
         if (prev === null) return null
         if (prev === 1) {
