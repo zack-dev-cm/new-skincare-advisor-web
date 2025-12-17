@@ -297,13 +297,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
 
       debounceTimerRef.current = setTimeout(() => {
-        // check again after debounce period
-        if (perfectAlignmentRef.current && countdown === null) {
+        // check again after debounce period - make sure alignment is still good and no countdown is running
+        if (perfectAlignmentRef.current && !countdownTimerRef.current) {
           startCountdown()
         }
       }, 600)
-    } else {
-      // Stop countdown and clear debounce if alignment is lost
+    } else if (!perfectAlignment) {
+      // Stop countdown and clear debounce only if alignment is lost
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current)
         debounceTimerRef.current = null
@@ -314,9 +314,12 @@ export default function CameraCaptureStep({ onNext }: Props) {
         setCountdown(null)
       }
     }
-  }, [perfectAlignment, countdown])
+  }, [perfectAlignment])
 
   const startCountdown = () => {
+    // Don't start if countdown is already running
+    if (countdownTimerRef.current) return
+    
     setCountdown(3)
     countdownTimerRef.current = setInterval(() => {
       // Check if alignment is still valid before continuing countdown
