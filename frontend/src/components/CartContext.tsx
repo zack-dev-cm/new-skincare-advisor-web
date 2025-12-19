@@ -415,7 +415,7 @@ export function CartProvider({ children }: CartProviderProps) {
         // If cross-origin, try to get from environment or fallback
         return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
           ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
-          : 'https://dermaself-dev.myshopify.com'; // fallback only
+          : 'https://dermaself-demo.myshopify.com'; // fallback only
       }
     } else {
       // For standalone apps, use current domain if it's Shopify
@@ -425,7 +425,7 @@ export function CartProvider({ children }: CartProviderProps) {
         // Try to get from environment
         return process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN 
           ? `https://${process.env.NEXT_PUBLIC_SHOPIFY_DOMAIN}`
-          : 'https://dermaself-dev.myshopify.com'; // fallback only
+          : 'https://dermaself-demo.myshopify.com'; // fallback only
       }
     }
   };
