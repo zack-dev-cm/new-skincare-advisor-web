@@ -19,7 +19,13 @@ function MobileCapturePageInner() {
       console.log('Starting camera...');
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'user' },
+          video: { 
+            facingMode: 'user',
+            // Prefer 4:3 aspect ratio (common for iPhone cameras)
+            aspectRatio: { ideal: 4 / 3 },
+            width: { ideal: 1920 },
+            height: { ideal: 1440 },
+          },
           audio: false,
         });
         console.log('Got stream:', stream);
@@ -85,9 +91,11 @@ function MobileCapturePageInner() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
+    // Capture at full native resolution for maximum quality
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Use high quality JPEG (1.0 = 100% quality)
     const dataUrl = canvas.toDataURL('image/jpeg', 1.0);
     setImage(dataUrl);
     stopCamera(); // stop and hide camera

@@ -138,8 +138,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: cameraSide === 'front' ? 'user' : 'environment',
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
+          aspectRatio: { ideal: 4 / 3 },
+          width: { ideal: 1920 },
+          height: { ideal: 1440 },
         },
         audio: false,
       }
@@ -159,14 +160,18 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
       await videoRef.current.play()
 
+      // Use actual video dimensions for MediaPipe camera
+      const videoWidth = videoRef.current.videoWidth || 1920
+      const videoHeight = videoRef.current.videoHeight || 1440
+
       const cam = new MPCamera(videoRef.current, {
         onFrame: async () => {
           if (videoRef.current && faceMeshRef.current) {
             await faceMeshRef.current.send({ image: videoRef.current })
           }
         },
-        width: 1280,
-        height: 720,
+        width: videoWidth,
+        height: videoHeight,
       })
 
       cameraRef.current = cam
@@ -525,7 +530,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
           {cameraState === 'preview' && capturedImage && (
             <img
               src={capturedImage}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="absolute inset-0 w-full h-full object-contain"
+              alt="Captured photo preview"
             />
           )}
         </div>

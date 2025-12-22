@@ -157,12 +157,15 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         setStream(null);
       }
       
-      // Camera constraints - use native resolution without artificial limits
+      // Camera constraints - prefer 4:3 aspect ratio with native resolution
       const constraints = {
         video: {
           facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
-          // Remove resolution constraints to use native camera resolution
-          // This allows the camera to use its maximum supported resolution
+          // Prefer 4:3 aspect ratio (common for iPhone cameras)
+          aspectRatio: { ideal: 4 / 3 },
+          // Use high resolution for quality photos
+          width: { ideal: 1920 },
+          height: { ideal: 1440 },
         },
         audio: false
       };
@@ -566,7 +569,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
 
     if (!ctx) return;
     
-    // Use original video dimensions for maximum quality
+    // Use original video dimensions for maximum quality - capture full frame
     const originalWidth = video.videoWidth;
     const originalHeight = video.videoHeight;
     
@@ -576,75 +579,15 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       return;
     }
     
-    // Log video element dimensions and styling
+    // Log video element dimensions
     console.log('=== CAPTURE DEBUG ===');
-    console.log('1. Video natural dimensions:', video.videoWidth, 'x', video.videoHeight);
-    console.log('2. Video display dimensions:', video.offsetWidth, 'x', video.offsetHeight);
-    console.log('3. Video client dimensions:', video.clientWidth, 'x', video.clientHeight);
-    console.log('4. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
-    console.log('5. Video display aspect ratio:', (video.offsetWidth / video.offsetHeight).toFixed(3));
-    console.log('6. Video transform:', video.style.transform);
-    console.log('7. Video scale:', currentCamera === 'front' ? 'scaleX(-1)' : 'none');
+    console.log('1. Video natural dimensions:', originalWidth, 'x', originalHeight);
+    console.log('2. Video aspect ratio:', (originalWidth / originalHeight).toFixed(3));
+    console.log('3. Expected 4:3 ratio: 1.333');
     
-    // Calculate the actual displayed area of the video
-    // Since the video uses object-contain, we need to calculate the actual rendered area
-    const videoAspectRatio = originalWidth / originalHeight;
-    const displayAspectRatio = video.offsetWidth / video.offsetHeight;
-    
-    let sourceX = 0, sourceY = 0, sourceWidth = originalWidth, sourceHeight = originalHeight;
-    let destX = 0, destY = 0, destWidth = originalWidth, destHeight = originalHeight;
-    
-    if (videoAspectRatio > displayAspectRatio) {
-      // Video is wider than display area - video is letterboxed vertically
-      // The video fills the width and is centered vertically
-      const scale = video.offsetWidth / originalWidth;
-      const scaledHeight = originalHeight * scale;
-      const letterboxHeight = (video.offsetHeight - scaledHeight) / 2;
-      
-      // Calculate the actual video area in the display
-      const actualDisplayHeight = scaledHeight;
-      const actualDisplayWidth = video.offsetWidth;
-      
-      // Map this back to the original video coordinates
-      sourceY = (letterboxHeight / scale);
-      sourceHeight = actualDisplayHeight / scale;
-      sourceX = 0;
-      sourceWidth = originalWidth;
-      
-      console.log('8. Video is letterboxed vertically');
-      console.log('9. Scale factor:', scale);
-      console.log('10. Letterbox height:', letterboxHeight);
-      console.log('11. Source area:', sourceX, sourceY, sourceWidth, sourceHeight);
-    } else {
-      // Video is taller than display area - video is letterboxed horizontally
-      // The video fills the height and is centered horizontally
-      const scale = video.offsetHeight / originalHeight;
-      const scaledWidth = originalWidth * scale;
-      const letterboxWidth = (video.offsetWidth - scaledWidth) / 2;
-      
-      // Calculate the actual video area in the display
-      const actualDisplayWidth = scaledWidth;
-      const actualDisplayHeight = video.offsetHeight;
-      
-      // Map this back to the original video coordinates
-      sourceX = (letterboxWidth / scale);
-      sourceWidth = actualDisplayWidth / scale;
-      sourceY = 0;
-      sourceHeight = originalHeight;
-      
-      console.log('8. Video is letterboxed horizontally');
-      console.log('9. Scale factor:', scale);
-      console.log('10. Letterbox width:', letterboxWidth);
-      console.log('11. Source area:', sourceX, sourceY, sourceWidth, sourceHeight);
-    }
-    
-    // Set canvas to original dimensions for maximum quality
+    // Set canvas to original dimensions for maximum quality - capture FULL frame
     canvas.width = originalWidth;
     canvas.height = originalHeight;
-    
-    // Clear canvas with white background
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, originalWidth, originalHeight);
     
     // Handle mirroring for front-facing camera
     // Front-facing cameras are mirrored by default, so we need to flip the image
@@ -653,26 +596,19 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       // Flip horizontally for front camera to match iPhone behavior
       ctx.save();
       ctx.scale(-1, 1);
-      ctx.drawImage(
-        video, 
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        -originalWidth, 0, originalWidth, originalHeight
-      );
+      // Draw full video frame without cropping
+      ctx.drawImage(video, -originalWidth, 0, originalWidth, originalHeight);
       ctx.restore();
-      console.log('12. Applied horizontal flip for front camera');
+      console.log('4. Applied horizontal flip for front camera');
     } else {
-      // Back camera doesn't need flipping
-      ctx.drawImage(
-        video, 
-        sourceX, sourceY, sourceWidth, sourceHeight,
-        0, 0, originalWidth, originalHeight
-      );
-      console.log('12. No flip applied for back camera');
+      // Back camera - draw full video frame without cropping
+      ctx.drawImage(video, 0, 0, originalWidth, originalHeight);
+      console.log('4. No flip applied for back camera');
     }
     
-    console.log('13. Canvas dimensions set to:', canvas.width, 'x', canvas.height);
+    console.log('5. Canvas dimensions:', canvas.width, 'x', canvas.height);
     
-    // Use maximum quality JPEG compression
+    // Use maximum quality JPEG compression (0.95 = 95% quality)
     const imageData = canvas.toDataURL('image/jpeg', 0.95);
     
     // Log the captured image data size
