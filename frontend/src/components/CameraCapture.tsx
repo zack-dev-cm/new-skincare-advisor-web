@@ -161,11 +161,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
       const constraints = {
         video: {
           facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
-          // Prefer 4:3 aspect ratio (common for iPhone cameras)
+          // Prefer 4:3 aspect ratio (matches iPhone camera format)
+          // For 7MP camera: ~3055 x 2291 pixels
           aspectRatio: { ideal: 4 / 3 },
-          // Use high resolution for quality photos
-          width: { ideal: 1920 },
-          height: { ideal: 1440 },
+          // Support various iPhone resolutions (7MP to 12MP)
+          width: { ideal: 3024, max: 4032 },
+          height: { ideal: 2268, max: 3024 },
         },
         audio: false
       };

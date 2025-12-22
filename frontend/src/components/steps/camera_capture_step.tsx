@@ -349,20 +349,72 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }, 1000)
   }
 
-  /** Capture full-frame image */
+  /** Capture image cropped to match object-cover display */
   const capturePhoto = async () => {
     if (!videoRef.current) return
     const video = videoRef.current
 
+    const videoWidth = video.videoWidth
+    const videoHeight = video.videoHeight
+    const videoAspectRatio = videoWidth / videoHeight
+
+    // Get the display container dimensions (what's shown with object-cover)
+    const displayWidth = overlaySize.width || videoWidth
+    const displayHeight = overlaySize.height || videoHeight
+    const displayAspectRatio = displayWidth / displayHeight
+
+    // Calculate crop for object-cover behavior
+    // object-cover scales image to cover container, maintaining aspect ratio
+    let cropWidth = videoWidth
+    let cropHeight = videoHeight
+    let cropX = 0
+    let cropY = 0
+
+    if (videoAspectRatio > displayAspectRatio) {
+      // Video is wider than display - crop sides (letterbox)
+      // Scale factor: displayHeight / videoHeight
+      const scale = displayHeight / videoHeight
+      // Crop width to match display aspect ratio
+      cropWidth = (displayWidth / scale)
+      cropX = (videoWidth - cropWidth) / 2
+    } else {
+      // Video is taller than display - crop top/bottom (pillarbox)
+      // Scale factor: displayWidth / videoWidth
+      const scale = displayWidth / videoWidth
+      // Crop height to match display aspect ratio
+      cropHeight = (displayHeight / scale)
+      cropY = (videoHeight - cropHeight) / 2
+    }
+
+    console.log('=== CROP DEBUG ===')
+    console.log('Video dimensions:', videoWidth, 'x', videoHeight, `(${(videoAspectRatio).toFixed(3)})`)
+    console.log('Display dimensions:', displayWidth, 'x', displayHeight, `(${(displayAspectRatio).toFixed(3)})`)
+    console.log('Crop area:', cropX, cropY, cropWidth, 'x', cropHeight)
+    console.log('Output canvas:', displayWidth, 'x', displayHeight)
+
+    // Create canvas with cropped dimensions
     const canvas = document.createElement('canvas')
-    canvas.width = video.videoWidth
-    canvas.height = video.videoHeight
+    canvas.width = displayWidth
+    canvas.height = displayHeight
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    ctx.scale(-1, 1)
-    ctx.drawImage(video, -video.videoWidth, 0)
+    // Handle mirroring for front camera
+    if (cameraSide === 'front') {
+      ctx.scale(-1, 1)
+      ctx.drawImage(
+        video,
+        cropX, cropY, cropWidth, cropHeight,
+        -displayWidth, 0, displayWidth, displayHeight
+      )
+    } else {
+      ctx.drawImage(
+        video,
+        cropX, cropY, cropWidth, cropHeight,
+        0, 0, displayWidth, displayHeight
+      )
+    }
 
     const data = canvas.toDataURL('image/jpeg', 1.0)
     setCapturedImage(data)
@@ -530,7 +582,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
           {cameraState === 'preview' && capturedImage && (
             <img
               src={capturedImage}
-              className="absolute inset-0 w-full h-full object-contain"
+              className="absolute inset-0 w-full h-full object-cover"
               alt="Captured photo preview"
             />
           )}
