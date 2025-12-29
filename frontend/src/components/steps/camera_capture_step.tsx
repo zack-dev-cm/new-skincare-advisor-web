@@ -147,6 +147,14 @@ export default function CameraCaptureStep({ onNext }: Props) {
         {
           video: {
             facingMode: cameraSide === 'front' ? 'user' : 'environment',
+            width: { ideal: 1920, max: 1920 },
+            height: { ideal: 2560, min: 2000 },
+          },
+          audio: false,
+        },
+        {
+          video: {
+            facingMode: cameraSide === 'front' ? 'user' : 'environment',
             width: { ideal: 1920 },
             height: { ideal: 2560 },
           },
@@ -155,7 +163,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
         {
           video: {
             facingMode: cameraSide === 'front' ? 'user' : 'environment',
-            aspectRatio: { ideal: 4 / 3 },
+            aspectRatio: { ideal: 3 / 4 }, // Portrait: height/width = 3/4
           },
           audio: false,
         },
@@ -195,11 +203,14 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
       await videoRef.current.play()
 
-      // Use actual video dimensions for MediaPipe camera
       const videoWidth = videoRef.current.videoWidth || 1920
-      const videoHeight = videoRef.current.videoHeight || 1440
+      const videoHeight = videoRef.current.videoHeight || 2560
 
-      console.log(`Camera resolution: ${videoWidth}x${videoHeight}`)
+      const isLandscape = videoWidth > videoHeight
+      console.log(`Camera resolution: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
+      if (isLandscape) {
+        console.warn('Camera returned landscape - will rotate to portrait during capture')
+      }
 
       // Initialize best frame selector
       if (!bestFrameSelectorRef.current) {
@@ -435,28 +446,48 @@ export default function CameraCaptureStep({ onNext }: Props) {
       videoHeight = video.videoHeight
     }
 
+    const isLandscape = videoWidth > videoHeight
+    let finalWidth = videoWidth
+    let finalHeight = videoHeight
+    if (isLandscape) {
+      console.log('Rotating landscape to portrait')
+      finalWidth = videoHeight
+      finalHeight = videoWidth
+    }
+
     console.log('=== CAPTURE DEBUG ===')
     console.log('Using best frame:', useBestFrame)
-    console.log('Capturing at full resolution:', videoWidth, 'x', videoHeight)
-    console.log('Aspect ratio:', (videoWidth / videoHeight).toFixed(3))
+    console.log('Original resolution:', videoWidth, 'x', videoHeight)
+    console.log('Final resolution (portrait):', finalWidth, 'x', finalHeight)
+    console.log('Aspect ratio:', (finalWidth / finalHeight).toFixed(3))
 
     const canvas = document.createElement('canvas')
-    canvas.width = videoWidth
-    canvas.height = videoHeight
+    canvas.width = finalWidth
+    canvas.height = finalHeight
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
+
+    // If landscape, rotate 90 degrees clockwise to make it portrait
+    if (isLandscape) {
+      ctx.translate(finalWidth, 0)
+      ctx.rotate(Math.PI / 2)
+    }
 
     if (cameraSide === 'front') {
       ctx.scale(-1, 1)
       ctx.drawImage(
         sourceImage,
-        -videoWidth, 0, videoWidth, videoHeight
+        isLandscape ? -finalHeight : -finalWidth, 0,
+        isLandscape ? finalHeight : finalWidth,
+        isLandscape ? finalWidth : finalHeight
       )
     } else {
       ctx.drawImage(
         sourceImage,
-        0, 0, videoWidth, videoHeight
+        0, 0,
+        isLandscape ? finalHeight : finalWidth,
+        isLandscape ? finalWidth : finalHeight
       )
     }
 
