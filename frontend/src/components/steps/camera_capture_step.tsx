@@ -142,20 +142,32 @@ export default function CameraCaptureStep({ onNext }: Props) {
       })
       faceMeshRef.current = faceMesh
 
-      // Request higher resolution for better skin analysis
-      // Similar to liqa.haut.ai approach: request width 2560, but also support max resolution on phones
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: cameraSide === 'front' ? 'user' : 'environment',
           aspectRatio: { ideal: 4 / 3 },
-          // Request higher resolution - browsers will negotiate the best available
-          width: { ideal: 2560, min: 1920 },
-          height: { ideal: 1920, min: 1440 },
+          width: { ideal: 2560 },
+          height: { ideal: 1920 },
         },
         audio: false,
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia(constraints)
+      let stream: MediaStream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints)
+      } catch (error) {
+        console.warn('High resolution request failed, trying with flexible constraints:', error)
+        const fallbackConstraints: MediaStreamConstraints = {
+          video: {
+            facingMode: cameraSide === 'front' ? 'user' : 'environment',
+            aspectRatio: { ideal: 4 / 3 },
+            width: { ideal: 1920 },
+            height: { ideal: 1440 },
+          },
+          audio: false,
+        }
+        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints)
+      }
       if (!videoRef.current) return
 
       videoRef.current.srcObject = stream

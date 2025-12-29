@@ -157,23 +157,33 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         setStream(null);
       }
       
-      // Camera constraints - request higher resolution for better skin analysis
-      // Similar to liqa.haut.ai approach: request width 2560, but also support max resolution on phones
       const constraints = {
         video: {
           facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
-          // Prefer 4:3 aspect ratio (matches iPhone camera format)
           aspectRatio: { ideal: 4 / 3 },
-          // Request higher resolution - browsers will negotiate the best available
-          // For phones, this will get the maximum available resolution
-          width: { ideal: 2560, min: 1920, max: 4032 },
-          height: { ideal: 1920, min: 1440, max: 3024 },
+          width: { ideal: 2560 },
+          height: { ideal: 1920 },
         },
         audio: false
       };
       
       console.log('Requesting camera access...');
-      const mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      let mediaStream: MediaStream;
+      try {
+        mediaStream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (error) {
+        console.warn('High resolution request failed, trying with flexible constraints:', error);
+        const fallbackConstraints = {
+          video: {
+            facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
+            aspectRatio: { ideal: 4 / 3 },
+            width: { ideal: 1920 },
+            height: { ideal: 1440 },
+          },
+          audio: false
+        };
+        mediaStream = await navigator.mediaDevices.getUserMedia(fallbackConstraints);
+      }
       
       if (!isMountedRef.current) {
         mediaStream.getTracks().forEach(track => track.stop());

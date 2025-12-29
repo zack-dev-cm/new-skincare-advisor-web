@@ -18,20 +18,29 @@ function MobileCapturePageInner() {
     const startCamera = async () => {
       console.log('Starting camera...');
       try {
-        // Request higher resolution for better skin analysis
-        // Similar to liqa.haut.ai approach: request width 2560, but also support max resolution on phones
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { 
-            facingMode: 'user',
-            // Prefer 4:3 aspect ratio (matches iPhone camera format)
-            aspectRatio: { ideal: 4 / 3 },
-            // Request higher resolution - browsers will negotiate the best available
-            // For phones, this will get the maximum available resolution
-            width: { ideal: 2560, min: 1920, max: 4032 },
-            height: { ideal: 1920, min: 1440, max: 3024 },
-          },
-          audio: false,
-        });
+        let stream: MediaStream;
+        try {
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              facingMode: 'user',
+              aspectRatio: { ideal: 4 / 3 },
+              width: { ideal: 2560 },
+              height: { ideal: 1920 },
+            },
+            audio: false,
+          });
+        } catch (error) {
+          console.warn('High resolution request failed, trying with flexible constraints:', error);
+          stream = await navigator.mediaDevices.getUserMedia({
+            video: { 
+              facingMode: 'user',
+              aspectRatio: { ideal: 4 / 3 },
+              width: { ideal: 1920 },
+              height: { ideal: 1440 },
+            },
+            audio: false,
+          });
+        }
         console.log('Got stream:', stream);
 
         const video = videoRef.current;
