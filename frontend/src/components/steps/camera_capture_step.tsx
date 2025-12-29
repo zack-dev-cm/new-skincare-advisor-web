@@ -7,7 +7,7 @@ import React, {
   useCallback,
   useLayoutEffect,
 } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import {
   Camera,
   SwitchCameraIcon,
@@ -63,6 +63,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const faceMeshRef = useRef<FaceMeshInstance | null>(null)
   const faceResultsRef = useRef<FaceMeshResults | null>(null)
   const cameraRef = useRef<MPCamera | null>(null)
+  const streamRef = useRef<MediaStream | null>(null)
 
   const frameReqRef = useRef<number | null>(null)
   const countdownTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -118,6 +119,10 @@ export default function CameraCaptureStep({ onNext }: Props) {
     if (videoRef.current?.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks()
       tracks.forEach((t) => t.stop())
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((t) => t.stop())
+      streamRef.current = null
     }
 
     if (bestFrameSelectorRef.current) {
@@ -191,6 +196,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
       }
       if (!videoRef.current) return
 
+      streamRef.current = stream
       videoRef.current.srcObject = stream
 
       await new Promise<void>((resolve) => {
@@ -203,13 +209,49 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
       await videoRef.current.play()
 
-      const videoWidth = videoRef.current.videoWidth || 1920
-      const videoHeight = videoRef.current.videoHeight || 2560
+      // Wait a bit for video to stabilize
+      await new Promise(resolve => setTimeout(resolve, 500))
 
-      const isLandscape = videoWidth > videoHeight
-      console.log(`Camera resolution: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
-      if (isLandscape) {
-        console.warn('Camera returned landscape - will rotate to portrait during capture')
+      let videoWidth = videoRef.current.videoWidth || 1920
+      let videoHeight = videoRef.current.videoHeight || 2560
+      let isLandscape = videoWidth > videoHeight
+
+      console.log(`Initial camera resolution: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
+
+      // If landscape, try to apply portrait constraints to the video track
+      if (isLandscape && streamRef.current) {
+        const videoTrack = streamRef.current.getVideoTracks()[0]
+        if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
+          try {
+            console.log('Attempting to change camera to portrait resolution...')
+            // Apply portrait constraints (swap width/height)
+            await videoTrack.applyConstraints({
+              width: { ideal: videoHeight },
+              height: { ideal: videoWidth },
+            })
+            
+            // Wait for constraints to apply and video to update
+            await new Promise(resolve => setTimeout(resolve, 500))
+            
+            // Re-read video dimensions after constraints applied
+            if (videoRef.current) {
+              videoWidth = videoRef.current.videoWidth || videoWidth
+              videoHeight = videoRef.current.videoHeight || videoHeight
+              isLandscape = videoWidth > videoHeight
+              
+              console.log(`After applying constraints: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
+              
+              if (!isLandscape) {
+                console.log('✅ Successfully changed to portrait resolution!')
+              } else {
+                console.warn('⚠️ Could not change to portrait - will crop during capture')
+              }
+            }
+          } catch (error) {
+            console.warn('Failed to apply portrait constraints:', error)
+            console.warn('Will crop to portrait during capture')
+          }
+        }
       }
 
       // Initialize best frame selector
@@ -219,13 +261,15 @@ export default function CameraCaptureStep({ onNext }: Props) {
         bestFrameSelectorRef.current.reset()
       }
 
+      // Use final video dimensions (after applying constraints if needed)
+      const finalVideoWidth = videoRef.current.videoWidth || videoWidth
+      const finalVideoHeight = videoRef.current.videoHeight || videoHeight
+
       const cam = new MPCamera(videoRef.current, {
         onFrame: async () => {
           if (videoRef.current && faceMeshRef.current) {
             await faceMeshRef.current.send({ image: videoRef.current })
             
-            // Process frame for best frame selection (throttled to avoid performance issues)
-            // Only process when face is detected and aligned
             if (perfectAlignmentRef.current && bestFrameSelectorRef.current) {
               try {
                 await bestFrameSelectorRef.current.send(videoRef.current)
@@ -236,8 +280,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
             }
           }
         },
-        width: videoWidth,
-        height: videoHeight,
+        width: finalVideoWidth,
+        height: finalVideoHeight,
       })
 
       cameraRef.current = cam
@@ -498,6 +542,12 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }
 
     const data = canvas.toDataURL('image/jpeg', 1.0)
+    
+    // Log actual captured image info
+    console.log('=== CAPTURE COMPLETE ===')
+    console.log('Canvas dimensions:', canvas.width, 'x', canvas.height)
+    console.log('Image data URL size:', Math.round(data.length / 1024), 'KB')
+    
     setCapturedImage(data)
     setCameraState('preview')
 
@@ -669,6 +719,11 @@ export default function CameraCaptureStep({ onNext }: Props) {
               src={capturedImage}
               className="absolute inset-0 w-full h-full object-cover"
               alt="Captured photo preview"
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement
+                console.log('Preview - Natural size:', img.naturalWidth, 'x', img.naturalHeight)
+                console.log('Preview - Displayed size:', img.offsetWidth, 'x', img.offsetHeight)
+              }}
             />
           )}
         </div>
