@@ -172,11 +172,11 @@ export default function FaceFrameOverlay({
 		const getText = () => {
 			if (!hasFace) return '';
 			if (!isCentered) return 'Place your face in the frame';
-			if (zoomStatus === 'too-far') return 'Move closer.';
-			if (zoomStatus === 'too-close') return 'Move away.';
+			if (zoomStatus === 'too-far') return 'Get closer for better detail';
+			if (zoomStatus === 'too-close') return 'Slightly move back';
 			if (!isPerfectAlignment)
 				return 'Align your nose with the target circle.';
-			return 'Perfect!';
+			return 'Perfect! Stay still...';
 		};
 
 		const newText = getText();

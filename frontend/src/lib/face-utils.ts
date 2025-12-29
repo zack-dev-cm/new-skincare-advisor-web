@@ -236,10 +236,10 @@ export function calculateZoomThresholds(
 	
 	const frameHeightInVideo = videoRect.height;
 	
-	const tooFarFrameOccupancy = 0.6;      // too small
-	const perfectMinFrameOccupancy = 0.8;   // good minimum
-	const perfectMaxFrameOccupancy = 1.0;   // good maximum  
-	const tooCloseFrameOccupancy = 1.2;     // too large
+	const tooFarFrameOccupancy = 0.5;      // too small - need to get closer
+	const perfectMinFrameOccupancy = 0.9;   // good minimum - closer is better
+	const perfectMaxFrameOccupancy = 1.4;   // good maximum - allow larger faces for detail
+	const tooCloseFrameOccupancy = 1.6;     // too large - only slightly larger than perfect max
 	
 	const faceHeightToSpanRatio = 0.65;
 	

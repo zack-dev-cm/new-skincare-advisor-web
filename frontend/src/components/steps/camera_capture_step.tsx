@@ -147,14 +147,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
         {
           video: {
             facingMode: cameraSide === 'front' ? 'user' : 'environment',
-            width: { ideal: 2560 },
-            height: { ideal: 1920 },
-          },
-          audio: false,
-        },
-        {
-          video: {
-            facingMode: cameraSide === 'front' ? 'user' : 'environment',
             width: { ideal: 1920 },
             height: { ideal: 2560 },
           },
