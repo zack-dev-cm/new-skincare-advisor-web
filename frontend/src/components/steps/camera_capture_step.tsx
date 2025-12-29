@@ -142,31 +142,52 @@ export default function CameraCaptureStep({ onNext }: Props) {
       })
       faceMeshRef.current = faceMesh
 
-      const constraints: MediaStreamConstraints = {
-        video: {
-          facingMode: cameraSide === 'front' ? 'user' : 'environment',
-          aspectRatio: { ideal: 4 / 3 },
-          width: { ideal: 2560 },
-          height: { ideal: 1920 },
+      let stream: MediaStream | undefined
+      const resolutionStrategies = [
+        {
+          video: {
+            facingMode: cameraSide === 'front' ? 'user' : 'environment',
+            width: { ideal: 2560 },
+            height: { ideal: 1920 },
+          },
+          audio: false,
         },
-        audio: false,
-      }
-
-      let stream: MediaStream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia(constraints)
-      } catch (error) {
-        console.warn('High resolution request failed, trying with flexible constraints:', error)
-        const fallbackConstraints: MediaStreamConstraints = {
+        {
+          video: {
+            facingMode: cameraSide === 'front' ? 'user' : 'environment',
+            width: { ideal: 1920 },
+            height: { ideal: 2560 },
+          },
+          audio: false,
+        },
+        {
           video: {
             facingMode: cameraSide === 'front' ? 'user' : 'environment',
             aspectRatio: { ideal: 4 / 3 },
-            width: { ideal: 1920 },
-            height: { ideal: 1440 },
           },
           audio: false,
+        },
+        {
+          video: {
+            facingMode: cameraSide === 'front' ? 'user' : 'environment',
+          },
+          audio: false,
+        },
+      ]
+      let lastError: Error | null = null
+      for (const constraints of resolutionStrategies) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(constraints)
+          console.log('Camera stream obtained with resolution strategy')
+          break
+        } catch (error) {
+          lastError = error as Error
+          console.warn('Camera constraint failed, trying next strategy:', error)
         }
-        stream = await navigator.mediaDevices.getUserMedia(fallbackConstraints)
+      }
+
+      if (!stream) {
+        throw lastError || new Error('Failed to get camera stream with any constraints')
       }
       if (!videoRef.current) return
 
@@ -391,7 +412,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }, 1000)
   }
 
-  /** Capture image cropped to match object-cover display */
   const capturePhoto = async () => {
     if (!videoRef.current) return
     
@@ -411,66 +431,40 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }
 
     const video = videoRef.current
-    const videoWidth = video.videoWidth
-    const videoHeight = video.videoHeight
-    const videoAspectRatio = videoWidth / videoHeight
-
-    // Get the display container dimensions (what's shown with object-cover)
-    const displayWidth = overlaySize.width || videoWidth
-    const displayHeight = overlaySize.height || videoHeight
-    const displayAspectRatio = displayWidth / displayHeight
-
-    // Calculate crop for object-cover behavior
-    // object-cover scales image to cover container, maintaining aspect ratio
-    let cropWidth = videoWidth
-    let cropHeight = videoHeight
-    let cropX = 0
-    let cropY = 0
-
-    if (videoAspectRatio > displayAspectRatio) {
-      // Video is wider than display - crop sides (letterbox)
-      // Scale factor: displayHeight / videoHeight
-      const scale = displayHeight / videoHeight
-      // Crop width to match display aspect ratio
-      cropWidth = (displayWidth / scale)
-      cropX = (videoWidth - cropWidth) / 2
+    
+    let videoWidth: number
+    let videoHeight: number
+    
+    if (sourceImage instanceof ImageBitmap) {
+      videoWidth = sourceImage.width
+      videoHeight = sourceImage.height
     } else {
-      // Video is taller than display - crop top/bottom (pillarbox)
-      // Scale factor: displayWidth / videoWidth
-      const scale = displayWidth / videoWidth
-      // Crop height to match display aspect ratio
-      cropHeight = (displayHeight / scale)
-      cropY = (videoHeight - cropHeight) / 2
+      videoWidth = video.videoWidth
+      videoHeight = video.videoHeight
     }
 
-    console.log('=== CROP DEBUG ===')
+    console.log('=== CAPTURE DEBUG ===')
     console.log('Using best frame:', useBestFrame)
-    console.log('Video dimensions:', videoWidth, 'x', videoHeight, `(${(videoAspectRatio).toFixed(3)})`)
-    console.log('Display dimensions:', displayWidth, 'x', displayHeight, `(${(displayAspectRatio).toFixed(3)})`)
-    console.log('Crop area:', cropX, cropY, cropWidth, 'x', cropHeight)
-    console.log('Output canvas:', displayWidth, 'x', displayHeight)
+    console.log('Capturing at full resolution:', videoWidth, 'x', videoHeight)
+    console.log('Aspect ratio:', (videoWidth / videoHeight).toFixed(3))
 
-    // Create canvas with cropped dimensions
     const canvas = document.createElement('canvas')
-    canvas.width = displayWidth
-    canvas.height = displayHeight
+    canvas.width = videoWidth
+    canvas.height = videoHeight
 
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // Handle mirroring for front camera
     if (cameraSide === 'front') {
       ctx.scale(-1, 1)
       ctx.drawImage(
         sourceImage,
-        cropX, cropY, cropWidth, cropHeight,
-        -displayWidth, 0, displayWidth, displayHeight
+        -videoWidth, 0, videoWidth, videoHeight
       )
     } else {
       ctx.drawImage(
         sourceImage,
-        cropX, cropY, cropWidth, cropHeight,
-        0, 0, displayWidth, displayHeight
+        0, 0, videoWidth, videoHeight
       )
     }
 
@@ -481,7 +475,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
     setShowFlash(true)
     setTimeout(() => setShowFlash(false), 250)
 
-    // Reset best frame selector after capture
     if (bestFrameSelectorRef.current) {
       bestFrameSelectorRef.current.reset()
     }
