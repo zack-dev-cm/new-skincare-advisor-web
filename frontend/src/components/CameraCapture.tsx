@@ -157,16 +157,17 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         setStream(null);
       }
       
-      // Camera constraints - prefer 4:3 aspect ratio with native resolution
+      // Camera constraints - request higher resolution for better skin analysis
+      // Similar to liqa.haut.ai approach: request width 2560, but also support max resolution on phones
       const constraints = {
         video: {
           facingMode: { ideal: (desiredFacing || currentCamera) === 'front' ? 'user' : 'environment' },
           // Prefer 4:3 aspect ratio (matches iPhone camera format)
-          // For 7MP camera: ~3055 x 2291 pixels
           aspectRatio: { ideal: 4 / 3 },
-          // Support various iPhone resolutions (7MP to 12MP)
-          width: { ideal: 3024, max: 4032 },
-          height: { ideal: 2268, max: 3024 },
+          // Request higher resolution - browsers will negotiate the best available
+          // For phones, this will get the maximum available resolution
+          width: { ideal: 2560, min: 1920, max: 4032 },
+          height: { ideal: 1920, min: 1440, max: 3024 },
         },
         audio: false
       };

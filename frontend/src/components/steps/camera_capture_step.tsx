@@ -35,6 +35,7 @@ import {
   calculateZoomThresholds,
   determineZoomStatus,
 } from '@/lib/face-utils'
+import { BestFrameSelector } from '@/lib/best-frame-selector'
 
 import LightingBar from '../common/LightingBar'
 import FaceFrameOverlay from '../common/FaceFrameOverlay'
@@ -68,6 +69,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
   const stabilizedTimerRef = useRef<NodeJS.Timeout | null>(null)
   const perfectAlignmentRef = useRef<boolean>(false)
+  const bestFrameSelectorRef = useRef<BestFrameSelector | null>(null)
 
   const [isCameraReady, setIsCameraReady] = useState(false)
   const [streamError, setStreamError] = useState<string | null>(null)
@@ -118,6 +120,11 @@ export default function CameraCaptureStep({ onNext }: Props) {
       tracks.forEach((t) => t.stop())
     }
 
+    if (bestFrameSelectorRef.current) {
+      bestFrameSelectorRef.current.destroy()
+      bestFrameSelectorRef.current = null
+    }
+
     cameraRef.current = null
     frameReqRef.current = null
   }, [])
@@ -135,12 +142,15 @@ export default function CameraCaptureStep({ onNext }: Props) {
       })
       faceMeshRef.current = faceMesh
 
+      // Request higher resolution for better skin analysis
+      // Similar to liqa.haut.ai approach: request width 2560, but also support max resolution on phones
       const constraints: MediaStreamConstraints = {
         video: {
           facingMode: cameraSide === 'front' ? 'user' : 'environment',
           aspectRatio: { ideal: 4 / 3 },
-          width: { ideal: 1920 },
-          height: { ideal: 1440 },
+          // Request higher resolution - browsers will negotiate the best available
+          width: { ideal: 2560, min: 1920 },
+          height: { ideal: 1920, min: 1440 },
         },
         audio: false,
       }
@@ -164,10 +174,30 @@ export default function CameraCaptureStep({ onNext }: Props) {
       const videoWidth = videoRef.current.videoWidth || 1920
       const videoHeight = videoRef.current.videoHeight || 1440
 
+      console.log(`Camera resolution: ${videoWidth}x${videoHeight}`)
+
+      // Initialize best frame selector
+      if (!bestFrameSelectorRef.current) {
+        bestFrameSelectorRef.current = new BestFrameSelector(true)
+      } else {
+        bestFrameSelectorRef.current.reset()
+      }
+
       const cam = new MPCamera(videoRef.current, {
         onFrame: async () => {
           if (videoRef.current && faceMeshRef.current) {
             await faceMeshRef.current.send({ image: videoRef.current })
+            
+            // Process frame for best frame selection (throttled to avoid performance issues)
+            // Only process when face is detected and aligned
+            if (perfectAlignmentRef.current && bestFrameSelectorRef.current) {
+              try {
+                await bestFrameSelectorRef.current.send(videoRef.current)
+              } catch (error) {
+                // Silently handle errors in best frame selection
+                console.warn('Best frame selection error:', error)
+              }
+            }
           }
         },
         width: videoWidth,
@@ -352,8 +382,23 @@ export default function CameraCaptureStep({ onNext }: Props) {
   /** Capture image cropped to match object-cover display */
   const capturePhoto = async () => {
     if (!videoRef.current) return
-    const video = videoRef.current
+    
+    // Try to use best frame if available, otherwise use current video frame
+    let sourceImage: HTMLVideoElement | ImageBitmap = videoRef.current
+    let useBestFrame = false
+    
+    if (bestFrameSelectorRef.current) {
+      const bestFrame = bestFrameSelectorRef.current.getBestFrame()
+      if (bestFrame && bestFrame.image.width > 0) {
+        sourceImage = bestFrame.image
+        useBestFrame = true
+        console.log('Using best frame with blur score:', bestFrame.quality.blurScore)
+      } else {
+        console.log('No best frame available, using current frame')
+      }
+    }
 
+    const video = videoRef.current
     const videoWidth = video.videoWidth
     const videoHeight = video.videoHeight
     const videoAspectRatio = videoWidth / videoHeight
@@ -387,6 +432,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }
 
     console.log('=== CROP DEBUG ===')
+    console.log('Using best frame:', useBestFrame)
     console.log('Video dimensions:', videoWidth, 'x', videoHeight, `(${(videoAspectRatio).toFixed(3)})`)
     console.log('Display dimensions:', displayWidth, 'x', displayHeight, `(${(displayAspectRatio).toFixed(3)})`)
     console.log('Crop area:', cropX, cropY, cropWidth, 'x', cropHeight)
@@ -404,13 +450,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
     if (cameraSide === 'front') {
       ctx.scale(-1, 1)
       ctx.drawImage(
-        video,
+        sourceImage,
         cropX, cropY, cropWidth, cropHeight,
         -displayWidth, 0, displayWidth, displayHeight
       )
     } else {
       ctx.drawImage(
-        video,
+        sourceImage,
         cropX, cropY, cropWidth, cropHeight,
         0, 0, displayWidth, displayHeight
       )
@@ -422,6 +468,11 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
     setShowFlash(true)
     setTimeout(() => setShowFlash(false), 250)
+
+    // Reset best frame selector after capture
+    if (bestFrameSelectorRef.current) {
+      bestFrameSelectorRef.current.reset()
+    }
 
     cleanup()
   }

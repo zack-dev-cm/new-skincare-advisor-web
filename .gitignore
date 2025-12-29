@@ -22,7 +22,7 @@ bin/
 obj/
 .azure/
 .vscode/settings.json
-
+.reference/
 # Logs
 logs/
 *.log
