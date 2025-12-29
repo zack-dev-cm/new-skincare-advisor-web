@@ -446,21 +446,33 @@ export default function CameraCaptureStep({ onNext }: Props) {
       videoHeight = video.videoHeight
     }
 
+    // Always output portrait - if landscape, crop x-axis (sides) to make it portrait
     const isLandscape = videoWidth > videoHeight
     let finalWidth = videoWidth
     let finalHeight = videoHeight
+    let cropX = 0
+    let cropY = 0
+    let sourceWidth = videoWidth
+    let sourceHeight = videoHeight
+
     if (isLandscape) {
-      console.log('Rotating landscape to portrait')
-      finalWidth = videoHeight
-      finalHeight = videoWidth
+      finalHeight = videoHeight
+      finalWidth = Math.round(videoHeight * (3 / 4)) 
+      cropX = (videoWidth - finalWidth) / 2 
+      cropY = 0
+      sourceWidth = finalWidth
+      sourceHeight = finalHeight
+      console.log('Landscape detected - cropping x-axis to make portrait')
     }
 
     console.log('=== CAPTURE DEBUG ===')
     console.log('Using best frame:', useBestFrame)
-    console.log('Original resolution:', videoWidth, 'x', videoHeight)
+    console.log('Original resolution:', videoWidth, 'x', videoHeight, `(${isLandscape ? 'landscape' : 'portrait'})`)
     console.log('Final resolution (portrait):', finalWidth, 'x', finalHeight)
+    console.log('Crop offset:', cropX, cropY)
     console.log('Aspect ratio:', (finalWidth / finalHeight).toFixed(3))
 
+    // Create canvas at portrait dimensions
     const canvas = document.createElement('canvas')
     canvas.width = finalWidth
     canvas.height = finalHeight
@@ -468,26 +480,20 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    // If landscape, rotate 90 degrees clockwise to make it portrait
-    if (isLandscape) {
-      ctx.translate(finalWidth, 0)
-      ctx.rotate(Math.PI / 2)
-    }
-
+    // Draw the frame - crop x-axis if landscape, no rotation
+    // Only handle mirroring for front camera
     if (cameraSide === 'front') {
       ctx.scale(-1, 1)
       ctx.drawImage(
         sourceImage,
-        isLandscape ? -finalHeight : -finalWidth, 0,
-        isLandscape ? finalHeight : finalWidth,
-        isLandscape ? finalWidth : finalHeight
+        cropX, cropY, sourceWidth, sourceHeight, // Source: crop from original
+        -finalWidth, 0, finalWidth, finalHeight  // Destination: full canvas
       )
     } else {
       ctx.drawImage(
         sourceImage,
-        0, 0,
-        isLandscape ? finalHeight : finalWidth,
-        isLandscape ? finalWidth : finalHeight
+        cropX, cropY, sourceWidth, sourceHeight, // Source: crop from original
+        0, 0, finalWidth, finalHeight            // Destination: full canvas
       )
     }
 
