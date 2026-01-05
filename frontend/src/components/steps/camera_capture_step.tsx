@@ -95,6 +95,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const [showFlash, setShowFlash] = useState(false)
   const [capturedImage, setCapturedImage] = useState<string | null>(null)
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live')
+  const [isResolutionAdjusting, setIsResolutionAdjusting] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -219,11 +220,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
       console.log(`Initial camera resolution: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
 
       // If landscape, try to apply portrait constraints to the video track
+      // Show blur while adjusting resolution
       if (isLandscape && streamRef.current) {
         const videoTrack = streamRef.current.getVideoTracks()[0]
         if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
+          setIsResolutionAdjusting(true)
           try {
-            console.log('Attempting to change camera to portrait resolution...')
+            console.log('Adjusting camera to portrait resolution in background...')
             // Apply portrait constraints (swap width/height)
             await videoTrack.applyConstraints({
               width: { ideal: videoHeight },
@@ -250,6 +253,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
           } catch (error) {
             console.warn('Failed to apply portrait constraints:', error)
             console.warn('Will crop to portrait during capture')
+          } finally {
+            // Remove blur after resolution is determined
+            setIsResolutionAdjusting(false)
           }
         }
       }
@@ -683,11 +689,18 @@ export default function CameraCaptureStep({ onNext }: Props) {
                 autoPlay
                 playsInline
                 muted
-                className="absolute inset-0 w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full object-cover transition-all duration-300 ${
+                  isResolutionAdjusting ? 'blur-md' : 'blur-0'
+                }`}
                 style={{
                   transform: cameraSide === 'front' ? 'scaleX(-1)' : 'none',
                 }}
               />
+              {isResolutionAdjusting && (
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
+                  <div className="text-white text-sm opacity-80">Preparing camera...</div>
+                </div>
+              )}
               <canvas
                 ref={overlayCanvasRef}
                 className="absolute inset-0 pointer-events-none w-full h-full"
