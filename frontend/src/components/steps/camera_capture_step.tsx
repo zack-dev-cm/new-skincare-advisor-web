@@ -139,6 +139,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const startCamera = useCallback(async () => {
     cleanup()
     setStreamError(null)
+    setIsResolutionAdjusting(true)
 
     try {
       const faceMesh = await loadFaceMeshWithFallback()
@@ -220,11 +221,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
       console.log(`Initial camera resolution: ${videoWidth}x${videoHeight} (${isLandscape ? 'landscape' : 'portrait'})`)
 
       // If landscape, try to apply portrait constraints to the video track
-      // Show blur while adjusting resolution
       if (isLandscape && streamRef.current) {
         const videoTrack = streamRef.current.getVideoTracks()[0]
         if (videoTrack && typeof videoTrack.applyConstraints === 'function') {
-          setIsResolutionAdjusting(true)
           try {
             console.log('Adjusting camera to portrait resolution in background...')
             // Apply portrait constraints (swap width/height)
@@ -234,7 +233,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
             })
             
             // Wait for constraints to apply and video to update
-            await new Promise(resolve => setTimeout(resolve, 500))
+            await new Promise(resolve => setTimeout(resolve, 400))
             
             // Re-read video dimensions after constraints applied
             if (videoRef.current) {
@@ -253,9 +252,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
           } catch (error) {
             console.warn('Failed to apply portrait constraints:', error)
             console.warn('Will crop to portrait during capture')
-          } finally {
-            // Remove blur after resolution is determined
-            setIsResolutionAdjusting(false)
           }
         }
       }
@@ -293,10 +289,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
       cameraRef.current = cam
       await cam.start()
 
+      await new Promise(resolve => setTimeout(resolve, 200))
+      setIsResolutionAdjusting(false)
       setIsCameraReady(true)
     } catch (err) {
       console.error('Camera start error:', err)
       setStreamError('Could not access camera. Check permissions.')
+      setIsResolutionAdjusting(false) // Remove loading on error
     }
   }, [cameraSide, cleanup])
 
