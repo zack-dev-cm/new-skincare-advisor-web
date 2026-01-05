@@ -696,7 +696,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
                 }}
               />
               {isResolutionAdjusting && (
-                <div className="absolute inset-0 bg-black/20 flex items-center justify-center z-10">
+                <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
                   <div className="text-white text-sm opacity-80">Preparing camera...</div>
                 </div>
               )}
