@@ -77,7 +77,7 @@ export default function FastEmbedPage() {
       // Fetch quiz configuration from API if shop is provided
       if (shop) {
         try {
-          const connectorApiUrl = process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || '';
+          const connectorApiUrl = process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it/';
           
           if (connectorApiUrl) {
             const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}`;
