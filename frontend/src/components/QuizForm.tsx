@@ -180,29 +180,117 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
     return answer !== undefined && answer !== null && answer !== '';
   };
 
-  const progress = ((currentQuestionIndex + 1) / sortedQuestions.length) * 100;
+  // Calculate progress based on current step
+  const getProgress = () => {
+    if (currentStep === 'quiz') {
+      return ((currentQuestionIndex + 1) / sortedQuestions.length) * 100;
+    }
+    // For other steps, show full progress
+    return 100;
+  };
+
+  const progress = getProgress();
 
   if (!isOpen) return null;
 
-  // Handle different steps
+  // Helper function to render header
+  const renderHeader = () => (
+    <div 
+      className="px-4 py-3 flex items-center justify-between border-b"
+      style={{ 
+        backgroundColor: config.settings.theme.primaryColor,
+        color: config.settings.theme.secondaryColor,
+      }}
+    >
+      <button
+        onClick={
+          currentStep === 'quiz' && currentQuestionIndex > 0
+            ? handleBack
+            : currentStep === 'photo-instructions'
+            ? handlePhotoInstructionsBack
+            : currentStep === 'camera-capture'
+            ? handleCameraBack
+            : onClose
+        }
+        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
+      >
+        <ChevronLeft className="w-5 h-5" />
+      </button>
+
+      <div className="flex-1 text-center">
+        <div className="text-sm font-medium">
+          {currentStep === 'quiz' && `Question ${currentQuestionIndex + 1} of ${sortedQuestions.length}`}
+          {currentStep === 'photo-instructions' && 'Photo Instructions'}
+          {currentStep === 'camera-capture' && 'Take Photo'}
+          {currentStep === 'scan' && 'Analyzing...'}
+          {currentStep === 'results' && 'Results'}
+        </div>
+      </div>
+
+      <button
+        onClick={onClose}
+        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
+      >
+        <X className="w-5 h-5" />
+      </button>
+    </div>
+  );
+
+  // Helper function to render progress bar
+  const renderProgressBar = () => {
+    if (!config.settings.showProgress) return null;
+    return (
+      <div className="h-1 bg-gray-200">
+        <div
+          className="h-full transition-all duration-300"
+          style={{
+            width: `${progress}%`,
+            backgroundColor: config.settings.theme.primaryColor,
+          }}
+        />
+      </div>
+    );
+  };
+
+  // Handle different steps - but wrap them all with header/footer
   if (currentStep === 'photo-instructions') {
     return (
-      <div className="w-full h-full bg-white flex flex-col">
-        <PhotoInstructionsStep
-          onNext={handlePhotoInstructionsNext}
-          onBack={handlePhotoInstructionsBack}
-        />
+      <div 
+        className="w-full h-full flex flex-col"
+        style={{ 
+          fontFamily: config.settings.theme.fontFamily,
+          color: config.settings.theme.primaryColor,
+        }}
+      >
+        {renderHeader()}
+        {renderProgressBar()}
+        <div className="flex-1 overflow-hidden relative">
+          <PhotoInstructionsStep
+            onNext={handlePhotoInstructionsNext}
+            onBack={handlePhotoInstructionsBack}
+          />
+        </div>
       </div>
     );
   }
 
   if (currentStep === 'camera-capture') {
     return (
-      <div className="w-full h-full bg-white flex flex-col">
-        <CameraCaptureStep
-          onNext={handleImageCapture}
-          onBack={handleCameraBack}
-        />
+      <div 
+        className="w-full h-full flex flex-col"
+        style={{ 
+          fontFamily: config.settings.theme.fontFamily,
+          color: config.settings.theme.primaryColor,
+        }}
+      >
+        {renderHeader()}
+        {renderProgressBar()}
+        <div className="flex-1 overflow-hidden relative">
+          <CameraCaptureStep
+            onNext={handleImageCapture}
+            onBack={handleCameraBack}
+          />
+        </div>
       </div>
     );
   }
@@ -210,53 +298,73 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
   if (currentStep === 'scan' || currentStep === 'results') {
     if (loading) {
       return (
-        <div className="w-full h-full bg-white flex flex-col">
-          <ImagePreloader
-            mode="analysis"
-            analysisProgress={75}
-            analysisImageUrl={capturedImage || ''}
-            onComplete={() => setLoading(false)}
-          >
-            {analysisData && (
-              <ResultsStep
-                analysisData={analysisData}
-                routine={null}
-                routineType="essential"
-                onRoutineTypeChange={() => {}}
-                onRestart={() => {
-                  setCurrentStep('quiz');
-                  setCurrentQuestionIndex(0);
-                  setCapturedImage(null);
-                  setAnalysisData(null);
-                }}
-                capturedImage={capturedImage}
-                activeTab="results"
-                onTabChange={() => {}}
-              />
-            )}
-          </ImagePreloader>
+        <div 
+          className="w-full h-full flex flex-col"
+          style={{ 
+            fontFamily: config.settings.theme.fontFamily,
+            color: config.settings.theme.primaryColor,
+          }}
+        >
+          {renderHeader()}
+          {renderProgressBar()}
+          <div className="flex-1 overflow-hidden relative">
+            <ImagePreloader
+              mode="analysis"
+              analysisProgress={75}
+              analysisImageUrl={capturedImage || ''}
+              onComplete={() => setLoading(false)}
+            >
+              {analysisData && (
+                <ResultsStep
+                  analysisData={analysisData}
+                  routine={null}
+                  routineType="essential"
+                  onRoutineTypeChange={() => {}}
+                  onRestart={() => {
+                    setCurrentStep('quiz');
+                    setCurrentQuestionIndex(0);
+                    setCapturedImage(null);
+                    setAnalysisData(null);
+                  }}
+                  capturedImage={capturedImage}
+                  activeTab="results"
+                  onTabChange={() => {}}
+                />
+              )}
+            </ImagePreloader>
+          </div>
         </div>
       );
     }
 
     if (analysisData) {
       return (
-        <div className="w-full h-full bg-white flex flex-col">
-          <ResultsStep
-            analysisData={analysisData}
-            routine={null}
-            routineType="essential"
-            onRoutineTypeChange={() => {}}
-            onRestart={() => {
-              setCurrentStep('quiz');
-              setCurrentQuestionIndex(0);
-              setCapturedImage(null);
-              setAnalysisData(null);
-            }}
-            capturedImage={capturedImage}
-            activeTab="results"
-            onTabChange={() => {}}
-          />
+        <div 
+          className="w-full h-full flex flex-col"
+          style={{ 
+            fontFamily: config.settings.theme.fontFamily,
+            color: config.settings.theme.primaryColor,
+          }}
+        >
+          {renderHeader()}
+          {renderProgressBar()}
+          <div className="flex-1 overflow-hidden relative">
+            <ResultsStep
+              analysisData={analysisData}
+              routine={null}
+              routineType="essential"
+              onRoutineTypeChange={() => {}}
+              onRestart={() => {
+                setCurrentStep('quiz');
+                setCurrentQuestionIndex(0);
+                setCapturedImage(null);
+                setAnalysisData(null);
+              }}
+              capturedImage={capturedImage}
+              activeTab="results"
+              onTabChange={() => {}}
+            />
+          </div>
         </div>
       );
     }
@@ -273,51 +381,8 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
         color: config.settings.theme.primaryColor,
       }}
     >
-      {/* Header */}
-      <div 
-        className="px-4 py-3 flex items-center justify-between border-b"
-        style={{ 
-          backgroundColor: config.settings.theme.primaryColor,
-          color: config.settings.theme.secondaryColor,
-        }}
-      >
-        <button
-          onClick={currentQuestionIndex > 0 ? handleBack : onClose}
-          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-        >
-          {currentQuestionIndex > 0 ? (
-            <ChevronLeft className="w-5 h-5" />
-          ) : (
-            <X className="w-5 h-5" />
-          )}
-        </button>
-
-        <div className="flex-1 text-center">
-          <div className="text-sm font-medium">
-            Question {currentQuestionIndex + 1} of {sortedQuestions.length}
-          </div>
-        </div>
-
-        <button
-          onClick={onClose}
-          className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
-      </div>
-
-      {/* Progress Bar */}
-      {config.settings.showProgress && (
-        <div className="h-1 bg-gray-200">
-          <div
-            className="h-full transition-all duration-300"
-            style={{
-              width: `${progress}%`,
-              backgroundColor: config.settings.theme.primaryColor,
-            }}
-          />
-        </div>
-      )}
+      {renderHeader()}
+      {renderProgressBar()}
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto p-6">
