@@ -239,11 +239,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleRestart = () => {
-    setCurrentStep('onboarding');
+    // In demo mode, restart from photo-instructions instead of onboarding
+    setCurrentStep(appConfig.skipOnboarding ? 'photo-instructions' : 'onboarding');
     setSelectedSkinType('');
     setSelectedConcerns([]);
     setSelectedGender('');
     setSelectedAge('');
+    setCapturedImage(null);
+    setAnalysisData(null);
     setOpenInfo(null);
     setLoading(false);
     setRealProducts([]);
@@ -337,7 +340,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
         className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={handleClose}
+        onClick={appConfig.skipOnboarding ? undefined : handleClose}
       />
 
       {/* Modal Container */}
@@ -350,9 +353,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       >
         {/* Fixed Header inside Modal */}
         <div className="bg-primary-800 px-4 py-3 flex items-center justify-between border-b border-primary-200/70">
-          {/* Back Button */}
+          {/* Back Button - hidden in demo mode */}
           <div className="flex items-center">
-            {currentStep !== 'onboarding' && (
+            {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
                 className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
@@ -368,7 +371,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
           {/* Centered Brand Logo */}
           <div className="flex-1 text-center flex items-center justify-center">
-            <div className={`${currentStep === 'onboarding' ? 'pl-8' : ''}`}>
+            <div className={`${currentStep === 'onboarding' || appConfig.skipOnboarding ? 'pl-0' : ''}`}>
               <Image
                 src={LogoWhite}
                 alt="Dermaself"
@@ -378,16 +381,18 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             </div>
           </div>
 
-          {/* Close Button */}
+          {/* Close Button - hidden in demo mode */}
           <div className="flex items-center">
+            {!appConfig.skipOnboarding && (
               <button
-              onClick={handleClose}
+                onClick={handleClose}
                 className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-              aria-label="Close modal"
-              title="Close modal"
-            >
-              <X className="w-5 h-5 text-white" />
-            </button>
+                aria-label="Close modal"
+                title="Close modal"
+              >
+                <X className="w-5 h-5 text-white" />
+              </button>
+            )}
           </div>
         </div>
 

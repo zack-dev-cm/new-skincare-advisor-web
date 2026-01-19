@@ -56,7 +56,7 @@ export default function DemoFastPage() {
             onClose={handleCloseModal} 
             embedded={false}
             fastMode={true}
-            initialStep="camera-capture"
+            initialStep="photo-instructions"
           />
         </div>
       </div>

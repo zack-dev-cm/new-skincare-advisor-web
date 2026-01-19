@@ -658,6 +658,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
             onPhotoReceived={(image) => {
               setCapturedImage(image)
               setCameraState('preview')
+              setShowDesktopGate(false)
               cleanup()
             }}
           />
@@ -765,14 +766,6 @@ export default function CameraCaptureStep({ onNext }: Props) {
               >
                 <Upload className="text-white" />
               </button>
-
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={handleUpload}
-              />
             </>
           ) : (
             <>
@@ -792,6 +785,15 @@ export default function CameraCaptureStep({ onNext }: Props) {
           )}
         </div>
       )}
+
+      {/* File input - always rendered but hidden, so it's accessible from any state */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleUpload}
+      />
     </motion.div>
   )
 }

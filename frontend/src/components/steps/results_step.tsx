@@ -145,7 +145,53 @@ export default function ResultsStep({
       // In demo mode, use API data directly without Shopify fetching
       if (isDemoMode) {
         console.log('🎯 Demo mode: Using products directly from API');
-        setRoutineSteps(analysisData.recommendations.skincare_routine);
+        
+        // Transform API data to match RoutineProductCard expected structure
+        const transformedSteps = analysisData.recommendations.skincare_routine.map((category: any) => {
+          return category.modules.map((module: any) => {
+            // Transform main product from API format to display format
+            const mainProduct = module.main_product ? {
+              title: module.main_product.product_name || 'Unknown Product',
+              vendor: module.main_product.brand || '',
+              images: module.main_product.product_image ? [
+                { src: module.main_product.product_image, alt: module.main_product.product_name }
+              ] : [],
+              variants: [{
+                id: '0',
+                title: 'Default',
+                price: '0',
+                inventory_quantity: 1
+              }],
+              body_html: module.main_product.product_description || '',
+            } : null;
+
+            // Transform alternative products
+            const alternativeProducts = (module.alternative_products || []).map((altProd: any) => ({
+              title: altProd.product_name || 'Unknown Product',
+              vendor: altProd.brand || '',
+              images: altProd.product_image ? [
+                { src: altProd.product_image, alt: altProd.product_name }
+              ] : [],
+              variants: [{
+                id: '0',
+                title: 'Default',
+                price: '0',
+                inventory_quantity: 1
+              }],
+              body_html: altProd.product_description || '',
+            }));
+
+            return {
+              category: category.category || 'Skincare',
+              stepTitle: module.module_name || module.module || 'Step',
+              mainProduct: mainProduct,
+              alternativeProducts: alternativeProducts,
+              whyPicked: module.why_picked || ''
+            };
+          });
+        }).flat();
+
+        setRoutineSteps(transformedSteps);
         setIsLoadingProducts(false);
         return;
       }
