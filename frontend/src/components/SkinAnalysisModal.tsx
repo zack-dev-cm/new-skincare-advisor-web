@@ -283,7 +283,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         ? {
             first_name: 'Demo',
             last_name: 'User',
-            ...appConfig.defaultUserData,
+            ageRange: appConfig.defaultUserData.ageRange,
+            gender: appConfig.defaultUserData.gender,
+            skin_type: appConfig.defaultUserData.skin_type,
+            budget_level: appConfig.defaultUserData.budget_level as 'Low' | 'Medium' | 'High',
             concerns: selectedConcerns.length > 0 ? selectedConcerns : []
           }
         : {
