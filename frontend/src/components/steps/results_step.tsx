@@ -7,6 +7,8 @@ import { fetchProductsByVariantIds, TransformedProduct } from '../../lib/shopify
 import { useCart } from '../CartContext';
 // Server now returns pre-categorized and ordered modules
 import { translateModuleName } from '../../lib/moduleTranslations';
+// App configuration
+import { useAppConfig } from '@/lib/AppConfigContext';
 
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
@@ -65,6 +67,10 @@ export default function ResultsStep({
   activeTab,
   onTabChange
 }: ResultsStepProps) {
+  // Get app configuration to determine if running in demo mode
+  const appConfig = useAppConfig();
+  const isDemoMode = appConfig.mode === 'demo';
+  
   // State for fresh product data
   const [routineSteps, setRoutineSteps] = useState<any[]>([]);
   const [isLoadingProducts, setIsLoadingProducts] = useState(false);
@@ -84,7 +90,7 @@ export default function ResultsStep({
     });
   };
   
-  // Cart functionality
+  // Cart functionality (only used when not in demo mode)
   const { addToCart } = useCart();
 
   // Helper: extract a Shopify variant ID from various possible fields
@@ -133,6 +139,14 @@ export default function ResultsStep({
     const fetchRoutineProducts = async () => {
       if (!analysisData?.recommendations?.skincare_routine) {
         setRoutineSteps([]);
+        return;
+      }
+
+      // In demo mode, use API data directly without Shopify fetching
+      if (isDemoMode) {
+        console.log('🎯 Demo mode: Using products directly from API');
+        setRoutineSteps(analysisData.recommendations.skincare_routine);
+        setIsLoadingProducts(false);
         return;
       }
 
@@ -295,7 +309,7 @@ export default function ResultsStep({
     };
 
     fetchRoutineProducts();
-  }, [analysisData?.recommendations]);
+  }, [analysisData?.recommendations, isDemoMode]);
 
   return (
     <motion.div
@@ -448,6 +462,27 @@ export default function ResultsStep({
                 </button>
               </div>
             </div>
+            
+            {/* Demo Mode Disclaimer */}
+            {isDemoMode && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    i
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-sm font-semibold text-blue-900 mb-1">
+                      Modalità Demo
+                    </h4>
+                    <p className="text-sm text-blue-800">
+                      Questa è una demo dell'analisi della pelle. Le informazioni sui prodotti mostrate provengono dall'API di analisi. 
+                      Per acquistare i prodotti consigliati, visita il nostro store.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+            
             {/* Loading State */}
             {isLoadingProducts ? (
               <div className="space-y-6">
@@ -483,7 +518,7 @@ export default function ResultsStep({
                           alternatives={step.alternativeProducts as any}
                           alternativesExpanded={expandedAlternatives.has(`${step.category}-${index + 1}`)}
                           onToggleAlternatives={() => toggleAlternatives(`${step.category}-${index + 1}`)}
-                          onAddAllToCart={async () => {
+                          onAddAllToCart={isDemoMode ? undefined : async () => {
                             // Add all main products (filtered list) to cart
                             for (const routineStep of arr) {
                               if (routineStep.mainProduct && routineStep.mainProduct.variants[0]) {

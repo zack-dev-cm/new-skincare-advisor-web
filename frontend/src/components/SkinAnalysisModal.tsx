@@ -19,6 +19,9 @@ import {
 // Import unified loading component
 import ImagePreloader from './ImagePreloader';
 
+// Import app configuration
+import { useAppConfig } from '@/lib/AppConfigContext';
+
 import dynamic from 'next/dynamic';
 
 // Brand logo
@@ -34,15 +37,16 @@ const ScanStep = dynamic(() => import('./steps/scan_step'), {
   ssr: false,
 });
 
+type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
+
 interface SkinAnalysisModalProps {
   isOpen: boolean;
   onClose: () => void;
   embedded?: boolean;
   onReady?: () => void;
   fastMode?: boolean; // Modalità ultra-veloce per embed (no preloading bloccante)
+  initialStep?: Step; // Step iniziale per saltare l'onboarding (usato in demo mode)
 }
-
-type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
 // Product data interfaces
 interface Product {
@@ -81,7 +85,10 @@ const getProducts = async (): Promise<Product[]> => {
   return [];
 };
 
-export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false, initialStep }: SkinAnalysisModalProps) {
+  // Get app configuration
+  const appConfig = useAppConfig();
+
   // Initialize face detection models when modal opens
 
   // Helper functions to map user selections to API format
@@ -188,6 +195,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   }, [isOpen, fastMode]);
 
+  // Set initial step if provided and skipOnboarding is enabled (demo mode)
+  useEffect(() => {
+    if (isOpen && initialStep && appConfig.skipOnboarding) {
+      setCurrentStep(initialStep);
+      console.log(`🎯 Demo mode: Starting at step '${initialStep}'`);
+    }
+  }, [isOpen, initialStep, appConfig.skipOnboarding]);
+
   // Step navigation
   const handleNext = () => {
     const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
@@ -263,16 +278,23 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
     // Trigger analysis immediately with user data and recommendations
     try {
-      // Prepare user data from user selections in steps
-      const userData = {
-        first_name: 'User',
-        last_name: 'Test',
-        ageRange: mapAgeToAgeRange(selectedAge),
-        gender: mapGenderToApiFormat(selectedGender),
-        skin_type: selectedSkinType || 'Normale',
-        concerns: selectedConcerns,
-        budget_level: 'High' as const
-      };
+      // Prepare user data - use default data in demo mode, otherwise use step selections
+      const userData = appConfig.mode === 'demo' && appConfig.defaultUserData
+        ? {
+            first_name: 'Demo',
+            last_name: 'User',
+            ...appConfig.defaultUserData,
+            concerns: selectedConcerns.length > 0 ? selectedConcerns : []
+          }
+        : {
+            first_name: 'User',
+            last_name: 'Test',
+            ageRange: mapAgeToAgeRange(selectedAge),
+            gender: mapGenderToApiFormat(selectedGender),
+            skin_type: selectedSkinType || 'Normale',
+            concerns: selectedConcerns,
+            budget_level: 'High' as const
+          };
       
       // Call the new API with recommendations
       const { analyzeSkinWithRecommendations } = await import('../lib/api');
