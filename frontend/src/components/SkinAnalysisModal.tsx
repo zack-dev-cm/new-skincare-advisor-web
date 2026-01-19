@@ -352,7 +352,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Fixed Header inside Modal */}
-        <div className="bg-primary-800 px-4 py-3 flex items-center justify-between border-b border-primary-200/70">
+        <div className="bg-primary-800 px-4 py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70">
           {/* Back Button - hidden in demo mode */}
           <div className="flex items-center">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
