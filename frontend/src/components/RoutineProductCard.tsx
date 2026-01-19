@@ -7,6 +7,7 @@ import { useCart } from './CartContext';
 import { translateModuleName } from '../lib/moduleTranslations';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '../lib/LocaleContext';
+import { useAppConfig } from '@/lib/AppConfigContext';
 
 interface ProductVariant {
   id: string | number;
@@ -64,6 +65,7 @@ export default function RoutineProductCard({
 }: RoutineProductCardProps) {
   const { t } = useTranslation();
   const { formatCurrency } = useLocale();
+  const appConfig = useAppConfig();
   
   // Optimize Shopify CDN image URLs to requested width for faster loads
   const getOptimizedImageUrl = (url?: string, width: number = 160): string => {
@@ -338,29 +340,32 @@ export default function RoutineProductCard({
           {/* Footer actions: Add to cart + Alternatives toggle */}
           {/* Footer actions: stacked on mobile, inline on md+ */}
           <div className="mt-4 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full">
-            <button 
-              className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
-              onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
-              disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-              aria-label={isInCart ? 'Rimuovi dal carrello' : 'Aggiungi al carrello'}
-            >
-              {isLoading || state.loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  <span aria-live="polite">{isInCart ? t('products:cart.adding') : t('products:cart.adding')}</span>
-                </>
-              ) : isInCart ? (
-                <>
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">{t('products:cart.remove')}</span>
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  <span aria-live="polite">{t('products:cart.add_to_cart')}</span>
-                </>
-              )}
-            </button>
+            {/* Show cart button only when cart is enabled (not in demo mode) */}
+            {appConfig.enableCart && (
+              <button 
+                className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
+                disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
+                aria-label={isInCart ? 'Rimuovi dal carrello' : 'Aggiungi al carrello'}
+              >
+                {isLoading || state.loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                    <span aria-live="polite">{isInCart ? t('products:cart.adding') : t('products:cart.adding')}</span>
+                  </>
+                ) : isInCart ? (
+                  <>
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    <span aria-live="polite">{t('products:cart.remove')}</span>
+                  </>
+                ) : (
+                  <>
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    <span aria-live="polite">{t('products:cart.add_to_cart')}</span>
+                  </>
+                )}
+              </button>
+            )}
 
             {alternatives && alternatives.length > 0 && (
               <button 
@@ -405,61 +410,63 @@ export default function RoutineProductCard({
                             </div>
                           )}
                         </div>
-                        {/* Add/Remove alt from cart */}
-                        <div className="ml-auto pl-2">
-                          {(() => {
-                            const altVariantId = alt?.variants?.[0]?.id ? `gid://shopify/ProductVariant/${alt.variants[0].id}` : null;
-                            const isAltInCart = altVariantId ? isProductInCart(altVariantId) : false;
-                            const altCartLineId = altVariantId ? getCartItemLineId(altVariantId) : null;
-                            
-                            return (
-                              <button
-                                type="button"
-                                className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
-                                onClick={async () => {
-                                  try {
-                                    if (!alt?.variants?.[0]?.id) return;
-                                    const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
-                                    
-                                    if (isAltInCart && altCartLineId) {
-                                      // Remove from cart
-                                      await removeFromCart(altCartLineId);
-                                      setShowSuccess('removed');
-                                      setTimeout(() => setShowSuccess(false), 800);
-                                    } else {
-                                      // Add to cart
-                                      const info = {
-                                        name: alt.title,
-                                        image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
-                                        price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
-                                      };
-                                      await addToCart(altVariantId, 1, [
-                                        { key: 'source', value: 'dermaself_recommendation' },
-                                        { key: 'recommendation_type', value: 'skin_analysis_alternative' },
-                                        { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
-                                        { key: 'added_at', value: new Date().toISOString() }
-                                      ], info);
-                                      setShowSuccess('added');
-                                      setTimeout(() => setShowSuccess(false), 800);
+                        {/* Add/Remove alt from cart - only show when cart is enabled */}
+                        {appConfig.enableCart && (
+                          <div className="ml-auto pl-2">
+                            {(() => {
+                              const altVariantId = alt?.variants?.[0]?.id ? `gid://shopify/ProductVariant/${alt.variants[0].id}` : null;
+                              const isAltInCart = altVariantId ? isProductInCart(altVariantId) : false;
+                              const altCartLineId = altVariantId ? getCartItemLineId(altVariantId) : null;
+                              
+                              return (
+                                <button
+                                  type="button"
+                                  className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                                  onClick={async () => {
+                                    try {
+                                      if (!alt?.variants?.[0]?.id) return;
+                                      const altVariantId = `gid://shopify/ProductVariant/${alt.variants[0].id}`;
+                                      
+                                      if (isAltInCart && altCartLineId) {
+                                        // Remove from cart
+                                        await removeFromCart(altCartLineId);
+                                        setShowSuccess('removed');
+                                        setTimeout(() => setShowSuccess(false), 800);
+                                      } else {
+                                        // Add to cart
+                                        const info = {
+                                          name: alt.title,
+                                          image: alt.images?.[0]?.src || 'https://via.placeholder.com/300x300?text=Product',
+                                          price: alt.variants?.[0]?.price ? parseFloat(alt.variants[0].price) * 100 : 0
+                                        };
+                                        await addToCart(altVariantId, 1, [
+                                          { key: 'source', value: 'dermaself_recommendation' },
+                                          { key: 'recommendation_type', value: 'skin_analysis_alternative' },
+                                          { key: 'product_step', value: stepTitle.toLowerCase().replace('step ', '').replace(':', '') },
+                                          { key: 'added_at', value: new Date().toISOString() }
+                                        ], info);
+                                        setShowSuccess('added');
+                                        setTimeout(() => setShowSuccess(false), 800);
+                                      }
+                                    } catch (e) {
+                                      console.error('Failed to modify cart:', e);
+                                      setErrorMessage('Failed to modify cart');
+                                      setShowError(true);
+                                      setTimeout(() => setShowError(false), 2000);
                                     }
-                                  } catch (e) {
-                                    console.error('Failed to modify cart:', e);
-                                    setErrorMessage('Failed to modify cart');
-                                    setShowError(true);
-                                    setTimeout(() => setShowError(false), 2000);
-                                  }
-                                }}
-                                aria-label={isAltInCart ? `Rimuovi ${alt.title} dal carrello` : `Aggiungi ${alt.title} al carrello`}
-                              >
-                                {isAltInCart ? (
-                                  <Trash2 className="w-4 h-4" />
-                                ) : (
-                                  <ShoppingCart className="w-4 h-4" />
-                                )}
-                              </button>
-                            );
-                          })()}
-                        </div>
+                                  }}
+                                  aria-label={isAltInCart ? `Rimuovi ${alt.title} dal carrello` : `Aggiungi ${alt.title} al carrello`}
+                                >
+                                  {isAltInCart ? (
+                                    <Trash2 className="w-4 h-4" />
+                                  ) : (
+                                    <ShoppingCart className="w-4 h-4" />
+                                  )}
+                                </button>
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

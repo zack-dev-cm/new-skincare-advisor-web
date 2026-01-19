@@ -601,6 +601,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
       if (!img) return
       setCapturedImage(img)
       setCameraState('preview')
+      setShowDesktopGate(false)  // Close desktop gate to show preview
       cleanup()
     }
     reader.readAsDataURL(file)

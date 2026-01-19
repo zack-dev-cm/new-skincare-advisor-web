@@ -153,40 +153,40 @@ export default function ResultsStep({
             const mainProduct = module.main_product ? {
               title: module.main_product.product_name || 'Unknown Product',
               vendor: module.main_product.brand || '',
-              images: module.main_product.product_image ? [
-                { src: module.main_product.product_image, alt: module.main_product.product_name }
+              images: module.main_product.image_url ? [
+                { src: module.main_product.image_url, alt: module.main_product.product_name }
               ] : [],
               variants: [{
                 id: '0',
                 title: 'Default',
-                price: '0',
+                price: module.main_product.best_price?.toString() || '0',
                 inventory_quantity: 1
               }],
-              body_html: module.main_product.product_description || '',
+              body_html: module.main_product.info || module.main_product.product_description || '',
             } : null;
 
             // Transform alternative products
             const alternativeProducts = (module.alternative_products || []).map((altProd: any) => ({
               title: altProd.product_name || 'Unknown Product',
               vendor: altProd.brand || '',
-              images: altProd.product_image ? [
-                { src: altProd.product_image, alt: altProd.product_name }
+              images: altProd.image_url ? [
+                { src: altProd.image_url, alt: altProd.product_name }
               ] : [],
               variants: [{
                 id: '0',
                 title: 'Default',
-                price: '0',
+                price: altProd.best_price?.toString() || '0',
                 inventory_quantity: 1
               }],
-              body_html: altProd.product_description || '',
+              body_html: altProd.info || altProd.product_description || '',
             }));
 
             return {
               category: category.category || 'Skincare',
-              stepTitle: module.module_name || module.module || 'Step',
+              stepTitle: module.module || module.module_name || 'Step',
               mainProduct: mainProduct,
               alternativeProducts: alternativeProducts,
-              whyPicked: module.why_picked || ''
+              whyPicked: module.main_product?.why_picked || ''
             };
           });
         }).flat();
