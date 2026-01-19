@@ -509,26 +509,6 @@ export default function ResultsStep({
               </div>
             </div>
             
-            {/* Demo Mode Disclaimer */}
-            {isDemoMode && (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <div className="flex-shrink-0 w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-sm font-bold">
-                    i
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-semibold text-blue-900 mb-1">
-                      Modalità Demo
-                    </h4>
-                    <p className="text-sm text-blue-800">
-                      Questa è una demo dell'analisi della pelle. Le informazioni sui prodotti mostrate provengono dall'API di analisi. 
-                      Per acquistare i prodotti consigliati, visita il nostro store.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-            
             {/* Loading State */}
             {isLoadingProducts ? (
               <div className="space-y-6">
