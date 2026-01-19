@@ -832,6 +832,160 @@ function mapDrynessClass(predictedClass) {
 }
 
 /**
+ * Normalizza la risposta dell'API Laxity-Redness per gestire diversi formati
+ * Gestisce sia il formato con predictions come oggetto {laxity: {...}, redness: {...}, dryness: {...}}
+ * sia il formato con predictions come dizionario con chiavi numeriche (come restituito da Roboflow)
+ * @param {Object} data - Risposta grezza dall'API
+ * @returns {Object} Risposta normalizzata
+ */
+function normalizeLaxityRednessResponse(data) {
+  // Helper per convertire predictedClass in number
+  const toPredictedClassNumber = (value) => {
+    if (value === null || value === undefined) return 1;
+    const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+    return isNaN(num) ? 1 : num;
+  };
+
+  // Se la struttura è già nel formato atteso, normalizzala comunque per garantire che predictedClass sia number
+  if (data.predictions && 
+      typeof data.predictions === 'object' && 
+      !Array.isArray(data.predictions) &&
+      (data.predictions.laxity || data.predictions.redness || data.predictions.dryness)) {
+    // Verifica che ogni tipo abbia predictedClass e convertilo in number
+    const normalizedPredictions = {};
+    ['laxity', 'redness', 'dryness'].forEach(type => {
+      if (data.predictions[type]) {
+        const pred = data.predictions[type];
+        normalizedPredictions[type] = {
+          ...pred, // Mantieni altri campi
+          predictedClass: toPredictedClassNumber(pred.predictedClass || pred.class || pred.class_id),
+          confidence: pred.confidence || null
+        };
+      } else {
+        normalizedPredictions[type] = { predictedClass: 1, confidence: null };
+      }
+    });
+    return { ...data, predictions: normalizedPredictions };
+  }
+
+  // Se predictions è un dizionario con chiavi diverse (es. chiavi numeriche da Roboflow)
+  if (data.predictions && typeof data.predictions === 'object' && !Array.isArray(data.predictions)) {
+    const normalizedPredictions = {};
+    
+    // Se c'è un campo predicted_classes che indica quali classi sono state predette
+    const predictedClasses = data.predicted_classes || data.predictedClasses;
+    
+    // Trova la predizione con la confidence più alta
+    let bestClass = null;
+    let bestConfidence = -1;
+    let bestValue = null;
+    
+    for (const key in data.predictions) {
+      const value = data.predictions[key];
+      if (value && typeof value === 'object') {
+        const confidence = value.confidence || (typeof value === 'number' ? value : 0);
+        if (confidence > bestConfidence) {
+          bestConfidence = confidence;
+          bestClass = key;
+          bestValue = value;
+        }
+      }
+    }
+    
+    // Estrai predictedClass dalla migliore predizione o dalla chiave stessa
+    let predictedClass = null;
+    if (bestValue) {
+      predictedClass = bestValue.predictedClass || bestValue.class || bestValue.class_id || bestClass;
+    } else if (predictedClasses && predictedClasses.length > 0) {
+      predictedClass = predictedClasses[0];
+    } else if (bestClass) {
+      predictedClass = bestClass;
+    }
+    
+    // Converti in number per compatibilità con TypeScript
+    const predictedClassNum = toPredictedClassNumber(predictedClass);
+    
+    // Se abbiamo una sola predizione, usala per tutti i tipi (fallback)
+    // Nota: in realtà dovremmo avere predizioni separate per laxity, redness, dryness
+    // Questo è un fallback per compatibilità
+    normalizedPredictions.laxity = {
+      predictedClass: predictedClassNum,
+      confidence: bestConfidence >= 0 ? bestConfidence : null
+    };
+    normalizedPredictions.redness = {
+      predictedClass: predictedClassNum,
+      confidence: bestConfidence >= 0 ? bestConfidence : null
+    };
+    normalizedPredictions.dryness = {
+      predictedClass: predictedClassNum,
+      confidence: bestConfidence >= 0 ? bestConfidence : null
+    };
+    
+    logger.info('Normalized Laxity-Redness response from dictionary format', {
+      originalKeys: Object.keys(data.predictions),
+      normalizedClass: predictedClass,
+      confidence: bestConfidence
+    });
+    
+    return {
+      ...data,
+      predictions: normalizedPredictions
+    };
+  }
+
+  // Se predictions è un array, prova a estrarre la prima predizione
+  if (Array.isArray(data.predictions) && data.predictions.length > 0) {
+    const firstPred = data.predictions[0];
+    const predictedClassRaw = firstPred.class || firstPred.class_id || firstPred.predictedClass || '1';
+    const predictedClass = toPredictedClassNumber(predictedClassRaw);
+    const confidence = firstPred.confidence || null;
+    
+    return {
+      ...data,
+      predictions: {
+        laxity: { predictedClass: predictedClass, confidence: confidence },
+        redness: { predictedClass: predictedClass, confidence: confidence },
+        dryness: { predictedClass: predictedClass, confidence: confidence }
+      }
+    };
+  }
+
+  // Se ci sono valori top-level (formato Classify API standard)
+  if (data.top || data.confidence || data.predicted_class || data.predictedClass) {
+    const predictedClassRaw = data.top || data.predicted_class || data.predictedClass || '1';
+    const predictedClass = toPredictedClassNumber(predictedClassRaw);
+    const confidence = data.confidence || null;
+    
+    return {
+      ...data,
+      predictions: {
+        laxity: { predictedClass: predictedClass, confidence: confidence },
+        redness: { predictedClass: predictedClass, confidence: confidence },
+        dryness: { predictedClass: predictedClass, confidence: confidence }
+      }
+    };
+  }
+
+  // Se non riusciamo a normalizzare, logga un warning e restituisci default
+  logger.warn('Unable to normalize Laxity-Redness response, using defaults', {
+    predictionsType: typeof data.predictions,
+    predictionsIsArray: Array.isArray(data.predictions),
+    hasPredictions: !!data.predictions,
+    keys: data.predictions ? Object.keys(data.predictions) : [],
+    topLevelKeys: Object.keys(data)
+  });
+  
+  return {
+    ...data,
+    predictions: {
+      laxity: { predictedClass: 1, confidence: null },
+      redness: { predictedClass: 1, confidence: null },
+      dryness: { predictedClass: 1, confidence: null }
+    }
+  };
+}
+
+/**
  * Calls Laxity-Redness-Dryness API (wrapped by circuit breaker)
  * @param {string} base64Image - Base64 encoded image
  * @returns {Promise<Object>} Laxity/redness/dryness detection result
@@ -862,7 +1016,11 @@ async function callLaxityRednessAPI(base64Image) {
       payload: sanitizeForLogging(response.data)
     });
     
-    return response.data;
+    // Normalizza la risposta per gestire sia il formato con predictions come oggetto
+    // con chiavi laxity/redness/dryness, sia il formato con predictions come dizionario
+    const normalizedData = normalizeLaxityRednessResponse(response.data);
+    
+    return normalizedData;
   } catch (error) {
     const duration = Date.now() - startTime;
     

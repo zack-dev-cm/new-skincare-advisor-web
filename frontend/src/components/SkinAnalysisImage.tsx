@@ -328,17 +328,8 @@ export default function SkinAnalysisImage({
       offsetY,
     });
 
-    console.log('Canvas/object-contain setup:', {
-      containerWidth,
-      containerHeight,
-      imgW,
-      imgH,
-      scale,
-      drawWidth,
-      drawHeight,
-      offsetX,
-      offsetY,
-    });
+    // Debug log removed for production
+    // console.log('Canvas/object-contain setup:', { ... });
   }, []);
 
   // Initial setup when image loaded

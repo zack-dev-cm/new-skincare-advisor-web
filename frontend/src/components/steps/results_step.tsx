@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, Suspense, lazy, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { RotateCcw, Sun, Moon, CalendarDays, Palette } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
@@ -13,7 +13,7 @@ import { useAppConfig } from '@/lib/AppConfigContext';
 // Import components
 import RoutineProductCard from '../RoutineProductCard';
 import SkinAnalysisImage from '../SkinAnalysisImage';
-const SpideringChart = lazy(() => import('../SpideringChart'));
+import SpideringChart from '../SpideringChart';
 
 interface Product {
   id: string;
@@ -384,19 +384,12 @@ export default function ResultsStep({
                   {/* Spidering Chart */}
                   {analysisData && (
                     <div className="mb-6">
-                      <Suspense fallback={
-                        <div className="bg-white rounded-2xl shadow-lg p-6 animate-pulse">
-                          <div className="h-8 bg-primary-200 rounded mb-4"></div>
-                          <div className="h-48 bg-primary-100 rounded"></div>
-                        </div>
-                      }>
-                        <SpideringChart 
-                          analysisData={analysisData} 
-                          userAge={30} 
-                          userGender={analysisData?.userData?.gender || 'female'}
-                          ageRange={analysisData?.userData?.ageRange || analysisData?.userData?.age_range || '26-35'}
-                        />
-                      </Suspense>
+                      <SpideringChart 
+                        analysisData={analysisData} 
+                        userAge={30} 
+                        userGender={analysisData?.userData?.gender || 'female'}
+                        ageRange={analysisData?.userData?.ageRange || analysisData?.userData?.age_range || '26-35'}
+                      />
                     </div>
                   )}
 
