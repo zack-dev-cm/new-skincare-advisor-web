@@ -2,12 +2,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Camera } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { ASSETS } from '../../lib/assets';
 
 interface PhotoInstruction {
   id: string;
   icon: string;
-  text: string;
+  textKey: string;
 }
 
 interface PhotoInstructionsStepProps {
@@ -15,30 +16,31 @@ interface PhotoInstructionsStepProps {
   onBack: () => void;
 }
 
-const photoInstructions: PhotoInstruction[] = [
-  {
-    id: 'glasses',
-    icon: ASSETS.images.icons.glasses,
-    text: 'Rimuovi gli occhiali'
-  },
-  {
-    id: 'hair',
-    icon: ASSETS.images.icons.hair,
-    text: 'Tira indietro i capelli'
-  },
-  {
-    id: 'position',
-    icon: ASSETS.images.icons.position,
-    text: 'Posizionati davanti alla fotocamera'
-  },
-  {
-    id: 'expression',
-    icon: ASSETS.images.icons.expression,
-    text: 'Mantieni un\'espressione neutra'
-  }
-];
-
 export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructionsStepProps) {
+  const { t } = useTranslation();
+  
+  const photoInstructions: PhotoInstruction[] = [
+    {
+      id: 'glasses',
+      icon: ASSETS.images.icons.glasses,
+      textKey: 'photo_instructions:instructions.remove_glasses'
+    },
+    {
+      id: 'hair',
+      icon: ASSETS.images.icons.hair,
+      textKey: 'photo_instructions:instructions.pull_hair_back'
+    },
+    {
+      id: 'position',
+      icon: ASSETS.images.icons.position,
+      textKey: 'photo_instructions:instructions.position_camera'
+    },
+    {
+      id: 'expression',
+      icon: ASSETS.images.icons.expression,
+      textKey: 'photo_instructions:instructions.neutral_expression'
+    }
+  ];
   return (
     <motion.div
       key="photo-instructions"
@@ -52,7 +54,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            La tua foto ci permetterà di analizzare meglio la tua pelle e raccomandare i prodotti più adatti
+            {t('photo_instructions:title')}
           </h1>
         </div>
         
@@ -65,7 +67,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
               <div className="w-12 h-12 bg-transparent rounded-lg flex items-center justify-center flex-shrink-0">
                 <img 
                   src={instruction.icon}
-                  alt={instruction.text}
+                  alt={t(instruction.textKey)}
                   className="w-8 h-8 text-gray-700"
                   onError={(e) => {
                     console.error(`Failed to load icon: ${instruction.icon}`);
@@ -75,7 +77,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
               </div>
               <div className="flex-1">
                 <p className="text-xs font-medium text-gray-900">
-                  {instruction.text}
+                  {t(instruction.textKey)}
                 </p>
               </div>
             </div>
@@ -91,7 +93,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
             whileTap={{ scale: 0.98 }}
           >
             <Camera className="w-5 h-5 mr-2" />
-            Vai al selfie
+            {t('photo_instructions:button')}
           </motion.button>
         </div>
       </div>

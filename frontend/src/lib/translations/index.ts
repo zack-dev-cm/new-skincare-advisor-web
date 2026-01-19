@@ -119,6 +119,40 @@ export const translations = {
         title: 'La Tua Analisi della Pelle',
       },
     },
+    camera: {
+      qr_code: {
+        title: 'Scansiona con il tuo cellulare',
+        subtitle: 'Apri la fotocamera e inquadra il QR code',
+        waiting: 'I risultati verranno mostrati qui',
+        photo_received: 'Foto ricevuta! Continua la tua esperienza.',
+      },
+      buttons: {
+        continue_desktop: 'Continua su Desktop',
+        upload_device: 'Carica dal Dispositivo',
+        retake: 'Rifai',
+        send: 'Invia',
+        confirm: 'Conferma',
+        switch_camera: 'Cambia fotocamera',
+      },
+      status: {
+        preparing: 'Preparazione fotocamera...',
+        loading: 'Caricamento fotocamera...',
+      },
+      instructions: {
+        position_face: 'Posiziona il tuo viso nel riquadro',
+        good_lighting: 'Assicurati che il tuo viso sia ben illuminato e chiaramente visibile per i migliori risultati dell\'analisi.',
+      }
+    },
+    photo_instructions: {
+      title: 'La tua foto ci permetterà di analizzare meglio la tua pelle e raccomandare i prodotti più adatti',
+      instructions: {
+        remove_glasses: 'Rimuovi gli occhiali',
+        pull_hair_back: 'Tira indietro i capelli',
+        position_camera: 'Posizionati davanti alla fotocamera',
+        neutral_expression: 'Mantieni un\'espressione neutra',
+      },
+      button: 'Vai al selfie',
+    },
   },
   es: {
     common: {
@@ -238,6 +272,40 @@ export const translations = {
       results: {
         title: 'Tu Análisis de Piel',
       },
+    },
+    camera: {
+      qr_code: {
+        title: 'Escanea con tu móvil',
+        subtitle: 'Abre la cámara y escanea el código QR',
+        waiting: 'Los resultados se mostrarán aquí',
+        photo_received: '¡Foto recibida! Continúa tu experiencia.',
+      },
+      buttons: {
+        continue_desktop: 'Continuar en Escritorio',
+        upload_device: 'Subir desde Dispositivo',
+        retake: 'Repetir',
+        send: 'Enviar',
+        confirm: 'Confirmar',
+        switch_camera: 'Cambiar cámara',
+      },
+      status: {
+        preparing: 'Preparando cámara...',
+        loading: 'Cargando cámara...',
+      },
+      instructions: {
+        position_face: 'Posiciona tu rostro en el recuadro',
+        good_lighting: 'Asegúrate de que tu rostro esté bien iluminado y claramente visible para obtener los mejores resultados del análisis.',
+      }
+    },
+    photo_instructions: {
+      title: 'Tu foto nos permitirá analizar mejor tu piel y recomendar los productos más adecuados',
+      instructions: {
+        remove_glasses: 'Quítate las gafas',
+        pull_hair_back: 'Recoge el cabello hacia atrás',
+        position_camera: 'Posiciónate frente a la cámara',
+        neutral_expression: 'Mantén una expresión neutra',
+      },
+      button: 'Ir al selfie',
     },
   },
   en: {
@@ -359,8 +427,42 @@ export const translations = {
         title: 'Your Skin Analysis',
       },
     },
+    camera: {
+      qr_code: {
+        title: 'Scan with your mobile',
+        subtitle: 'Open your camera and scan the QR code',
+        waiting: 'The results will be shown here',
+        photo_received: 'Photo received! Continue your experience.',
+      },
+      buttons: {
+        continue_desktop: 'Continue on Desktop',
+        upload_device: 'Upload from Device',
+        retake: 'Retake',
+        send: 'Send',
+        confirm: 'Confirm',
+        switch_camera: 'Switch camera',
+      },
+      status: {
+        preparing: 'Preparing camera...',
+        loading: 'Loading camera...',
+      },
+      instructions: {
+        position_face: 'Position your face in the frame',
+        good_lighting: 'Make sure your face is well-lit and clearly visible for the best analysis results.',
+      }
+    },
+    photo_instructions: {
+      title: 'Your photo will allow us to better analyze your skin and recommend the most suitable products',
+      instructions: {
+        remove_glasses: 'Remove glasses',
+        pull_hair_back: 'Pull hair back',
+        position_camera: 'Position yourself in front of the camera',
+        neutral_expression: 'Maintain a neutral expression',
+      },
+      button: 'Go to selfie',
+    },
   },
 };
 
 export type Locale = 'it' | 'es' | 'en';
-export type TranslationNamespace = 'common' | 'analysis' | 'products' | 'steps';
+export type TranslationNamespace = 'common' | 'analysis' | 'products' | 'steps' | 'camera' | 'photo_instructions';

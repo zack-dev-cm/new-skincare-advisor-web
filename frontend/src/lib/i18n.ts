@@ -14,25 +14,31 @@ i18n
         analysis: translations.it.analysis,
         products: translations.it.products,
         steps: translations.it.steps,
+        camera: translations.it.camera,
+        photo_instructions: translations.it.photo_instructions,
       },
       es: {
         common: translations.es.common,
         analysis: translations.es.analysis,
         products: translations.es.products,
         steps: translations.es.steps,
+        camera: translations.es.camera,
+        photo_instructions: translations.es.photo_instructions,
       },
       en: {
         common: translations.en.common,
         analysis: translations.en.analysis,
         products: translations.en.products,
         steps: translations.en.steps,
+        camera: translations.en.camera,
+        photo_instructions: translations.en.photo_instructions,
       },
     },
     fallbackLng: 'it',
     supportedLngs: ['it', 'es', 'en'],
     
     // Namespace configuration
-    ns: ['common', 'analysis', 'products', 'steps'],
+    ns: ['common', 'analysis', 'products', 'steps', 'camera', 'photo_instructions'],
     defaultNS: 'common',
     
     // Detection configuration

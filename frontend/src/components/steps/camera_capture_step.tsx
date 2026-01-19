@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { QRCodeSVG } from 'qrcode.react'
 import { v4 as uuidv4 } from 'uuid'
+import { useTranslation } from 'react-i18next'
 import DesktopPhotoReceiver from './DesktopPhotoReceiver'
 
 import { Camera as MPCamera } from '@mediapipe/camera_utils'
@@ -57,6 +58,7 @@ const isMobileDevice = () => {
 }
 
 export default function CameraCaptureStep({ onNext }: Props) {
+  const { t } = useTranslation();
   const videoRef = useRef<HTMLVideoElement>(null)
   const overlayCanvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -670,13 +672,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
             }}
             className="bg-white/20 px-4 py-3 rounded-lg text-white"
           >
-            Continue on Desktop
+            {t('camera:buttons.continue_desktop')}
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
             className="bg-white/20 px-4 py-3 rounded-lg text-white"
           >
-            Upload from Device
+            {t('camera:buttons.upload_device')}
           </button>
         </div>
       )}
@@ -699,7 +701,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
               />
               {isResolutionAdjusting && (
                 <div className="absolute inset-0 bg-black flex items-center justify-center z-10">
-                  <div className="text-white text-sm opacity-80">Preparing camera...</div>
+                  <div className="text-white text-sm opacity-80">{t('camera:status.preparing')}</div>
                 </div>
               )}
               <canvas
@@ -774,13 +776,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
                 onClick={retakePhoto}
                 className="px-6 py-3 bg-gray-300 rounded-lg flex items-center gap-3"
               >
-                <Redo2 size={20} /> Retake
+                <Redo2 size={20} /> {t('camera:buttons.retake')}
               </button>
               <button
                 onClick={confirmPhoto}
                 className="px-6 py-3 bg-primary-600 text-white rounded-lg flex items-center gap-3"
               >
-                <CheckCircle2 size={20} /> Send
+                <CheckCircle2 size={20} /> {t('camera:buttons.send')}
               </button>
             </>
           )}

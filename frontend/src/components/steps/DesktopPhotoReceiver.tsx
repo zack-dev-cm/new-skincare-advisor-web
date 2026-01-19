@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 export default function DesktopPhotoReceiver({ session, onPhotoReceived }: { session: string, onPhotoReceived: (image: any) => void }) {
+  const { t } = useTranslation();
   const [image, setImage] = useState<string | null>(null);
   const [status, setStatus] = useState<'pending' | 'ready'>('pending');
 
@@ -20,12 +22,12 @@ export default function DesktopPhotoReceiver({ session, onPhotoReceived }: { ses
   }, [session]);
 
   if (status === 'pending') {
-    return <div className="text-white opacity-80">The results will be shown here</div>;
+    return <div className="text-white opacity-80">{t('camera:qr_code.waiting')}</div>;
   }
   return (
     <div>
       <img src={image!} alt="Uploaded" className="max-w-xs rounded" />
-      <div>Photo received! Continue your experience.</div>
+      <div>{t('camera:qr_code.photo_received')}</div>
     </div>
   );
 }
