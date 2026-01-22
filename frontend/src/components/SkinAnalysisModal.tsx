@@ -349,10 +349,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh] md:h-[95vh]"
+        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh]"
       >
-        {/* Fixed Header inside Modal - Always visible on top */}
-        <div className="relative z-50 bg-primary-800 px-2 sm:px-4 py-2 sm:py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70 flex-shrink-0 min-h-[56px] sm:min-h-[64px]">
+        {/* Fixed Header inside Modal - Sticky on all screen sizes */}
+        <div className="sticky top-0 z-50 bg-primary-800 px-4 py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70 flex-shrink-0">
           {/* Back Button - hidden in demo mode */}
           <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
@@ -370,13 +370,13 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </div>
 
           {/* Centered Brand Logo */}
-          <div className="flex-1 text-center flex items-center justify-center px-2">
+          <div className="flex-1 text-center flex items-center justify-center">
             <div className={`${currentStep === 'onboarding' || appConfig.skipOnboarding ? 'pl-0' : ''}`}>
               <Image
                 src={LogoWhite}
                 alt="Dermaself"
                 priority
-                className="inline-block h-8 sm:h-10 md:h-12 w-auto max-h-12 object-contain"
+                className="inline-block h-12 w-auto max-h-12"
                 width={3042}
                 height={947}
               />
@@ -398,8 +398,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </div>
         </div>
 
-        {/* Content - Scrollable area with proper spacing for header/footer */}
-        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0 w-full">
+        {/* Content - Scrollable area */}
+        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
               <OnboardingStep
@@ -506,8 +506,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </AnimatePresence>
         </div>
 
-        {/* Fixed Footer - Always anchored at bottom */}
-        <div className="relative z-50 flex-shrink-0 w-full">
+        {/* Fixed Footer - Sticky on all screen sizes */}
+        <div className="sticky bottom-0 z-50 flex-shrink-0">
           <ModalFooter
             currentStep={getCurrentStepNumber()}
             totalSteps={9}

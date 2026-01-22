@@ -40,21 +40,6 @@ export default function DemoFastPage() {
   useEffect(() => {
     startBackgroundLoading();
     console.log('🚀 Demo Fast: Background loading started, modal opened immediately');
-    
-    // Fix viewport height for mobile browsers
-    const setViewportHeight = () => {
-      const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
-    };
-    
-    setViewportHeight();
-    window.addEventListener('resize', setViewportHeight);
-    window.addEventListener('orientationchange', setViewportHeight);
-    
-    return () => {
-      window.removeEventListener('resize', setViewportHeight);
-      window.removeEventListener('orientationchange', setViewportHeight);
-    };
   }, []);
 
   const handleCloseModal = () => {
@@ -64,8 +49,8 @@ export default function DemoFastPage() {
 
   return (
     <AppConfigProvider config={DEMO_CONFIG}>
-      <div className="w-full h-screen h-[calc(var(--vh,1vh)*100)] bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-        <div className="w-full h-full max-w-[540px] max-h-[100vh] max-h-[calc(var(--vh,1vh)*100)] md:h-[95vh] md:max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+      <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
+        <div className="w-full h-full max-w-[540px] max-h-[100vh] md:h-[95vh] md:max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
           <SkinAnalysisModal 
             isOpen={showModal} 
             onClose={handleCloseModal} 

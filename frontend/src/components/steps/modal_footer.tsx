@@ -20,7 +20,7 @@ export default function ModalFooter({
   onTabChange
 }: ModalFooterProps) {
   return (
-    <div className={`border-t border-primary-900 bg-primary-800 safe-area-bottom w-full flex-shrink-0 ${className}`}>
+    <div className={`border-t border-primary-900 bg-primary-800 safe-area-bottom ${className}`}>
       {/* Tab Navigation - Only show on results step */}
       {(showTabButtons && onTabChange) ? (
         <div className="routine-btns w-full flex">
