@@ -440,7 +440,11 @@ export default function SkinAnalysisImage({
   };
 
   const goToImage = (index: number) => {
-    setImageLoaded(false);
+    // Don't reset imageLoaded if clicking on the already selected image
+    // This prevents the canvas from disappearing when clicking the same option
+    if (index !== currentImageIndex) {
+      setImageLoaded(false);
+    }
     setCurrentImageIndex(index);
     setCurrentView(carouselImages[index].view);
   };

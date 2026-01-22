@@ -682,7 +682,7 @@ body {
 }
 
 .derma-step-content {
-  min-height: 400px;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   /* Smooth scrolling for better UX */
@@ -690,35 +690,55 @@ body {
   scroll-behavior: smooth;
   /* Ensure content doesn't get cut off */
   overscroll-behavior: contain;
+  overscroll-behavior-y: contain;
   /* Prevent horizontal scroll */
   overflow-x: hidden;
   /* Ensure proper flex behavior */
   flex: 1 1 auto;
-  min-height: 0;
+  /* Ensure content area takes remaining space */
+  width: 100%;
+  /* Prevent content from being hidden behind header/footer */
+  position: relative;
 }
 
-/* Sticky header and footer optimizations */
-/* Ensure sticky positioning works across all browsers */
-.sticky {
-  position: -webkit-sticky;
-  position: sticky;
-}
-
-/* Optimize for mobile devices */
+/* Fixed header and footer optimizations */
+/* Ensure proper layout across all browsers */
 @media (max-width: 768px) {
   /* Ensure smooth scrolling on mobile */
   .derma-step-content {
     -webkit-overflow-scrolling: touch;
     /* Prevent pull-to-refresh interference */
     overscroll-behavior-y: contain;
+    /* Optimize for mobile viewport */
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 120px);
   }
   
-  /* Ensure header and footer stay visible on mobile */
-  .sticky {
-    /* Force hardware acceleration for smooth scrolling */
-    -webkit-transform: translateZ(0);
-    transform: translateZ(0);
-    will-change: transform;
+  /* Mobile viewport height fix */
+  @supports (-webkit-touch-callout: none) {
+    .derma-step-content {
+      max-height: calc(-webkit-fill-available - 120px);
+    }
+  }
+}
+
+/* Small mobile devices (phones in portrait) */
+@media (max-width: 480px) {
+  .derma-step-content {
+    max-height: calc(100vh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px);
+  }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .derma-step-content {
+    max-height: calc(95vh - 140px);
+  }
+}
+
+/* Desktop screens */
+@media (min-width: 1025px) {
+  .derma-step-content {
+    max-height: calc(95vh - 150px);
   }
 }
 
@@ -727,6 +747,50 @@ body {
   .derma-step-content {
     /* Smooth scrolling on desktop */
     scroll-behavior: smooth;
+  }
+}
+
+/* Ensure header and footer are always visible - cross-browser fix */
+@media all {
+  /* Force header to stay on top */
+  [class*="bg-primary-800"][class*="flex-shrink-0"]:first-of-type {
+    position: relative;
+    z-index: 50;
+    order: -1;
+  }
+  
+  /* Force footer to stay at bottom */
+  [class*="flex-shrink-0"]:last-of-type {
+    position: relative;
+    z-index: 50;
+    order: 999;
+  }
+}
+
+/* iOS Safari specific fixes */
+@supports (-webkit-touch-callout: none) {
+  .derma-step-content {
+    /* iOS smooth scrolling */
+    -webkit-overflow-scrolling: touch;
+    /* Prevent bounce effect but allow scrolling */
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Fix for iOS safe area */
+  .safe-area-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Android Chrome specific fixes */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .derma-step-content {
+    /* Prevent address bar from affecting layout */
+    min-height: -webkit-fill-available;
   }
 }
 
@@ -749,6 +813,43 @@ body {
   
   .safe-area-bottom {
     padding-bottom: 0.75rem;
+  }
+}
+
+/* Ensure modal container uses proper flexbox layout */
+.modal-container,
+[class*="flex flex-col"] {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+/* Header and footer fixed positioning within flex container */
+.flex-shrink-0 {
+  flex-shrink: 0;
+  flex-grow: 0;
+}
+
+/* Responsive header and footer heights */
+@media (max-width: 480px) {
+  /* Small phones */
+  .safe-area-top {
+    min-height: 56px;
+  }
+}
+
+@media (min-width: 481px) and (max-width: 768px) {
+  /* Large phones */
+  .safe-area-top {
+    min-height: 64px;
+  }
+}
+
+@media (min-width: 769px) {
+  /* Tablets and desktop */
+  .safe-area-top {
+    min-height: 72px;
   }
 }
 
