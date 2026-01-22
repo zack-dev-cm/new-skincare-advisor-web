@@ -349,12 +349,12 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
+        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh]"
       >
-        {/* Fixed Header inside Modal */}
-        <div className="bg-primary-800 px-4 py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70">
+        {/* Fixed Header inside Modal - Sticky on all screen sizes */}
+        <div className="sticky top-0 z-50 bg-primary-800 px-4 py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70 flex-shrink-0">
           {/* Back Button - hidden in demo mode */}
-          <div className="flex items-center">
+          <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
@@ -376,13 +376,15 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 src={LogoWhite}
                 alt="Dermaself"
                 priority
-                className="inline-block h-12 w-auto"
+                className="inline-block h-12 w-auto max-h-12"
+                width={3042}
+                height={947}
               />
             </div>
           </div>
 
           {/* Close Button - hidden in demo mode */}
-          <div className="flex items-center">
+          <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && (
               <button
                 onClick={handleClose}
@@ -396,8 +398,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </div>
         </div>
 
-          {/* Content */}
-        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-clip">
+        {/* Content - Scrollable area */}
+        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0">
             <AnimatePresence key="content-steps" mode="wait">
               {currentStep === 'onboarding' && (
               <OnboardingStep
@@ -504,14 +506,16 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           </AnimatePresence>
         </div>
 
-        {/* Fixed Footer */}
-        <ModalFooter
-          currentStep={getCurrentStepNumber()}
-          totalSteps={9}
-          showTabButtons={currentStep === 'results'}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-        />
+        {/* Fixed Footer - Sticky on all screen sizes */}
+        <div className="sticky bottom-0 z-50 flex-shrink-0">
+          <ModalFooter
+            currentStep={getCurrentStepNumber()}
+            totalSteps={9}
+            showTabButtons={currentStep === 'results'}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+          />
+        </div>
       </motion.div>
     </div>
   );

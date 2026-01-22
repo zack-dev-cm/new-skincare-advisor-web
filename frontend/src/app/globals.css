@@ -413,6 +413,17 @@ body {
   padding-right: env(safe-area-inset-right);
 }
 
+/* Enhanced safe-area support with fallbacks */
+@supports (padding: max(0px)) {
+  .safe-area-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
 /* Mobile Touch Buttons */
 .touch-button {
   min-height: 44px;
@@ -674,6 +685,71 @@ body {
   min-height: 400px;
   display: flex;
   flex-direction: column;
+  /* Smooth scrolling for better UX */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* Ensure content doesn't get cut off */
+  overscroll-behavior: contain;
+  /* Prevent horizontal scroll */
+  overflow-x: hidden;
+  /* Ensure proper flex behavior */
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+/* Sticky header and footer optimizations */
+/* Ensure sticky positioning works across all browsers */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+}
+
+/* Optimize for mobile devices */
+@media (max-width: 768px) {
+  /* Ensure smooth scrolling on mobile */
+  .derma-step-content {
+    -webkit-overflow-scrolling: touch;
+    /* Prevent pull-to-refresh interference */
+    overscroll-behavior-y: contain;
+  }
+  
+  /* Ensure header and footer stay visible on mobile */
+  .sticky {
+    /* Force hardware acceleration for smooth scrolling */
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+/* Desktop optimizations */
+@media (min-width: 769px) {
+  .derma-step-content {
+    /* Smooth scrolling on desktop */
+    scroll-behavior: smooth;
+  }
+}
+
+/* Cross-browser compatibility for safe-area */
+@supports (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: max(0.75rem, env(safe-area-inset-top));
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  }
+}
+
+/* Fallback for browsers without safe-area support */
+@supports not (padding: env(safe-area-inset-top)) {
+  .safe-area-top {
+    padding-top: 0.75rem;
+  }
+  
+  .safe-area-bottom {
+    padding-bottom: 0.75rem;
+  }
 }
 
 .kiko-form-group {
