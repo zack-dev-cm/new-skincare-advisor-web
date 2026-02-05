@@ -74,6 +74,7 @@ The system uses a two-tier approach for module ordering:
 - Powder
 - Bronzer
 - Blush
+- Highlighter
 - Fixing Spray
 - Makeup Brush Disinfectant
 - Beauty Blender Disinfectant
