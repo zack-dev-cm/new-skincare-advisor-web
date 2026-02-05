@@ -42,6 +42,7 @@ function getDefaultConfig() {
       'Powder',
       'Bronzer',
       'Blush',
+      'Highlighter',
       'Fixing Spray',
       'Makeup Brush Disinfectant',
       'Beauty Blender Disinfectant'

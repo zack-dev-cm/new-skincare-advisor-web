@@ -26,6 +26,7 @@ export const moduleTranslations: Record<string, string> = {
   'Powder': 'Cipria',
   'Bronzer': 'Bronzer',
   'Blush': 'Fard',
+  'Highlighter': 'Illuminante',
   'Fixing Spray': 'Spray Fissante',
   'Makeup Brush Disinfectant': 'Disinfettante Pennelli',
   'Beauty Blender Disinfectant': 'Disinfettante Beauty Blender',

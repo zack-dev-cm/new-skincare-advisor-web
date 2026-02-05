@@ -43,6 +43,7 @@ const DEFAULT_MODULE_ORDER: ModuleOrderConfig = {
     "Powder",
     "Bronzer",
     "Blush",
+    "Highlighter",
     "Fixing Spray",
     "Makeup Brush Disinfectant",
     "Beauty Blender Disinfectant"
