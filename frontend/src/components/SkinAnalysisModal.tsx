@@ -352,7 +352,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh]"
       >
         {/* Fixed Header inside Modal - Sticky on all screen sizes */}
-        <div className="sticky top-0 z-50 bg-primary-800 px-4 py-3 safe-area-top flex items-center justify-between border-b border-primary-200/70 flex-shrink-0">
+        <div className="sticky top-0 z-50 modal-header-bar px-4 py-3 safe-area-top flex items-center justify-between border-b flex-shrink-0">
           {/* Back Button - hidden in demo mode */}
           <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (

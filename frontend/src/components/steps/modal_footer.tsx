@@ -20,7 +20,7 @@ export default function ModalFooter({
   onTabChange
 }: ModalFooterProps) {
   return (
-    <div className={`border-t border-primary-900 bg-primary-800 safe-area-bottom ${className}`}>
+    <div className={`border-t modal-footer-bar safe-area-bottom ${className}`}>
       {/* Tab Navigation - Only show on results step */}
       {(showTabButtons && onTabChange) ? (
         <div className="routine-btns w-full flex">
@@ -58,12 +58,12 @@ export default function ModalFooter({
               <div
                 key={index}
                 className={`w-3 h-3 rounded-full ${
-                  index < currentStep ? 'bg-gray-700' : 'bg-primary-500'
+                  index < currentStep ? 'bg-primary-500' : 'bg-gray-300'
                 }`}
               />
             ))}
           </div>
-          <p className="pt-2 text-center text-gray-500 text-sm">
+          <p className="pt-2 text-center text-muted-foreground text-sm">
             Powered by Dermaself
           </p>
         </div>

@@ -343,6 +343,46 @@ body {
   filter: brightness(0) invert(1);
 }
 
+/* Modal header/footer - light chrome (design system: bottom nav "light gradient", sheet bg-background) */
+.modal-header-bar {
+  background-color: hsl(var(--background));
+  border-bottom: 1px solid hsl(var(--border));
+}
+
+.modal-footer-bar {
+  background-color: hsl(var(--background));
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* On light modal chrome: dark text and icons (logo + tab icons) */
+.modal-header-bar .text-white,
+.modal-footer-bar .text-white {
+  color: hsl(var(--foreground));
+}
+
+.modal-header-bar .text-white\/70,
+.modal-footer-bar .text-white\/70 {
+  color: hsl(var(--muted-foreground));
+}
+
+.modal-header-bar .border-white,
+.modal-footer-bar .border-white {
+  border-color: hsl(var(--primary));
+}
+
+.modal-header-bar img,
+.modal-footer-bar img {
+  filter: brightness(0);
+}
+
+.modal-header-bar .bg-white\/10 {
+  background-color: hsl(var(--muted));
+}
+
+.modal-header-bar .bg-white\/10:hover {
+  background-color: hsl(var(--border));
+}
+
 .active-btn {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));

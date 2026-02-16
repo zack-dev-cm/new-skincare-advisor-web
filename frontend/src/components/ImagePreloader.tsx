@@ -133,7 +133,7 @@ export default function ImagePreloader({
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Intestazione - Stesso stile della modale */}
-        <div className="px-4 py-3 flex items-center justify-center border-b border-primary-200/70 bg-primary-800">
+        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar">
           <div className="flex-1 text-center flex items-center justify-center">
             <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
           </div>
@@ -197,7 +197,7 @@ export default function ImagePreloader({
         </div>
 
         {/* Piè di pagina - Stesso stile della modale */}
-        <div className="bg-primary-800 px-4 py-2 border-t border-primary-900">
+        <div className="modal-footer-bar px-4 py-2 border-t">
           <div className="flex items-center justify-center">
             <p className="text-xs text-white/70">
               {mode === 'initial' 
