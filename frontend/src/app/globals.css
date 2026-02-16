@@ -41,23 +41,106 @@
   border-radius: 0 !important;
 }
 
-/* Custom CSS Variables */
+/* Custom CSS Variables - Dermaself Design System */
 :root {
   /* Background images */
   --bg-main: url('/assets/images/backgrounds/bg-main.jpg');
   --bg-1: url('/assets/images/backgrounds/bg-1.jpg');
   --bg-2: url('/assets/images/backgrounds/bg-2.jpg');
-  /* Purple/Violet Brand Colors - from reference image */
-  --primary-50: #faf5ff;
-  --primary-100: #f5f3ff;
-  --primary-200: #ede9fe;
-  --primary-300: #ddd6fe;
-  --primary-400: #c4b5fd;
-  --primary-500: #353535;
-  --primary-600: #2e2e2e;
-  --primary-700: #222222;
-  --primary-800: #202020;
-  --primary-900: #161616;
+
+  /* Design system base (HSL values without % for hsl(var(--name))) */
+  --background: 0 0% 98%;
+  --foreground: 0 0% 20%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 20%;
+  --white: 0 0% 100%;
+  --black: 0 0% 0%;
+
+  /* Primary - Confident Purple */
+  --primary: 253 75% 60%;
+  --primary-foreground: 0 0% 100%;
+  --primary-glow: 254 73% 78%;
+
+  /* Primary scale (purple) for existing Tailwind classes */
+  --primary-50: 253 75% 97%;
+  --primary-100: 253 75% 94%;
+  --primary-200: 253 75% 88%;
+  --primary-300: 253 75% 78%;
+  --primary-400: 253 75% 70%;
+  --primary-500: 253 75% 60%;
+  --primary-600: 253 75% 55%;
+  --primary-700: 253 75% 45%;
+  --primary-800: 253 60% 25%;
+  --primary-900: 253 50% 15%;
+
+  /* Secondary / tertiary */
+  --secondary: 283 58% 70%;
+  --secondary-foreground: 0 0% 20%;
+  --tertiary: 139 100% 80%;
+  --tertiary-foreground: 0 0% 20%;
+
+  /* Background tints */
+  --pink: 318 70% 94%;
+  --sky: 201 100% 90%;
+
+  /* Fit / status */
+  --violet-fit: 260 81% 60%;
+  --emerald-fit: 144 100% 80%;
+  --lilac-fit: 254 73% 78%;
+  --gray-fit: 0 0% 45%;
+
+  /* UI neutrals */
+  --muted: 0 0% 96%;
+  --muted-foreground: 0 0% 45%;
+  --border: 0 0% 90%;
+  --input: 0 0% 90%;
+  --ring: 260 81% 60%;
+
+  /* Semantic */
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 20%;
+
+  /* Accent (for components that reference --accent) */
+  --accent: 254 73% 78%;
+  --accent-foreground: 0 0% 20%;
+
+  /* Layout - use --app-height for full-height PWA (e.g. min-height: var(--app-height)) */
+  --radius: 1rem;
+  --app-height: 100dvh;
+
+  /* Optional dark surface for modal chrome */
+  --surface-inverse: 253 50% 12%;
+  --surface-inverse-foreground: 0 0% 98%;
+
+  /* KIKO - map to design system tokens */
+  --kiko-font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --kiko-background: hsl(var(--card));
+  --kiko-border: hsl(var(--border));
+  --kiko-text-primary: hsl(var(--foreground));
+  --kiko-text-secondary: hsl(var(--muted-foreground));
+  --kiko-surface: hsl(var(--muted));
+  --kiko-space-1: 0.25rem;
+  --kiko-space-2: 0.5rem;
+  --kiko-space-3: 0.75rem;
+  --kiko-space-4: 1rem;
+  --kiko-space-5: 1.25rem;
+  --kiko-space-6: 1.5rem;
+  --kiko-space-8: 2rem;
+  --kiko-font-size-xs: 0.75rem;
+  --kiko-font-size-sm: 0.875rem;
+  --kiko-font-size-base: 1rem;
+  --kiko-font-size-lg: 1.125rem;
+  --kiko-font-size-xl: 1.25rem;
+  --kiko-font-size-2xl: 1.5rem;
+  --kiko-radius-sm: 0.375rem;
+  --kiko-radius-md: 0.5rem;
+  --kiko-radius-lg: 0.75rem;
+  --kiko-radius-xl: 1rem;
+  --kiko-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --kiko-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --kiko-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
 }
 
 /* Base Styles */
@@ -65,57 +148,79 @@ body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
-/* Button Styles */
+/* Button Styles - design system */
 .btn-primary {
-  @apply bg-black text-white font-medium py-3 px-6 border-0 outline-none shadow-sm;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  @apply font-medium py-3 px-6 rounded-md shadow-sm;
   border: none !important;
   outline: none !important;
-  transition: background-color 0.3s ease-in-out;
+  transition: background-color 0.2s ease;
 }
 
 .btn-primary:hover {
+  background-color: hsl(var(--primary) / 0.9);
   border: none !important;
   outline: none !important;
 }
 
 .btn-primary:focus {
+  @apply ring-2 ring-ring ring-offset-2;
   border: none !important;
   outline: none !important;
 }
 
 .btn-secondary {
-  @apply text-white font-medium py-3 px-6 border-0 outline-none shadow-sm;
+  background-color: hsl(var(--secondary));
+  color: hsl(var(--secondary-foreground));
+  @apply font-medium py-3 px-6 rounded-md shadow-sm;
   border: none !important;
   outline: none !important;
-  background-color: #8b5cf6;
-  transition: background-color 0.3s ease-in-out;
+  transition: background-color 0.2s ease;
 }
 
 .btn-secondary:hover {
+  background-color: hsl(var(--secondary) / 0.9);
   border: none !important;
   outline: none !important;
-  background-color: #7c3aed;
 }
 
 .btn-secondary:focus {
+  @apply ring-2 ring-ring ring-offset-2;
   border: none !important;
   outline: none !important;
 }
 
-/* Card and Form Styles */
+/* Card and Form Styles - design system */
 .card {
-  @apply bg-white shadow-sm border border-gray-200 p-6 transition-all duration-200 hover:shadow-md;
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border) / 0.6);
+  box-shadow: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
+  @apply p-6 rounded-2xl transition-all duration-200;
+}
+
+.card:hover {
+  box-shadow: 0 10px 25px -3px hsl(260 81% 60% / 0.15), 0 4px 6px -2px hsl(260 81% 60% / 0.1);
+  border-color: hsl(260 81% 60% / 0.2);
 }
 
 .input-field {
-  @apply w-full px-4 py-3 border border-gray-300 focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all duration-200 bg-white;
+  @apply w-full h-10 px-3 py-2 rounded-md transition-all duration-200;
+  background-color: hsl(var(--background));
+  border: 1px solid hsl(var(--input));
+}
+
+.input-field:focus {
+  @apply ring-2 ring-ring ring-offset-background outline-none;
+  border-color: hsl(var(--ring));
 }
 
 /* Modal Styles */
 .modal-content {
   overflow-x: hidden;
   scrollbar-width: thin;
-  scrollbar-color: var(--primary-300) transparent;
+  scrollbar-color: hsl(var(--primary-300)) transparent;
 }
 
 .modal-content::-webkit-scrollbar {
@@ -127,7 +232,7 @@ body {
 }
 
 .modal-content::-webkit-scrollbar-thumb {
-  background-color: var(--primary-300);
+  background-color: hsl(var(--primary-300));
   border-radius: 3px;
 }
 
@@ -141,7 +246,8 @@ body {
 }
 
 .question__header-text {
-  @apply text-xl font-bold text-gray-900 mb-6 text-center;
+  color: hsl(var(--foreground));
+  @apply text-xl font-bold mb-6 text-center;
 }
 
 .answers {
@@ -154,14 +260,14 @@ body {
 
 .answer {
   @apply cursor-pointer block relative transition-all duration-200;
-  box-shadow: 2px 4px 6px #69747b99;
+  box-shadow: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
 }
 
 .answer.selected {
   border-width: 2px;
   border-style: solid;
-  border-image: linear-gradient(90deg, #8b5cf6, #a78bfa) 1;
-  box-shadow: 0 0 0 2px #fff;
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 2px hsl(var(--card));
 }
 
 .answer__checkbox {
@@ -174,19 +280,26 @@ body {
 }
 
 .answer__footer-wrapper {
-  @apply absolute bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm p-3 flex items-center h-12 gap-4;
+  background-color: hsl(var(--card) / 0.9);
+  @apply absolute bottom-0 left-0 right-0 backdrop-blur-sm p-3 flex items-center h-12 gap-4;
 }
 
 .answer__icon {
-  @apply w-6 h-6 border border-gray-300 bg-gray-300;
+  @apply w-6 h-6 border;
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--muted));
 }
 
 .answer__text {
-  @apply text-xs font-medium text-gray-900;
+  color: hsl(var(--foreground));
+  @apply text-xs font-medium;
 }
 
 .answer__info {
-  @apply absolute top-full left-0 right-0 bg-white border border-gray-200 shadow-lg p-4 mt-2 z-10 opacity-0 pointer-events-none transition-all duration-200;
+  background-color: hsl(var(--card));
+  border: 1px solid hsl(var(--border));
+  box-shadow: 0 10px 15px -3px hsl(260 81% 60% / 0.1), 0 4px 6px -2px hsl(260 81% 60% / 0.08);
+  @apply absolute top-full left-0 right-0 p-4 mt-2 z-10 opacity-0 pointer-events-none transition-all duration-200;
 }
 
 .answer__info.show {
@@ -194,21 +307,28 @@ body {
 }
 
 .answer__info-text {
-  @apply text-xs text-gray-600;
+  color: hsl(var(--muted-foreground));
+  @apply text-xs;
 }
 
 .answer__info-button {
-  @apply absolute top-2 right-2 w-6 h-6 bg-white/80 flex items-center justify-center hover:bg-white transition-colors;
+  @apply absolute top-2 right-2 w-6 h-6 flex items-center justify-center transition-colors;
+  background-color: hsl(var(--card) / 0.8);
+}
+
+.answer__info-button:hover {
+  background-color: hsl(var(--card));
 }
 
 .info-image-closed,
 .info-image-open {
-  @apply w-3 h-3 text-gray-600;
+  color: hsl(var(--muted-foreground));
+  @apply w-3 h-3;
 }
 
-/* Gradient Border */
+/* Gradient Border - design system */
 .gradient-border {
-  background: linear-gradient(45deg, var(--primary-500), var(--primary-600));
+  background: linear-gradient(45deg, hsl(var(--primary)), hsl(var(--primary-glow)));
   border: 2px solid transparent;
   background-clip: padding-box;
 }
@@ -224,12 +344,19 @@ body {
 }
 
 .active-btn {
-  @apply text-white px-4 py-2 rounded-lg text-sm font-semibold;
-  background-color: #8b5cf6;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  @apply px-4 py-2 rounded-lg text-sm font-semibold;
 }
 
 .inactive-btn {
-  @apply bg-gray-200 text-gray-700 px-4 py-2 rounded-lg text-sm font-semibold hover:bg-gray-300;
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+  @apply px-4 py-2 rounded-lg text-sm font-semibold;
+}
+
+.inactive-btn:hover {
+  background-color: hsl(var(--muted-foreground) / 0.15);
 }
 
 /* Routine Product Card Styles */
@@ -238,15 +365,17 @@ body {
 }
 
 .heading-1 {
-  @apply text-xl font-bold text-gray-900 mb-4;
+  color: hsl(var(--foreground));
+  @apply text-xl font-bold mb-4;
 }
 
 .step-name {
-  @apply text-lg font-bold text-gray-900 mb-4;
+  color: hsl(var(--foreground));
+  @apply text-lg font-bold mb-4;
 }
 
 .step-name span {
-  @apply text-primary-600;
+  color: hsl(var(--primary));
 }
 
 .step-content {
@@ -270,11 +399,13 @@ body {
 }
 
 .heading-3 {
-  @apply text-lg font-semibold text-gray-900;
+  color: hsl(var(--foreground));
+  @apply text-lg font-semibold;
 }
 
 .product-name {
-  @apply text-lg font-semibold text-gray-900 mb-2;
+  color: hsl(var(--foreground));
+  @apply text-lg font-semibold mb-2;
 }
 
 .tags {
@@ -294,7 +425,8 @@ body {
 }
 
 .product-blurb {
-  @apply text-sm text-gray-600 mb-4;
+  color: hsl(var(--muted-foreground));
+  @apply text-sm mb-4;
 }
 
 .product-info-container {
@@ -314,7 +446,8 @@ body {
 }
 
 .separator {
-  @apply w-px h-4 bg-gray-300;
+  @apply w-px h-4;
+  background-color: hsl(var(--border));
 }
 
 .price-container {
@@ -322,29 +455,33 @@ body {
 }
 
 .current-price {
-  @apply font-bold text-gray-900;
+  color: hsl(var(--foreground));
+  @apply font-bold;
 }
 
 .add-to-bag-btn {
-  @apply text-white px-6 py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
-  background-color: #8b5cf6;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  @apply px-6 py-3 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
 }
 
 .add-to-bag-btn:hover {
-  background-color: #7c3aed;
+  background-color: hsl(var(--primary) / 0.9);
 }
 
 .step-separator {
-  @apply w-full h-px bg-gray-200 my-6;
+  @apply w-full h-px my-6;
+  background-color: hsl(var(--border));
 }
 
 .add-all-to-bag {
-  @apply w-full text-white py-4 px-6 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4;
-  background-color: #8b5cf6;
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  @apply w-full py-4 px-6 rounded-lg font-semibold transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed mt-4;
 }
 
 .add-all-to-bag:hover {
-  background-color: #7c3aed;
+  background-color: hsl(var(--primary) / 0.9);
 }
 
 /* Responsive Design */
@@ -405,6 +542,11 @@ body {
   padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Bottom nav: use padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) for fixed nav */
+.safe-area-bottom-nav {
+  padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
 .safe-area-left {
   padding-left: env(safe-area-inset-left);
 }
@@ -459,20 +601,20 @@ body {
   -webkit-backdrop-filter: blur(10px);
 }
 
-/* Image Upload Zone */
+/* Image Upload Zone - design system */
 .upload-zone {
-  border: 2px dashed #cbd5e1;
+  border: 2px dashed hsl(var(--input));
   transition: border-color 0.3s ease, background-color 0.3s ease;
 }
 
 .upload-zone:hover {
-  border-color: #3b82f6;
-  background-color: #f8fafc;
+  border-color: hsl(var(--ring));
+  background-color: hsl(var(--muted));
 }
 
 .upload-zone.drag-over {
-  border-color: #3b82f6;
-  background-color: #eff6ff;
+  border-color: hsl(var(--primary));
+  background-color: hsl(var(--primary) / 0.08);
 }
 
 /* Loading States */
@@ -501,29 +643,26 @@ body {
 .loader {
   width: 40px;
   height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #8b5cf6;
+  border: 4px solid hsl(var(--muted));
+  border-top: 4px solid hsl(var(--primary));
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
 
-/* Dermaself Design System */
+/* Dermaself legacy - map to design system tokens */
 :root {
-  /* Purple/Violet Color Palette - from reference design */
-  --dermaself-primary: #8b5cf6;
-  --dermaself-primary-light: #a78bfa;
-  --dermaself-primary-dark: #7c3aed;
-  --dermaself-secondary: #000000;
-  --dermaself-accent: #ddd6fe;
-  --dermaself-background: #ffffff;
-  --dermaself-surface: #faf5ff;
-  --dermaself-border: #ede9fe;
-  --dermaself-text-primary: #000000;
-  --dermaself-text-secondary: #4b5563;
-  --dermaself-text-light: #9ca3af;
-  
-  /* Typography */
-  --dermaself-font-family: 'Dermaself', 'Helvetica Neue', 'Arial', sans-serif;
+  --dermaself-primary: hsl(var(--primary));
+  --dermaself-primary-light: hsl(var(--primary-glow));
+  --dermaself-primary-dark: hsl(var(--primary-600));
+  --dermaself-secondary: hsl(var(--foreground));
+  --dermaself-accent: hsl(var(--primary-glow));
+  --dermaself-background: hsl(var(--card));
+  --dermaself-surface: hsl(var(--muted));
+  --dermaself-border: hsl(var(--border));
+  --dermaself-text-primary: hsl(var(--foreground));
+  --dermaself-text-secondary: hsl(var(--muted-foreground));
+  --dermaself-text-light: hsl(var(--muted-foreground));
+  --dermaself-font-family: var(--kiko-font-family);
   --dermaself-font-size-xs: 0.75rem;
   --dermaself-font-size-sm: 0.875rem;
   --dermaself-font-size-base: 1rem;
@@ -531,8 +670,6 @@ body {
   --dermaself-font-size-xl: 1.25rem;
   --dermaself-font-size-2xl: 1.5rem;
   --dermaself-font-size-3xl: 1.875rem;
-  
-  /* Spacing */
   --dermaself-space-1: 0.25rem;
   --dermaself-space-2: 0.5rem;
   --dermaself-space-3: 0.75rem;
@@ -542,18 +679,14 @@ body {
   --dermaself-space-8: 2rem;
   --dermaself-space-10: 2.5rem;
   --dermaself-space-12: 3rem;
-  
-  /* Border Radius */
   --dermaself-radius-sm: 0.375rem;
   --dermaself-radius-md: 0.5rem;
   --dermaself-radius-lg: 0.75rem;
   --dermaself-radius-xl: 1rem;
-  
-  /* Shadows */
-  --dermaself-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --dermaself-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --dermaself-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --dermaself-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  --dermaself-shadow-sm: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
+  --dermaself-shadow-md: 0 4px 6px -1px hsl(260 81% 60% / 0.1), 0 2px 4px -1px hsl(260 81% 60% / 0.08);
+  --dermaself-shadow-lg: 0 10px 15px -3px hsl(260 81% 60% / 0.1), 0 4px 6px -2px hsl(260 81% 60% / 0.08);
+  --dermaself-shadow-xl: 0 20px 25px -5px hsl(260 81% 60% / 0.1), 0 10px 10px -5px hsl(260 81% 60% / 0.04);
 }
 
 /* KIKO Modal Styles */
@@ -584,7 +717,7 @@ body {
 }
 
 .kiko-modal-header {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
   color: white;
   padding: var(--kiko-space-6);
   text-align: center;
@@ -619,7 +752,7 @@ body {
 }
 
 .kiko-button {
-  background: #8b5cf6;
+  background: hsl(var(--primary));
   color: white;
   border: none;
   border-radius: var(--kiko-radius-md);
@@ -635,13 +768,13 @@ body {
 }
 
 .kiko-button:hover {
-  background: #7c3aed;
+  background: hsl(var(--primary) / 0.9);
   transform: translateY(-1px);
   box-shadow: var(--kiko-shadow-lg);
 }
 
 .kiko-button:disabled {
-  background: #9ca3af;
+  background: hsl(var(--muted-foreground));
   cursor: not-allowed;
   transform: none;
   box-shadow: none;
@@ -649,12 +782,12 @@ body {
 
 .kiko-button-secondary {
   background: transparent;
-  color: #8b5cf6;
-  border: 2px solid #8b5cf6;
+  color: hsl(var(--primary));
+  border: 2px solid hsl(var(--primary));
 }
 
 .kiko-button-secondary:hover {
-  background: #8b5cf6;
+  background: hsl(var(--primary));
   color: white;
 }
 
@@ -673,12 +806,12 @@ body {
 }
 
 .kiko-progress-dot.active {
-  background: #8b5cf6;
+  background: hsl(var(--primary));
   transform: scale(1.2);
 }
 
 .kiko-progress-dot.completed {
-  background: #8b5cf6;
+  background: hsl(var(--primary));
 }
 
 .derma-step-content {
@@ -775,8 +908,8 @@ body {
 
 .kiko-form-input:focus {
   outline: none;
-  border-color: #8b5cf6;
-  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+  border-color: hsl(var(--primary));
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
 }
 
 .kiko-option-grid {
@@ -797,14 +930,14 @@ body {
 }
 
 .kiko-option-card:hover {
-  border-color: #8b5cf6;
+  border-color: hsl(var(--primary));
   transform: translateY(-2px);
   box-shadow: var(--kiko-shadow-md);
 }
 
 .kiko-option-card.selected {
-  border-color: #8b5cf6;
-  background: rgba(139, 92, 246, 0.05);
+  border-color: hsl(var(--primary));
+  background: hsl(var(--primary) / 0.08);
 }
 
 .kiko-option-icon {
@@ -825,7 +958,7 @@ body {
 }
 
 .kiko-results-section {
-  background: linear-gradient(135deg, #8b5cf6 0%, #a78bfa 100%);
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--primary-glow)) 100%);
   color: white;
   padding: var(--kiko-space-8);
   margin: var(--kiko-space-6) 0;
@@ -872,7 +1005,7 @@ body {
 .kiko-product-price {
   font-size: var(--kiko-font-size-lg);
   font-weight: 700;
-  color: #8b5cf6;
+  color: hsl(var(--primary));
 }
 
 .loading-pulse {
