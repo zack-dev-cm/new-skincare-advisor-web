@@ -44,6 +44,8 @@ export interface TransformedProduct {
   body_html: string;
   created_at: string;
   updated_at: string;
+  /** Fit score (0–100) from infer API; may be set when merging API data */
+  fit?: number;
 }
 
 /**

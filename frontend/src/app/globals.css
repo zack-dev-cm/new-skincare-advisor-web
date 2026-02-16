@@ -1114,3 +1114,33 @@ body {
     background-color: #374151;
   }
 }
+
+/* Fit score pill (from infer API) */
+.fit-pill-small {
+  padding: 1px 10px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.fit-pill-normal {
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+.fit-pill-excellent {
+  background-color: #059669;
+  color: white;
+}
+.fit-pill-good {
+  background-color: #34d399;
+  color: #064e3b;
+}
+.fit-pill-safe {
+  background-color: #f5de0a;
+  color: #431407;
+}

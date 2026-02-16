@@ -150,6 +150,7 @@ export default function ResultsStep({
         const transformedSteps = analysisData.recommendations.skincare_routine.map((category: any) => {
           return category.modules.map((module: any) => {
             // Transform main product from API format to display format
+            const mainFit = module.main_product?.fit ?? (module.main_product?.score != null ? Math.round(module.main_product.score * 100) : undefined);
             const mainProduct = module.main_product ? {
               title: module.main_product.product_name || 'Unknown Product',
               vendor: module.main_product.brand || '',
@@ -163,6 +164,7 @@ export default function ResultsStep({
                 inventory_quantity: 1
               }],
               body_html: module.main_product.info || module.main_product.product_description || '',
+              fit: mainFit,
             } : null;
 
             // Transform alternative products
@@ -179,6 +181,7 @@ export default function ResultsStep({
                 inventory_quantity: 1
               }],
               body_html: altProd.info || altProd.product_description || '',
+              fit: altProd.fit ?? (altProd.score != null ? Math.round(altProd.score * 100) : undefined),
             }));
 
             return {
@@ -292,14 +295,17 @@ export default function ResultsStep({
             const mainProductVariantId = module.main_product?.shopify_product_id;
             console.log('Looking for variant ID:', mainProductVariantId, 'type:', typeof mainProductVariantId);
             
-            const mainProduct = mainProductVariantId
+            const mainProductRaw = mainProductVariantId
               ? variantIdToProduct.get(mainProductVariantId.toString()) || null
               : null;
 
-            console.log('Found main product:', mainProduct);
-            if (mainProduct) {
-              console.log('Main product images:', mainProduct.images);
+            console.log('Found main product:', mainProductRaw);
+            if (mainProductRaw) {
+              console.log('Main product images:', mainProductRaw.images);
             }
+
+            const mainProductFit = module.main_product?.fit ?? (module.main_product?.score != null ? Math.round(module.main_product.score * 100) : undefined);
+            const mainProduct = mainProductRaw ? { ...mainProductRaw, fit: mainProductFit } : null;
 
             // Find alternative products
             const alternativeProducts: TransformedProduct[] = [];
@@ -310,7 +316,8 @@ export default function ResultsStep({
                   const altShopifyProduct = variantIdToProduct.get(altProduct.shopify_product_id.toString()) || null;
                   if (altShopifyProduct) {
                     console.log('✅ Found alternative product:', altShopifyProduct.title);
-                    alternativeProducts.push(altShopifyProduct);
+                    const altFit = altProduct.fit ?? (altProduct.score != null ? Math.round(altProduct.score * 100) : undefined);
+                    alternativeProducts.push({ ...altShopifyProduct, fit: altFit });
                   } else {
                     console.log('❌ Alternative product not found for variant:', altProduct.shopify_product_id);
                   }

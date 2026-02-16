@@ -8,6 +8,7 @@ import { translateModuleName } from '../lib/moduleTranslations';
 import { useTranslation } from 'react-i18next';
 import { useLocale } from '../lib/LocaleContext';
 import { useAppConfig } from '@/lib/AppConfigContext';
+import { getFitPillClass } from '../lib/fit-pill';
 
 interface ProductVariant {
   id: string | number;
@@ -308,11 +309,13 @@ export default function RoutineProductCard({
           
           {/* Fit and Verified Chips */}
           <div className="mt-2 flex items-center gap-2 flex-wrap">
-            {/* Fit percentage chip */}
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold text-white bg-amber-800">
-              93% fit
-            </span>
-            
+            {/* Fit percentage chip (from infer API) */}
+            {(product as any).fit != null && (
+              <span className={getFitPillClass((product as any).fit, 'normal')}>
+                {(product as any).fit}% fit
+              </span>
+            )}
+
             {/* Verified chip */}
             <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold text-white bg-blue-600">
               <CheckCircle className="w-3 h-3" />
@@ -404,6 +407,9 @@ export default function RoutineProductCard({
                         <div className="min-w-0">
                           <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
+                          {alt.fit != null && (
+                            <span className={`mt-2 inline-block ${getFitPillClass(alt.fit, 'small')}`}>{alt.fit}% fit</span>
+                          )}
                           {alt.variants?.[0]?.price && (
                             <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                               {formatCurrency(parseFloat(alt.variants[0].price))}
