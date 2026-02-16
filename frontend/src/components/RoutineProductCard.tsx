@@ -407,14 +407,16 @@ export default function RoutineProductCard({
                         <div className="min-w-0">
                           <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
                           <div className="text-xs text-muted-foreground truncate max-w-[180px]">{alt.vendor}</div>
-                          {alt.fit != null && (
-                            <span className={`mt-2 inline-block ${getFitPillClass(alt.fit, 'small')}`}>{alt.fit}% fit</span>
-                          )}
-                          {alt.variants?.[0]?.price && (
-                            <div className="mt-2 inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                              {formatCurrency(parseFloat(alt.variants[0].price))}
-                            </div>
-                          )}
+                          <div className="mt-2 flex flex-col items-start gap-1">
+                            {alt.fit != null && (
+                              <span className={getFitPillClass(alt.fit, 'small')}>{alt.fit}% fit</span>
+                            )}
+                            {alt.variants?.[0]?.price && (
+                              <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                                {formatCurrency(parseFloat(alt.variants[0].price))}
+                              </span>
+                            )}
+                          </div>
                         </div>
                         {/* Add/Remove alt from cart - only show when cart is enabled */}
                         {appConfig.enableCart && (
