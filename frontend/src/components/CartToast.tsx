@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, X, ShoppingBag } from 'lucide-react';
@@ -20,6 +21,7 @@ export default function CartToast({
   productName,
   cartItemCount
 }: CartToastProps) {
+  const { t } = useTranslation('products');
   const toastRef = useRef<HTMLDivElement>(null);
 
   // Handle click outside to close
@@ -58,13 +60,13 @@ export default function CartToast({
               <div className="flex items-center space-x-2">
                 <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0" />
                 <span className="text-sm font-medium text-gray-900">
-                  {productName} è stato aggiunto al tuo carrello
+                  {t('cart.added_product_to_cart', { name: productName })}
                 </span>
               </div>
               <button
                 onClick={onClose}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                aria-label="Chiudi notifica"
+                aria-label={t('cart.close_notification')}
               >
                 <X className="w-4 h-4 text-gray-500" />
               </button>
@@ -76,7 +78,7 @@ export default function CartToast({
                 onClick={onClose}
                 className="text-sm text-gray-600 hover:text-gray-800 transition-colors"
               >
-                Continua lo shopping
+                {t('cart.continue_shopping')}
               </button>
               
               <button
@@ -84,7 +86,7 @@ export default function CartToast({
                 className="flex items-center space-x-2 bg-primary-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors"
               >
                 <ShoppingBag className="w-4 h-4" />
-                <span>Vai al carrello ({cartItemCount})</span>
+                <span>{t('cart.go_to_cart_count', { count: cartItemCount })}</span>
               </button>
             </div>
           </div>

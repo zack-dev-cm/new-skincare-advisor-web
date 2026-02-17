@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { ASSETS } from '../../lib/assets';
 
 interface ModalFooterProps {
@@ -19,6 +20,7 @@ export default function ModalFooter({
   activeTab = 'results',
   onTabChange
 }: ModalFooterProps) {
+  const { t } = useTranslation('steps');
   return (
     <div className={`border-t modal-footer-bar safe-area-bottom ${className}`}>
       {/* Tab Navigation - Only show on results step */}
@@ -35,7 +37,7 @@ export default function ModalFooter({
               height={30}
               className="opacity-90"
             />
-            <p className="heading-4">RISULTATI</p>
+            <p className="heading-4">{t('modal_footer.results_tab')}</p>
           </button>
           <button
             onClick={() => onTabChange('routine')}
@@ -48,7 +50,7 @@ export default function ModalFooter({
               height={30}
               className="opacity-90"
             />
-            <p className="heading-4">ROUTINE</p>
+            <p className="heading-4">{t('modal_footer.routine_tab')}</p>
           </button>
         </div>
       ) : (
@@ -64,7 +66,7 @@ export default function ModalFooter({
             ))}
           </div>
           <p className="pt-2 text-center text-muted-foreground text-sm">
-            Powered by Dermaself
+            {t('modal_footer.powered_by')}
           </p>
         </div>
       )}

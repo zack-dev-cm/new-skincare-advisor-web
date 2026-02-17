@@ -1,8 +1,10 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
 import { Camera, Shield, Zap, Users } from 'lucide-react';
 
 export default function Footer() {
+  const { t } = useTranslation('common');
   return (
     <footer className="bg-gray-900 text-white">
       <div className="container mx-auto px-4 py-12">
@@ -14,58 +16,57 @@ export default function Footer() {
               </div>
               <div>
                 <h3 className="text-xl font-bold">Dermaself</h3>
-                <p className="text-gray-400">Analisi della Pelle Powered by AI</p>
+                <p className="text-gray-400">{t('footer.tagline')}</p>
               </div>
             </div>
             <p className="text-gray-400 mb-6 max-w-md">
-              Tecnologia AI avanzata che analizza la tua pelle e fornisce raccomandazioni 
-              personalizzate per la cura della pelle. Ottieni intuizioni professionali dal comfort di casa tua.
+              {t('footer.description')}
             </p>
             <div className="flex space-x-4">
               <div className="flex items-center space-x-2 text-gray-400">
                 <Shield className="w-5 h-5" />
-                <span>Sicuro e Privato</span>
+                <span>{t('footer.secure_private')}</span>
               </div>
               <div className="flex items-center space-x-2 text-gray-400">
                 <Zap className="w-5 h-5" />
-                <span>Risultati Istantanei</span>
+                <span>{t('footer.instant_results')}</span>
               </div>
               <div className="flex items-center space-x-2 text-gray-400">
                 <Users className="w-5 h-5" />
-                <span>Sostenuto da Esperti</span>
+                <span>{t('footer.expert_backed')}</span>
               </div>
             </div>
           </div>
           
           <div>
-            <h4 className="font-semibold mb-4">Prodotto</h4>
+            <h4 className="font-semibold mb-4">{t('footer.product')}</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Funzionalità</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Prezzi</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">API</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Integrazioni</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.features')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.pricing')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.api')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.integrations')}</a></li>
             </ul>
           </div>
           
           <div>
-            <h4 className="font-semibold mb-4">Azienda</h4>
+            <h4 className="font-semibold mb-4">{t('footer.company')}</h4>
             <ul className="space-y-2 text-gray-400">
-              <li><a href="#" className="hover:text-white transition-colors">Chi Siamo</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Blog</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Carriere</a></li>
-              <li><a href="#" className="hover:text-white transition-colors">Contatti</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.about_us')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.blog')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.careers')}</a></li>
+              <li><a href="#" className="hover:text-white transition-colors">{t('footer.contact')}</a></li>
             </ul>
           </div>
         </div>
         
         <div className="border-t border-gray-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
                 <p className="text-gray-400 text-sm">
-                  © 2024 Dermaself. Tutti i diritti riservati.
+                  {t('footer.copyright')}
                 </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Informativa sulla Privacy</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Termini di Servizio</a>
-            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Politica sui Cookie</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">{t('footer.privacy_policy')}</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">{t('footer.terms_of_service')}</a>
+            <a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">{t('footer.cookie_policy')}</a>
           </div>
         </div>
       </div>

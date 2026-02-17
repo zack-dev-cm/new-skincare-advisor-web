@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import TypingEffect from './TypingEffect';
 import RandomCircles from './RandomCircles';
 import { getFaceFrameRect } from '@/lib/face-utils';
@@ -10,6 +11,7 @@ interface UploadingScreenProps {
 }
 
 export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
+	const { t } = useTranslation('analysis');
 	const [windowRect, setWindowRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
 	const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
 
@@ -76,17 +78,17 @@ export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
 	{/* Typing text overlay */}
 	<div className="absolute z-40 text-white text-lg md:text-xl font-medium">
 		<TypingEffect
-			baseContent = "We are analyzing"
-            typingEffectContent = {[
-                "wrinkles...",
-                "pores...",
-                "eye area...",
-                "pigmentation...",
-                "acne...",
-                "hydration...",
-                "redness...",
-                "translucency...",
-                ""
+			baseContent={t('uploading.we_are_analyzing')}
+            typingEffectContent={[
+                t('uploading.wrinkles'),
+                t('uploading.pores'),
+                t('uploading.eye_area'),
+                t('uploading.pigmentation'),
+                t('uploading.acne'),
+                t('uploading.hydration'),
+                t('uploading.redness'),
+                t('uploading.translucency'),
+                ''
             ]}
 			typingSpeed={120}
 			delayBetween={800}

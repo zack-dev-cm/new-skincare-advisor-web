@@ -27,7 +27,7 @@ export default function SkincareRoutineCard({
   showAddAllButton = false,
   onAddAllToCart
 }: SkincareRoutineCardProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation('products');
   const { formatCurrency } = useLocale();
   const { addToCart, state } = useCart();
   const [isExpanded, setIsExpanded] = useState(true);
@@ -119,7 +119,7 @@ export default function SkincareRoutineCard({
         <div className="collapsible-content">
           <img 
             src={mainProduct.images[0]?.src || 'https://via.placeholder.com/300x300?text=Product'} 
-            alt="Immagine Prodotto" 
+            alt={t('cart.product_image_alt')} 
             className="main-product-img"
             onError={(e) => {
               console.error('Image failed to load:', mainProduct.images[0]?.src);
@@ -132,8 +132,8 @@ export default function SkincareRoutineCard({
           
           <div className="main-product-info">
             <h3>{mainProduct.title}</h3>
-            <p><strong>Brand:</strong> {mainProduct.vendor}</p>
-            <p><strong>Prezzo:</strong> {formatPrice(mainProduct.variants[0]?.price || '0')}</p>
+            <p><strong>{t('cart.brand_label')}</strong> {mainProduct.vendor}</p>
+            <p><strong>{t('cart.price_label')}</strong> {formatPrice(mainProduct.variants[0]?.price || '0')}</p>
           </div>
           
           <div className="module-buttons">
@@ -142,9 +142,9 @@ export default function SkincareRoutineCard({
               onClick={() => setShowAlternatives(!showAlternatives)}
               disabled={alternativeProducts.length === 0}
             >
-              Alternative
+              {t('cart.alternative_label')}
             </button>
-            <button className="info-btn">Info</button>
+            <button className="info-btn">{t('cart.info_label')}</button>
           </div>
           
           <button 
@@ -155,10 +155,10 @@ export default function SkincareRoutineCard({
             {isAddingToCart || state.loading ? (
               <div className="flex items-center justify-center">
                 <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                Aggiungendo...
+                {t('cart.adding_label')}
               </div>
             ) : (
-              'Acquista'
+              t('cart.buy_label')
             )}
           </button>
 
@@ -172,7 +172,7 @@ export default function SkincareRoutineCard({
             >
               <div className="text-white text-center">
                 <CheckCircle className="w-12 h-12 mx-auto mb-2" />
-                <p className="font-semibold">Added to Cart!</p>
+                <p className="font-semibold">{t('cart.added_success')}</p>
               </div>
             </motion.div>
           )}
@@ -180,7 +180,7 @@ export default function SkincareRoutineCard({
           {/* Alternative Products */}
           {showAlternatives && alternativeProducts.length > 0 && (
             <div className="alternative-products mt-4 p-4 bg-gray-50 rounded-lg">
-              <h4 className="font-semibold mb-3">Alternative Products</h4>
+              <h4 className="font-semibold mb-3">{t('cart.alternative_products_title')}</h4>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {alternativeProducts.map((product, index) => (
                   <div key={index} className="bg-white p-3 rounded-lg shadow-sm">
@@ -219,10 +219,10 @@ export default function SkincareRoutineCard({
               {state.loading ? (
                 <div className="flex items-center justify-center">
                   <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                  Aggiungendo Routine...
+                  {t('cart.adding_routine')}
                 </div>
               ) : (
-                'AGGIUNGI ROUTINE COMPLETA AL CARRELLO'
+                t('cart.add_full_routine')
               )}
             </button>
           )}

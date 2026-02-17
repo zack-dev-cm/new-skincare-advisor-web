@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { Camera, X, Upload, SwitchCameraIcon, User, Move, CheckCircle, Target, MoveHorizontal, Sun, Check, ArrowLeft } from 'lucide-react';
 import ImageUpload from './ImageUpload';
@@ -28,6 +29,7 @@ const isMobileDevice = () => {
 };
 
 const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCaptureProps) => {
+  const { t } = useTranslation(['camera', 'common']);
   const [cameraState, setCameraState] = useState<'live' | 'preview'>('live');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -49,8 +51,12 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   const [faceCenter, setFaceCenter] = useState<{x: number, y: number} | null>(null);
   const [detectedFaces, setDetectedFaces] = useState<any[]>([]);
   const detectedFacesRef = useRef<any[]>([]);
-  const [guidanceMessage, setGuidanceMessage] = useState<string>('Posiziona il tuo viso al centro');
+  const [guidanceMessage, setGuidanceMessage] = useState<string>('');
   const [guidanceType, setGuidanceType] = useState<'default' | 'position' | 'distance' | 'angle' | 'lighting'>('default');
+
+  useEffect(() => {
+    setGuidanceMessage(t('capture.position_face_center'));
+  }, [t]);
 
   // Helper function to set appropriate error message
   const setCameraError = (message: string) => {
@@ -459,81 +465,67 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
   };
 
   const updateGuidance = (detections: any[], facePosition: any, luminosity: number) => {
-    // If face detection is not available, show default guidance
     if (!faceApiAvailable) {
-      setGuidanceMessage('Posiziona il tuo viso al centro');
+      setGuidanceMessage(t('capture.position_face_center'));
       setGuidanceType('position');
       return;
     }
-    
     if (detections.length === 0) {
-      setGuidanceMessage('Posiziona il viso all\'interno del riquadro');
+      setGuidanceMessage(t('capture.position_face_frame'));
       setGuidanceType('position');
       return;
     }
-
     const detection = detections[0];
     const { box } = detection;
-    
-    // Check if face is too far (too small)
     const faceArea = box.width * box.height;
     const videoArea = videoRef.current ? videoRef.current.videoWidth * videoRef.current.videoHeight : 0;
     const faceRatio = videoArea > 0 ? faceArea / videoArea : 0;
-    
-    if (faceRatio < 0.1) { // Face is too small (too far)
-      setGuidanceMessage('Avvicina la fotocamera');
+    if (faceRatio < 0.1) {
+      setGuidanceMessage(t('capture.move_closer'));
       setGuidanceType('distance');
       return;
     }
-    
-    // Check if face is too close (too large)
     if (faceRatio > 0.6) {
-      setGuidanceMessage('Allontana la fotocamera');
+      setGuidanceMessage(t('capture.move_away'));
       setGuidanceType('distance');
       return;
     }
-    
-    // Check if face is centered
     const videoWidth = videoRef.current?.videoWidth || 640;
     const videoHeight = videoRef.current?.videoHeight || 480;
     const centerX = videoWidth / 2;
     const centerY = videoHeight / 2;
     const faceCenterX = box.x + box.width / 2;
     const faceCenterY = box.y + box.height / 2;
-    
     const xOffset = Math.abs(faceCenterX - centerX) / centerX;
     const yOffset = Math.abs(faceCenterY - centerY) / centerY;
-    
     if (xOffset > 0.3 || yOffset > 0.3) {
-      setGuidanceMessage('Centra il tuo viso nel riquadro');
+      setGuidanceMessage(t('capture.center_face'));
       setGuidanceType('position');
       return;
     }
-    
-    // Check lighting (if we had luminosity detection)
     if (luminosity < 0.3) {
-      setGuidanceMessage('Rivolgiti verso la fonte di luce');
+      setGuidanceMessage(t('capture.face_light'));
       setGuidanceType('lighting');
       return;
     }
-    
-    // All good!
-    setGuidanceMessage('Perfetto! Resta fermo');
+    setGuidanceMessage(t('capture.perfect_hold'));
     setGuidanceType('default');
   };
 
   const getGuidanceMessage = (): string => {
     if (countdown > 0) {
-      return `Resta fermo... ${countdown}`;
-    } else if (!faceDetected) {
-      return 'Per favore posiziona il viso nel riquadro';
-    } else if (facePosition && !isFaceInPosition(facePosition)) {
-      return 'Centra il tuo viso nel riquadro';
-    } else if (faceDetected && facePosition && isFaceInPosition(facePosition)) {
-      return 'Perfetto! Resta fermo...';
-    } else {
-      return 'Posiziona il tuo viso al centro';
+      return t('capture.hold_still_countdown', { countdown: String(countdown) });
     }
+    if (!faceDetected) {
+      return t('capture.please_position_face');
+    }
+    if (facePosition && !isFaceInPosition(facePosition)) {
+      return t('capture.center_face');
+    }
+    if (faceDetected && facePosition && isFaceInPosition(facePosition)) {
+      return t('capture.hold_still');
+    }
+    return t('capture.position_face_center');
   };
 
   const stopCamera = () => {
@@ -738,9 +730,9 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             <div className="text-blue-500 mb-4">
               <Upload size={48} className="mx-auto" />
             </div>
-            <h3 className="text-xl font-semibold mb-2">Fotocamera Non Disponibile</h3>
+            <h3 className="text-xl font-semibold mb-2">{t('capture.camera_unavailable')}</h3>
             <p className="text-gray-600 mb-6">
-              Nessun problema! Puoi caricare una foto invece per continuare con la tua analisi della pelle.
+              {t('capture.camera_unavailable_message')}
             </p>
           </div>
           
@@ -754,7 +746,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               onClick={onClose}
               className="flex-1 px-4 py-3 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
             >
-              Annulla
+              {t('common:buttons.cancel')}
             </button>
             <button
               onClick={() => {
@@ -763,7 +755,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               }}
               className="flex-1 px-4 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
             >
-              Riprova Fotocamera
+              {t('capture.retry_camera')}
             </button>
           </div>
         </div>
@@ -866,16 +858,16 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
         <div ref={headerRef} className="flex items-center justify-between px-2 sm:px-4 py-1 sm:py-2 border-b border-gray-200 flex-shrink-0">
             <div>
               <h3 className="text-sm sm:text-lg font-bold text-gray-900">
-                Fotocamera Analisi Pelle
+                {t('capture.camera_title')}
               </h3>
               <p className="text-xs text-gray-600">
-                Scatta una foto per l'analisi
+                {t('capture.take_photo_subtitle')}
               </p>
             </div>
           <button
             onClick={onClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label="Chiudi fotocamera"
+            aria-label={t('capture.close_camera')}
           >
             <X size={24} />
           </button>
@@ -887,7 +879,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
             <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-75 z-10">
               <div className="text-white text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white mx-auto mb-4"></div>
-                <p>Avvio fotocamera...</p>
+                <p>{t('capture.starting_camera')}</p>
               </div>
             </div>
           )}
@@ -980,7 +972,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 <button
                   onClick={switchCamera}
                   className="w-16 p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center"
-                  aria-label="Cambia fotocamera"
+                  aria-label={t('buttons.switch_camera')}
                 >
                   <SwitchCameraIcon className="w-5 h-5" />
                 </button>
@@ -989,7 +981,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 onClick={capturePhoto}
                 disabled={!isCameraActive || isLoading}
                   className="w-20 h-12 bg-blue-600 text-white hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed transition-all flex items-center justify-center rounded-full shadow-lg"
-                  aria-label="Scatta foto"
+                  aria-label={t('capture.take_photo_subtitle')}
               >
                   <Camera className="w-6 h-6" />
               </button>
@@ -997,7 +989,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 <button
                   onClick={triggerFileUpload}
                   className="w-16 p-1.5 sm:p-2 bg-gray-200 text-gray-800 rounded-full hover:bg-gray-300 flex items-center justify-center "
-                  aria-label="Carica foto"
+                  aria-label={t('capture.select_image_file')}
                 >
                   <Upload className="w-5 h-5" />
                 </button>
@@ -1007,11 +999,11 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
               <div className="text-center text-xs text-gray-600">
                 <p className="flex items-center justify-center gap-1 mb-1">
                   <Move className="w-3 h-3" />
-                  <span>Posiziona il tuo viso al centro</span>
+                  <span>{t('capture.position_face_center')}</span>
                 </p>
                 <p className="flex items-center justify-center gap-1">
                   <CheckCircle className="w-3 h-3" />
-                  <span>Buona illuminazione per i migliori risultati</span>
+                  <span>{t('capture.good_lighting_short')}</span>
                 </p>
               </div>
             </div>
@@ -1023,13 +1015,13 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
                 onClick={retakePhoto}
                 className="flex-1 px-3 py-2 bg-gray-200 text-gray-800 hover:bg-gray-300 transition-colors rounded-xl font-semibold text-sm"
               >
-                Retake
+                {t('buttons.retake')}
               </button>
               <button
                 onClick={confirmPhoto}
                 className="flex-1 px-3 py-2 bg-blue-600 text-white hover:bg-blue-700 transition-colors rounded-xl font-semibold text-sm"
               >
-                Send
+                {t('buttons.send')}
               </button>
             </div>
           )}
@@ -1043,7 +1035,7 @@ const CameraCapture = ({ onCapture, onClose, embedded = false }: CameraCapturePr
           accept="image/*"
           onChange={handleFileUpload}
           className="hidden"
-          aria-label="Seleziona file immagine"
+          aria-label={t('capture.select_image_file')}
         />
       </div>
     </motion.div>

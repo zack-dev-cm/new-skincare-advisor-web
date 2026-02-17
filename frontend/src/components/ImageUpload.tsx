@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useDropzone } from 'react-dropzone';
 import { Upload, Image, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -10,13 +11,14 @@ interface ImageUploadProps {
 }
 
 export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
+  const { t } = useTranslation('common');
   const [error, setError] = useState<string | null>(null);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setError(null);
     
     if (acceptedFiles.length === 0) {
-      setError('Please select a valid image file.');
+      setError(t('upload.invalid_file_type'));
       return;
     }
 
@@ -24,13 +26,13 @@ export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
     
     // Validate file type
     if (!file.type.startsWith('image/')) {
-      setError('Please select a valid image file (JPEG, PNG, etc.).');
+      setError(t('upload.please_valid_image'));
       return;
     }
 
     // Validate file size (max 10MB)
     if (file.size > 10 * 1024 * 1024) {
-      setError('Image size must be less than 10MB.');
+      setError(t('upload.image_size'));
       return;
     }
 
@@ -42,7 +44,7 @@ export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
       }
     };
     reader.readAsDataURL(file);
-  }, [onImageSelect]);
+  }, [onImageSelect, t]);
 
   const { getRootProps, getInputProps, isDragActive, isDragReject } = useDropzone({
     onDrop,
@@ -95,17 +97,17 @@ export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
               <p className="text-lg font-medium text-gray-900 mb-2">
                 {isDragActive 
                   ? isDragReject 
-                    ? 'Invalid file type' 
-                    : 'Drop your image here'
-                  : 'Upload your photo'
+                    ? t('upload.invalid_file') 
+                    : t('upload.drop_here')
+                  : t('upload.upload_photo')
                 }
               </p>
               <p className="text-sm text-gray-500">
                 {isDragActive 
                   ? isDragReject 
-                    ? 'Please select a valid image file'
-                    : 'Release to upload'
-                  : 'Drag & drop or click to browse'
+                    ? t('upload.valid_file')
+                    : t('upload.release_upload')
+                  : t('upload.drag_drop')
                 }
               </p>
             </div>
@@ -113,7 +115,7 @@ export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
             {!isDragActive && (
               <div className="flex items-center space-x-2 text-sm text-gray-500">
                 <Image className="w-4 h-4" />
-                <span>JPEG, PNG, WebP up to 10MB</span>
+                <span>{t('upload.file_types')}</span>
               </div>
             )}
           </div>
@@ -133,7 +135,7 @@ export default function ImageUpload({ onImageSelect }: ImageUploadProps) {
 
       <div className="mt-6 text-center">
         <p className="text-xs text-gray-500">
-          For best results, use a clear, well-lit photo of your face
+          {t('upload.best_results')}
         </p>
       </div>
     </div>

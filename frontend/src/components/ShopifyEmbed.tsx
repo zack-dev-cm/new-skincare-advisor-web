@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import SkinAnalysis from './SkinAnalysis';
 
@@ -15,6 +16,7 @@ export default function ShopifyEmbed({
   productId, 
   onProductRecommendation 
 }: ShopifyEmbedProps) {
+  const { t } = useTranslation('common');
   const [isShopify, setIsShopify] = useState(false);
   const [shopifyData, setShopifyData] = useState<any>(null);
 
@@ -111,8 +113,8 @@ export default function ShopifyEmbed({
               </svg>
             </div>
             <div>
-              <h1 className="text-lg font-semibold">AI Skin Analysis</h1>
-              <p className="text-sm opacity-90">Get personalized recommendations</p>
+              <h1 className="text-lg font-semibold">{t('embed.ai_skin_analysis')}</h1>
+              <p className="text-sm opacity-90">{t('embed.get_recommendations')}</p>
             </div>
           </div>
         </div>
@@ -127,7 +129,7 @@ export default function ShopifyEmbed({
         {isShopify && (
           <div className="bg-blue-50 border-t border-blue-200 p-4 text-center">
             <p className="text-sm text-blue-700">
-              💡 This analysis will help us recommend the best products for your skin type
+              💡 {t('embed.analysis_help')}
             </p>
           </div>
         )}

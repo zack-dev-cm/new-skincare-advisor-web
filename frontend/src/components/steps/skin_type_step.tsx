@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
@@ -47,6 +48,7 @@ const skinTypes: SkinType[] = [
 ];
 
 export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNext, onBack }: SkinTypeStepProps) {
+  const { t } = useTranslation(['steps', 'common']);
   return (
     <motion.div
       key="skin-type"
@@ -60,7 +62,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Qual è il tuo tipo di pelle?
+            {t('steps:skin_type.title')}
           </h1>
         </div>
         
@@ -116,7 +118,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-              Avanti
+              {t('common:buttons.next')}
           </motion.button>
         </div>
       </div>

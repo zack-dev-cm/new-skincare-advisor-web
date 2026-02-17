@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, ArrowRight } from 'lucide-react';
 
@@ -21,6 +22,7 @@ export default function BottomToolbar({
   totalAmount,
   currencyCode
 }: BottomToolbarProps) {
+  const { t } = useTranslation('products');
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Handle click outside to close
@@ -59,11 +61,11 @@ export default function BottomToolbar({
               <div className="flex items-center space-x-2">
                 <ShoppingBag className="w-5 h-5 text-primary-600" />
                 <span className="text-sm font-medium text-gray-900">
-                  {cartItemCount} {cartItemCount === 1 ? 'articolo' : 'articoli'}
+                  {t('cart.items_count', { count: cartItemCount })}
                 </span>
               </div>
               <div className="text-sm text-gray-600">
-                Totale: {currencyCode} {(totalAmount / 100).toFixed(2)}
+                {t('cart.total')}: {currencyCode} {(totalAmount / 100).toFixed(2)}
               </div>
             </div>
 
@@ -72,7 +74,7 @@ export default function BottomToolbar({
               onClick={onProceedToCheckout}
               className="flex items-center space-x-2 bg-primary-600 text-white px-6 py-3 rounded-lg font-semibold hover:bg-primary-700 transition-colors"
             >
-              <span>Procedi al Checkout</span>
+              <span>{t('cart.proceed_checkout')}</span>
               <ArrowRight className="w-4 h-4" />
             </button>
           </div>

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, lazy } from 'react';
+import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import LogoWhite from './RGB_Logo_White.png';
 
@@ -9,6 +10,7 @@ const SkinAnalysisModal = lazy(() => import('@/components/SkinAnalysisModal'));
 const ImagePreloader = lazy(() => import('@/components/ImagePreloader'));
 
 export default function Home() {
+  const { t } = useTranslation('common');
   const [showModal, setShowModal] = useState(false);
   const [isEmbedded, setIsEmbedded] = useState(false);
   const [isModalReady, setIsModalReady] = useState(false);
@@ -98,12 +100,12 @@ export default function Home() {
               <div className="loader__wrapper">
                 <div className="loader">&nbsp;</div>
               </div>
-              <p className="text-gray-600 text-sm">Loading skin analysis...</p>
+              <p className="text-gray-600 text-sm">{t('home.loading_skin_analysis')}</p>
             </div>
           </div>
         }>
           {!imagesPreloaded ? (
-            <div>loading...</div>
+            <div>{t('home.loading')}</div>
           ) : (
             <SkinAnalysisModal 
               isOpen={showModal} 
@@ -125,18 +127,17 @@ export default function Home() {
       </div>
       <div className="text-center flex flex-col items-center gap-6 py-16">
         <h1 className="text-4xl font-bold text-gray-900 mb-6">
-          Dermaself - AI Skin Analysis
+          {t('home.dermaself_title')}
         </h1>
         <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Advanced AI technology that analyzes your skin and provides personalized 
-          skincare recommendations. Get professional insights from the comfort of your home.
+          {t('home.hero_description')}
         </p>
         <button
           suppressHydrationWarning
           onClick={() => setShowModal(true)}
           className="bg-primary-600 hover:bg-primary-700 text-white font-semibold py-3 px-8 rounded-lg transition-colors"
         >
-          Start Skin Analysis
+          {t('home.start_skin_analysis')}
         </button>
         
         <Suspense>

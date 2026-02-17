@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
@@ -7,7 +8,7 @@ import { ASSETS } from '../../lib/assets';
 
 interface GenderOption {
   id: string;
-  name: string;
+  nameKey: string;
 }
 
 interface GenderStepProps {
@@ -17,26 +18,14 @@ interface GenderStepProps {
   onBack: () => void;
 }
 
-const genderOptions: GenderOption[] = [
-  {
-    id: 'woman',
-    name: 'Donna'
-  },
-  {
-    id: 'man',
-    name: 'Uomo'
-  },
-  {
-    id: 'non-binary',
-    name: 'Non-binario'
-  },
-  {
-    id: 'prefer-not-to-specify',
-    name: 'Preferisco non specificare'
-  }
-];
-
 export default function GenderStep({ selectedGender, onGenderSelect, onNext, onBack }: GenderStepProps) {
+  const { t } = useTranslation(['steps', 'common']);
+  const genderOptions: GenderOption[] = [
+    { id: 'woman', nameKey: 'steps:gender.female' },
+    { id: 'man', nameKey: 'steps:gender.male' },
+    { id: 'non-binary', nameKey: 'steps:gender.non_binary' },
+    { id: 'prefer-not-to-specify', nameKey: 'steps:gender.prefer_not_say' }
+  ];
   return (
     <motion.div
       key="gender"
@@ -50,7 +39,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Con quale genere ti identifichi?
+            {t('steps:gender.gender_question')}
           </h1>
         </div>
         
@@ -77,7 +66,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
                 <div className="flex h-full bg-white">
                   <div className="flex-1 min-w-0 px-6 py-4 flex flex-col justify-center items-center">
                     <div className="font-semibold text-gray-900 text-sm mb-1">
-                      {option.name}
+                      {t(option.nameKey)}
                     </div>
                   </div>
                 </div>
@@ -95,7 +84,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Avanti
+            {t('common:buttons.next')}
           </motion.button>
         </div>
       </div>

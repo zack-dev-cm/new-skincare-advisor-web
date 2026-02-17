@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
@@ -41,6 +42,7 @@ const ageOptions: AgeOption[] = [
 ];
 
 export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: AgeStepProps) {
+  const { t } = useTranslation(['steps', 'common']);
   return (
     <motion.div
       key="age"
@@ -99,7 +101,7 @@ export default function AgeStep({ selectedAge, onAgeSelect, onNext, onBack }: Ag
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Avanti
+            {t('common:buttons.next')}
           </motion.button>
         </div>
       </div>

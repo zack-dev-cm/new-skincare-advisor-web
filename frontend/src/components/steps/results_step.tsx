@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { RotateCcw, Sun, Moon, CalendarDays, Palette } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
@@ -67,6 +68,7 @@ export default function ResultsStep({
   activeTab,
   onTabChange
 }: ResultsStepProps) {
+  const { t } = useTranslation(['analysis', 'steps']);
   // Get app configuration to determine if running in demo mode
   const appConfig = useAppConfig();
   const isDemoMode = appConfig.mode === 'demo';
@@ -403,58 +405,58 @@ export default function ResultsStep({
                   {/* Analysis Results */}
                   {analysisData && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
-                      <h3 className="text-xl font-bold text-gray-800 mb-4">La Tua Analisi della Pelle</h3>
+                      <h3 className="text-xl font-bold text-gray-800 mb-4">{t('analysis:results_labels.analysis_title')}</h3>
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Tipo di Pelle</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.userData?.skin_type || 'Normale'}</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.skin_type')}</span>
+                          <span className="text-sm font-semibold text-primary-600">{analysisData.userData?.skin_type || t('steps:skin_type.normal')}</span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Classificazione Brufoli</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.acne_classification')}</span>
                           <span className="text-sm font-semibold text-primary-600">
-                            {analysisData['acne-classification'] || analysisData.acneFullData?.['acne-classification'] || 'Nessuna rilevata'}
+                            {analysisData['acne-classification'] || analysisData.acneFullData?.['acne-classification'] || t('analysis:results_labels.none_detected')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Severità Brufoli</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.acne_severity')}</span>
                           <span className="text-sm font-semibold text-primary-600">
-                            {analysisData['acne-severity'] || analysisData.acneFullData?.['acne-severity'] || 'Nessuna'}
+                            {analysisData['acne-severity'] || analysisData.acneFullData?.['acne-severity'] || t('analysis:results_labels.none')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Rossore</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.redness')}</span>
                           <span className="text-sm font-semibold text-primary-600">
-                            {analysisData.laxityRednessData?.predictions?.redness?.class || 'Non rilevato'}
+                            {analysisData.laxityRednessData?.predictions?.redness?.class || t('analysis:results_labels.not_detected')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Rughe</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.wrinkles')}</span>
                           <span className="text-sm font-semibold text-primary-600">
                             {analysisData.wrinklesData?.wrinkleSeverity?.overall?.severity 
-                              ? `Livello ${analysisData.wrinklesData.wrinkleSeverity.overall.severity}/5`
-                              : analysisData.wrinkles?.severity || 'Nessuna rilevata'}
+                              ? t('analysis:results_labels.level_severity', { level: analysisData.wrinklesData.wrinkleSeverity.overall.severity })
+                              : analysisData.wrinkles?.severity || t('analysis:results_labels.none_detected')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Secchezza</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.dryness')}</span>
                           <span className="text-sm font-semibold text-primary-600">
-                            {analysisData.laxityRednessData?.predictions?.dryness?.class || 'Non rilevata'}
+                            {analysisData.laxityRednessData?.predictions?.dryness?.class || t('analysis:results_labels.not_detected_f')}
                           </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700">Lassità Cutanea</span>
+                          <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.laxity')}</span>
                           <span className="text-sm font-semibold text-primary-600">
-                            {analysisData.laxityRednessData?.predictions?.laxity?.class || 'Non rilevata'}
+                            {analysisData.laxityRednessData?.predictions?.laxity?.class || t('analysis:results_labels.not_detected_f')}
                           </span>
                         </div>
                         <div className="p-3 bg-gradient-to-r from-primary-100 to-primary-200 rounded-xl">
-                          <span className="text-sm font-medium text-gray-700 block mb-1">Raccomandazioni</span>
+                          <span className="text-sm font-medium text-gray-700 block mb-1">{t('analysis:results_labels.recommendations')}</span>
                           <span className="text-sm text-gray-600">
                             {typeof analysisData.recommendations === 'string' 
                               ? analysisData.recommendations 
                               : analysisData.recommendations?.skincare_routine 
-                                ? `${analysisData.recommendations.skincare_routine.length} categorie personalizzate` 
-                                : 'Routine personalizzata suggerita'}
+                                ? t('analysis:results_labels.custom_categories', { count: analysisData.recommendations.skincare_routine.length }) 
+                                : t('analysis:results_labels.suggested_routine')}
                           </span>
                         </div>
                       </div>
@@ -475,28 +477,28 @@ export default function ResultsStep({
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_morning' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
                   onClick={() => setSelectedCategory('skincare_morning')}
-                  title="Skincare Mattina"
+                  title={t('analysis:results_labels.skincare_morning')}
                 >
                   <Sun className="w-4 h-4" />
-                  {selectedCategory === 'skincare_morning' && <span>Skincare</span>}
+                  {selectedCategory === 'skincare_morning' && <span>{t('analysis:results_labels.skincare')}</span>}
                 </button>
                 {/* Skincare Evening */}
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_evening' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
                   onClick={() => setSelectedCategory('skincare_evening')}
-                  title="Skincare Sera"
+                  title={t('analysis:results_labels.skincare_evening')}
                 >
                   <Moon className="w-4 h-4" />
-                  {selectedCategory === 'skincare_evening' && <span>Skincare</span>}
+                  {selectedCategory === 'skincare_evening' && <span>{t('analysis:results_labels.skincare')}</span>}
                 </button>
                 {/* Skincare Weekly */}
                 <button
                   className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_weekly' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
                   onClick={() => setSelectedCategory('skincare_weekly')}
-                  title="Skincare Settimanale"
+                  title={t('analysis:results_labels.skincare_weekly')}
                 >
                   <CalendarDays className="w-4 h-4" />
-                  {selectedCategory === 'skincare_weekly' && <span>Settimanale</span>}
+                  {selectedCategory === 'skincare_weekly' && <span>{t('analysis:results_labels.weekly')}</span>}
                 </button>
                 {/* Makeup */}
                 <button
@@ -504,7 +506,7 @@ export default function ResultsStep({
                   onClick={() => setSelectedCategory('makeup')}
                 >
                   <Palette className="w-4 h-4" />
-                  {selectedCategory === 'makeup' && <span>Makeup</span>}
+                  {selectedCategory === 'makeup' && <span>{t('analysis:results_labels.makeup')}</span>}
                 </button>
               </div>
             </div>
@@ -535,7 +537,7 @@ export default function ResultsStep({
                           stepNumber={index + 1}
                           stepTitle={step.stepTitle}
                           categoryTitle={
-                            selectedCategory === 'makeup' ? 'Makeup' : (selectedCategory === 'skincare_weekly' ? 'Skincare Weekly' : 'Skincare')
+                            selectedCategory === 'makeup' ? t('analysis:results_labels.makeup') : (selectedCategory === 'skincare_weekly' ? t('analysis:results_labels.skincare_weekly') : t('analysis:results_labels.skincare'))
                           }
                           isLastStep={index === arr.length - 1}
                           showAddAllButton={index === arr.length - 1}
@@ -579,8 +581,8 @@ export default function ResultsStep({
                     <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl">💄</span>
                     </div>
-                    <p className="text-gray-600 font-medium">Nessun dato di routine disponibile</p>
-                    <p className="text-sm text-gray-400 mt-2">Per favore riprova l'analisi</p>
+                    <p className="text-gray-600 font-medium">{t('analysis:results_labels.no_routine_data')}</p>
+                    <p className="text-sm text-gray-400 mt-2">{t('analysis:results_labels.please_retry_analysis')}</p>
                   </div>
                 )}
               </div>
@@ -598,7 +600,7 @@ export default function ResultsStep({
           whileTap={{ scale: 0.98 }}
         >
           <RotateCcw className="w-5 h-5 mr-2" />
-          Inizia Nuova Analisi
+          {t('analysis:results_labels.start_new_analysis')}
         </motion.button>
       </div>
     </motion.div>

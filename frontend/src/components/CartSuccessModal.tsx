@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { CheckCircle, ShoppingBag, X } from 'lucide-react';
 
@@ -23,6 +24,7 @@ export default function CartSuccessModal({
   onProceedToCheckout,
   addedProducts
 }: CartSuccessModalProps) {
+  const { t } = useTranslation('products');
   if (!isOpen) return null;
 
   return (
@@ -57,9 +59,9 @@ export default function CartSuccessModal({
                 <CheckCircle className="w-8 h-8 text-green-300" />
               </div>
               <div>
-                <h2 className="text-xl font-bold">Aggiunto al Carrello!</h2>
+                <h2 className="text-xl font-bold">{t('cart.added_success')}</h2>
                 <p className="text-primary-100 text-sm">
-                  {addedProducts.length} {addedProducts.length === 1 ? 'prodotto' : 'prodotti'} aggiunto{addedProducts.length === 1 ? '' : 'i'} con successo
+                  {t(addedProducts.length === 1 ? 'cart.products_added_success' : 'cart.products_added_success_plural', { count: addedProducts.length })}
                 </p>
               </div>
             </div>
@@ -92,11 +94,11 @@ export default function CartSuccessModal({
               <div className="flex items-center space-x-2">
                 <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                 <span className="text-sm font-medium text-blue-800">
-                  Raccomandato da Dermaself
+                  {t('cart.recommended_by')}
                 </span>
               </div>
               <p className="text-xs text-blue-600 mt-1">
-                Questi prodotti sono personalizzati per le tue esigenze della pelle
+                {t('cart.personalized_message')}
               </p>
             </div>
 
@@ -107,14 +109,14 @@ export default function CartSuccessModal({
                 className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-primary-700 transition-colors flex items-center justify-center space-x-2"
               >
                 <ShoppingBag className="w-5 h-5" />
-                <span>Procedi al Checkout</span>
+                <span>{t('cart.proceed_checkout')}</span>
               </button>
               
               <button
                 onClick={onContinueShopping}
                 className="w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-lg font-semibold hover:bg-gray-200 transition-colors"
               >
-                Continua lo Shopping
+                {t('cart.continue_shopping_btn')}
               </button>
             </div>
           </div>

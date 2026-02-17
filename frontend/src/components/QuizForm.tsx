@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import PhotoInstructionsStep from './steps/photo_instructions_step';
@@ -62,6 +63,7 @@ interface QuizAnswers {
 type QuizStep = 'quiz' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
 export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFormProps) {
+  const { t } = useTranslation('common');
   const [currentStep, setCurrentStep] = useState<QuizStep>('quiz');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
@@ -219,11 +221,11 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
 
       <div className="flex-1 text-center">
         <div className="text-sm font-medium">
-          {currentStep === 'quiz' && `Question ${currentQuestionIndex + 1} of ${sortedQuestions.length}`}
-          {currentStep === 'photo-instructions' && 'Photo Instructions'}
-          {currentStep === 'camera-capture' && 'Take Photo'}
-          {currentStep === 'scan' && 'Analyzing...'}
-          {currentStep === 'results' && 'Results'}
+          {currentStep === 'quiz' && t('quiz.question_of', { current: currentQuestionIndex + 1, total: sortedQuestions.length })}
+          {currentStep === 'photo-instructions' && t('quiz.photo_instructions')}
+          {currentStep === 'camera-capture' && t('quiz.take_photo')}
+          {currentStep === 'scan' && t('quiz.analyzing')}
+          {currentStep === 'results' && t('quiz.results')}
         </div>
       </div>
 
@@ -486,7 +488,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
                 onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                 className="w-full p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500"
                 rows={6}
-                placeholder="Type your answer here..."
+                placeholder={t('quiz.placeholder')}
                 style={{ borderColor: config.settings.theme.primaryColor + '40' }}
               />
             )}
@@ -501,7 +503,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
             onClick={handleSkip}
             className="px-6 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            Skip
+            {t('quiz.skip')}
           </button>
         )}
         <button
@@ -516,7 +518,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
             backgroundColor: canProceed() ? config.settings.theme.primaryColor : undefined,
           }}
         >
-          {currentQuestionIndex < sortedQuestions.length - 1 ? 'Next' : 'Complete'}
+          {currentQuestionIndex < sortedQuestions.length - 1 ? t('quiz.next') : t('quiz.complete')}
           <ChevronRight className="inline-block ml-2 w-5 h-5" />
         </button>
       </div>

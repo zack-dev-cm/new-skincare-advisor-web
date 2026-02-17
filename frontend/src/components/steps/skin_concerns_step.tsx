@@ -1,5 +1,6 @@
 "use client";
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
@@ -7,7 +8,7 @@ import { ASSETS } from '../../lib/assets';
 
 interface SkinConcern {
   id: string;
-  name: string;
+  nameKey: string;
   icon: string;
 }
 
@@ -18,40 +19,16 @@ interface SkinConcernsStepProps {
   onBack: () => void;
 }
 
-const skinConcerns: SkinConcern[] = [
-  {
-    id: 'wrinkles',
-    name: 'Rughe visibili e mancanza di tono',
-    icon: ASSETS.images.icons.wrinkles
-  },
-  {
-    id: 'eyebags',
-    name: 'Borse e occhiaie',
-    icon: ASSETS.images.icons.eyebags
-  },
-  {
-    id: 'dullSkin',
-    name: 'Carnagione spenta',
-    icon: ASSETS.images.icons.dullSkin
-  },
-  {
-    id: 'aging',
-    name: 'Primi segni di invecchiamento',
-    icon: ASSETS.images.icons.aging
-  },
-  {
-    id: 'pores',
-    name: 'Pori visibili e punti neri',
-    icon: ASSETS.images.icons.poreDilation
-  },
-  {
-    id: 'none',
-    name: 'Nessuna preoccupazione specifica',
-    icon: ''
-  }
-];
-
 export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, onNext, onBack }: SkinConcernsStepProps) {
+  const { t } = useTranslation(['steps', 'common']);
+  const skinConcerns: SkinConcern[] = [
+    { id: 'wrinkles', nameKey: 'steps:skin_concerns.option_wrinkles', icon: ASSETS.images.icons.wrinkles },
+    { id: 'eyebags', nameKey: 'steps:skin_concerns.option_eyebags', icon: ASSETS.images.icons.eyebags },
+    { id: 'dullSkin', nameKey: 'steps:skin_concerns.option_dullness', icon: ASSETS.images.icons.dullSkin },
+    { id: 'aging', nameKey: 'steps:skin_concerns.option_aging', icon: ASSETS.images.icons.aging },
+    { id: 'pores', nameKey: 'steps:skin_concerns.option_pores', icon: ASSETS.images.icons.poreDilation },
+    { id: 'none', nameKey: 'steps:skin_concerns.option_none', icon: '' }
+  ];
   return (
     <motion.div
       key="skin-concerns"
@@ -65,7 +42,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            Cosa pensi della tua pelle? Indica quali sono le principali preoccupazioni della tua pelle, se ce ne sono.
+            {t('steps:skin_concerns.question_text')}
           </h1>
         </div>
         
@@ -91,7 +68,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                     {concern.icon ? (
                       <img
                         src={concern.icon}
-                        alt={concern.name}
+                        alt={t(concern.nameKey)}
                         className="w-full h-full object-contain p-2"
                         onError={(e) => {
                           console.error(`Failed to load icon: ${concern.icon}`);
@@ -100,13 +77,13 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                       />
                     ) : (
                       <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">
-                        N/A
+                        {t('steps:skin_concerns.na')}
                       </div>
                     )}
                   </div>
                   <div className="flex-1 min-w-0 px-3 py-2 flex flex-col justify-center items-center">
                     <div className="font-semibold text-gray-900 text-center text-xs sm:text-sm leading-tight break-words">
-                      {concern.name}
+                      {t(concern.nameKey)}
                     </div>
                   </div>
                 </div>
@@ -124,7 +101,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >
-            Avanti
+            {t('common:buttons.next')}
           </motion.button>
         </div>
       </div>

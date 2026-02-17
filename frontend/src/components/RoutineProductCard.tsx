@@ -64,7 +64,7 @@ export default function RoutineProductCard({
   alternativesExpanded = false,
   onToggleAlternatives
 }: RoutineProductCardProps) {
-  const { t } = useTranslation();
+  const { t } = useTranslation(['products', 'common']);
   const { formatCurrency } = useLocale();
   const appConfig = useAppConfig();
   
@@ -240,7 +240,7 @@ export default function RoutineProductCard({
       {/* Step Header */}
       <div className="flex items-center gap-2 mb-3">
         <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
-          {`Passo ${stepNumber}`}
+          {t('products:cart.step_label', { number: stepNumber })}
         </span>
         <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{translateModuleName(stepTitle)}</h2>
         {categoryTitle && (
@@ -328,14 +328,14 @@ export default function RoutineProductCard({
           {/* Why picked bubble */}
           {whyPicked && (
             <div className="mt-4 rounded-3xl bg-muted p-4 text-sm leading-relaxed">
-              <div className="font-semibold text-sm mb-1">Perchè l'abbiamo scelta</div>
+              <div className="font-semibold text-sm mb-1">{t('products:cart.why_picked')}</div>
               <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
               <button
                 type="button"
                 className="mt-2 text-xs font-semibold text-primary-700 hover:text-primary-800"
                 onClick={() => setWhyExpanded(prev => !prev)}
               >
-                {whyExpanded ? 'Show less' : 'Show more'}
+                {whyExpanded ? t('products:cart.show_less') : t('products:cart.show_more')}
               </button>
             </div>
           )}
@@ -349,7 +349,7 @@ export default function RoutineProductCard({
                 className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
                 onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
                 disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
-                aria-label={isInCart ? 'Rimuovi dal carrello' : 'Aggiungi al carrello'}
+                aria-label={isInCart ? t('products:cart.remove_aria') : t('products:cart.add_aria')}
               >
                 {isLoading || state.loading ? (
                   <>
@@ -377,7 +377,7 @@ export default function RoutineProductCard({
                 onClick={onToggleAlternatives}
                 aria-controls={`alt-list-${product.id}`}
               >
-                <span className="text-gray-900">{alternatives.length} alternative</span>
+                <span className="text-gray-900">{t('products:cart.alternatives_count', { count: alternatives.length })}</span>
                 <svg className={`w-4 h-4 transition-transform text-gray-600 ${alternativesExpanded ? 'rotate-180' : ''}`} viewBox="0 0 20 20" fill="currentColor"><path d="M5.23 7.21a.75.75 0 011.06.02L10 11.188l3.71-3.956a.75.75 0 011.08 1.04l-4.25 4.53a.75.75 0 01-1.08 0l-4.25-4.53a.75.75 0 01.03-1.06z"/></svg>
               </button>
             )}
@@ -386,7 +386,7 @@ export default function RoutineProductCard({
           {/* Alternatives list when expanded */}
           {alternativesExpanded && alternatives && alternatives.length > 0 && (
             <div id={`alt-list-${product.id}`} className="mt-4 space-y-3">
-              <div className="text-sm text-muted-foreground px-1">Other great AI-picked options</div>
+              <div className="text-sm text-muted-foreground px-1">{t('products:cart.other_options')}</div>
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
                 <div className="flex gap-4 w-max pr-3 pb-1">
                   {alternatives.map((alt: any) => (
@@ -463,7 +463,7 @@ export default function RoutineProductCard({
                                       setTimeout(() => setShowError(false), 2000);
                                     }
                                   }}
-                                  aria-label={isAltInCart ? `Rimuovi ${alt.title} dal carrello` : `Aggiungi ${alt.title} al carrello`}
+                                  aria-label={isAltInCart ? `${t('products:cart.remove_aria')} ${alt.title}` : `${t('products:cart.add_aria')} ${alt.title}`}
                                 >
                                   {isAltInCart ? (
                                     <Trash2 className="w-4 h-4" />
@@ -495,7 +495,7 @@ export default function RoutineProductCard({
             <div className="text-white text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" />
               <p className="font-semibold">
-                {showSuccess === 'added' ? 'Added to Cart!' : 'Removed from Cart!'}
+                {showSuccess === 'added' ? t('products:cart.added_to_cart_toast') : t('products:cart.removed_toast')}
               </p>
             </div>
           </motion.div>
@@ -513,7 +513,7 @@ export default function RoutineProductCard({
               <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center">
                 <span className="text-2xl">⚠️</span>
               </div>
-              <p className="font-semibold">Error</p>
+              <p className="font-semibold">{t('products:cart.error_title')}</p>
               <p className="text-sm mt-1">{errorMessage}</p>
             </div>
           </motion.div>
@@ -533,10 +533,10 @@ export default function RoutineProductCard({
           {state.loading ? (
             <div className="flex items-center justify-center">
               <Loader2 className="w-5 h-5 animate-spin mr-2" />
-              Aggiungendo Routine...
+              {t('products:cart.adding_routine')}
             </div>
           ) : (
-            'AGGIUNGI ROUTINE COMPLETA AL CARRELLO'
+            t('products:cart.add_full_routine')
           )}
         </button>
       )}
@@ -561,11 +561,11 @@ export default function RoutineProductCard({
           >
             {/* Modal Header */}
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold">Product Details</h3>
+              <h3 className="text-lg font-semibold">{t('products:cart.product_details')}</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
                 className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-                title="Close modal"
+                title={t('products:cart.close_modal_title')}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -599,7 +599,7 @@ export default function RoutineProductCard({
                 {/* Tags */}
                 {productTags.length > 0 && (
                   <div>
-                    <p className="font-medium mb-2">Tags:</p>
+                    <p className="font-medium mb-2">{t('products:cart.tags_label')}</p>
                     <div className="flex flex-wrap gap-2">
                       {productTags.map((tag, index) => (
                         <span
@@ -616,7 +616,7 @@ export default function RoutineProductCard({
                 {/* Description */}
                 {product.body_html && (
                   <div>
-                    <p className="font-medium mb-2">Description:</p>
+                    <p className="font-medium mb-2">{t('products:cart.description_label')}</p>
                     <div 
                       className="text-sm text-gray-700 prose prose-sm max-w-none"
                       dangerouslySetInnerHTML={{ 
@@ -634,7 +634,7 @@ export default function RoutineProductCard({
                 onClick={() => setShowDetailsModal(false)}
                 className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
               >
-                Close
+                {t('common:buttons.close')}
               </button>
             </div>
           </motion.div>

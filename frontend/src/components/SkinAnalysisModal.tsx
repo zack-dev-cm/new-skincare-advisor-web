@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
@@ -86,6 +87,7 @@ const getProducts = async (): Promise<Product[]> => {
 };
 
 export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false, initialStep }: SkinAnalysisModalProps) {
+  const { t } = useTranslation(['steps', 'common']);
   // Get app configuration
   const appConfig = useAppConfig();
 
@@ -269,7 +271,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     
     // Set default skin type if empty to ensure proper flow
     if (!selectedSkinType) {
-      setSelectedSkinType('Normale');
+      setSelectedSkinType(t('steps:skin_type.normal'));
     }
     
     // Show loading state immediately
@@ -297,7 +299,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             last_name: 'Test',
             ageRange: mapAgeToAgeRange(selectedAge),
             gender: mapGenderToApiFormat(selectedGender),
-            skin_type: selectedSkinType || 'Normale',
+            skin_type: selectedSkinType || t('steps:skin_type.normal'),
             concerns: selectedConcerns,
             budget_level: 'High' as const
           };
@@ -359,8 +361,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <button
                 onClick={handleBack}
                 className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                aria-label="Go back"
-                title="Go back"
+                aria-label={t('common:buttons.go_back')}
+                title={t('common:buttons.go_back')}
               >
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -389,8 +391,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <button
                 onClick={handleClose}
                 className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
-                aria-label="Close modal"
-                title="Close modal"
+                aria-label={t('common:buttons.close_modal_aria')}
+                title={t('common:buttons.close_modal_aria')}
               >
                 <X className="w-5 h-5 text-white" />
               </button>

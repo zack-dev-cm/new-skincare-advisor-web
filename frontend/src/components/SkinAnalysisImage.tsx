@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Info, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
 import { getLegendLabel } from '@/lib/legendLabels';
@@ -129,6 +130,7 @@ export default function SkinAnalysisImage({
   analysisData, 
   className = '' 
 }: SkinAnalysisImageProps) {
+  const { t } = useTranslation('analysis');
   const [currentView, setCurrentView] = useState<'acne' | 'wrinkles'>('acne');
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
@@ -151,8 +153,8 @@ export default function SkinAnalysisImage({
   const [scaleFactors, setScaleFactors] = useState({ x: 1, y: 1 });
 
   const carouselImages = [
-    { url: imageUrl, label: 'Analisi Imperfezioni', view: 'acne' as const },
-    { url: imageUrl, label: 'Analisi Rughe', view: 'wrinkles' as const }
+    { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
+    { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const }
   ];
 
   const drawImage = useCallback(
@@ -565,7 +567,7 @@ export default function SkinAnalysisImage({
             <button
               onClick={prevImage}
               className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
-              title="Previous image"
+              title={t('image.prev_image')}
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -575,7 +577,7 @@ export default function SkinAnalysisImage({
             <button
               onClick={nextImage}
               className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
-              title="Next image"
+              title={t('image.next_image')}
             >
               <ChevronRight className="w-5 h-5" />
             </button>
@@ -593,7 +595,7 @@ export default function SkinAnalysisImage({
                       ? 'bg-white shadow-lg'
                       : 'bg-white/50 hover:bg-white/75'
                   }`}
-                  title={`Go to image ${index + 1}`}
+                  title={t('image.go_to_image', { index: index + 1 })}
                 />
               ))}
             </div>
@@ -622,7 +624,7 @@ export default function SkinAnalysisImage({
         {/* Color Legend Bar */}
         <div className="bg-white rounded-lg p-4 shadow-sm border">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
-            {carouselImages[currentImageIndex].label} - Legenda
+            {carouselImages[currentImageIndex].label}{t('image.legend_suffix')}
           </h3>
           <div className="flex flex-wrap gap-2 align-center justify-center">
             {getUniqueClasses().map((className) => {

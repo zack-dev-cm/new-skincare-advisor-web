@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, useMemo, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { debounce } from 'lodash';
 import NoseAlignmentOverlay from './NoseAlignmentOverlay';
 import { getFaceFrameRect } from '@/lib/face-utils';
@@ -22,6 +23,7 @@ export default function FaceFrameOverlay({
 	windowSize,
 	processId,
 }: Props) {
+	const { t } = useTranslation('camera');
 	const [textPosition, setTextPosition] = useState('3vh');
 	const textRef = useRef<HTMLParagraphElement>(null);
 
@@ -171,12 +173,12 @@ export default function FaceFrameOverlay({
 
 		const getText = () => {
 			if (!hasFace) return '';
-			if (!isCentered) return 'Place your face in the frame';
-			if (zoomStatus === 'too-far') return 'Get closer for better detail';
-			if (zoomStatus === 'too-close') return 'Slightly move back';
+			if (!isCentered) return t('face_guide.place_face');
+			if (zoomStatus === 'too-far') return t('face_guide.get_closer');
+			if (zoomStatus === 'too-close') return t('face_guide.move_back');
 			if (!isPerfectAlignment)
-				return 'Align your nose with the target circle.';
-			return 'Perfect! Stay still...';
+				return t('face_guide.align_nose');
+			return t('face_guide.perfect_stay');
 		};
 
 		const newText = getText();
@@ -189,6 +191,7 @@ export default function FaceFrameOverlay({
 			debouncedSetText.cancel();
 		};
 	}, [
+		t,
 		hasFace,
 		isCentered,
 		zoomStatus,

@@ -1,11 +1,13 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X, Plus, Minus, Trash2, ExternalLink, Loader2 } from 'lucide-react';
 import { useCart } from './CartContext';
 
 export default function Cart() {
+  const { t } = useTranslation('products');
   const { state, updateCartItem, removeFromCart, clearCart, proceedToCheckout } = useCart();
   const { cart, loading, error } = state;
   const [isClearing, setIsClearing] = React.useState(false);
@@ -18,8 +20,8 @@ export default function Cart() {
             <ShoppingCart className="w-6 h-6 text-gray-400" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Carrello</h2>
-            <p className="text-gray-600">Il tuo carrello è vuoto</p>
+            <h2 className="text-xl font-semibold text-gray-900">{t('cart.cart_title')}</h2>
+            <p className="text-gray-600">{t('cart.empty_cart')}</p>
           </div>
         </div>
       </div>
@@ -43,7 +45,7 @@ export default function Cart() {
   };
 
   const handleClearCart = async () => {
-    if (!confirm('Sei sicuro di voler svuotare il carrello? Questa azione non può essere annullata.')) {
+    if (!confirm(t('cart.clear_confirm'))) {
       return;
     }
     
@@ -70,8 +72,8 @@ export default function Cart() {
             <ShoppingCart className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Carrello</h2>
-            <p className="text-gray-600">{totalItems} articol{totalItems !== 1 ? 'i' : 'o'}</p>
+            <h2 className="text-xl font-semibold text-gray-900">{t('cart.cart_title')}</h2>
+            <p className="text-gray-600">{t('cart.items_count', { count: totalItems })}</p>
           </div>
         </div>
         <button
@@ -82,10 +84,10 @@ export default function Cart() {
           {isClearing ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Svuotamento...</span>
+              <span>{t('cart.clearing')}</span>
             </>
           ) : (
-            <span>Svuota Carrello</span>
+            <span>{t('cart.clear_cart')}</span>
           )}
         </button>
       </div>
@@ -142,7 +144,7 @@ export default function Cart() {
                 onClick={() => handleQuantityChange(item.id, item.quantity - 1)}
                 disabled={loading}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-                aria-label="Diminuisci quantità"
+                aria-label={t('cart.decrease_qty')}
               >
                 <Minus className="w-4 h-4" />
               </button>
@@ -159,7 +161,7 @@ export default function Cart() {
                 onClick={() => handleQuantityChange(item.id, item.quantity + 1)}
                 disabled={loading}
                 className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-                aria-label="Aumenta quantità"
+                aria-label={t('cart.increase_qty')}
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -170,7 +172,7 @@ export default function Cart() {
               onClick={() => handleRemoveItem(item.id)}
               disabled={loading}
               className="text-red-600 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 disabled:opacity-50"
-              aria-label="Rimuovi articolo"
+              aria-label={t('cart.remove_item')}
             >
               <Trash2 className="w-4 h-4" />
             </button>
@@ -182,7 +184,7 @@ export default function Cart() {
       <div className="border-t border-gray-200 pt-4 mt-6">
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="text-gray-600">Subtotale</span>
+            <span className="text-gray-600">{t('cart.subtotal')}</span>
             <span className="font-medium">
               {new Intl.NumberFormat('en-US', {
                 style: 'currency',
@@ -193,7 +195,7 @@ export default function Cart() {
           
           {total !== subtotal && (
             <div className="flex justify-between text-sm">
-              <span className="text-gray-600">Totale</span>
+              <span className="text-gray-600">{t('cart.total')}</span>
               <span className="font-medium">
                 {new Intl.NumberFormat('en-US', {
                   style: 'currency',
@@ -214,14 +216,14 @@ export default function Cart() {
             <Loader2 className="w-5 h-5 animate-spin" />
           ) : (
             <>
-              <span>Procedi al Checkout</span>
+              <span>{t('cart.proceed_checkout')}</span>
               <ExternalLink className="w-4 h-4" />
             </>
           )}
         </button>
 
         <p className="text-xs text-gray-500 text-center mt-2">
-          Sarai reindirizzato al checkout sicuro di Shopify
+          {t('cart.redirect_shopify')}
         </p>
       </div>
     </div>

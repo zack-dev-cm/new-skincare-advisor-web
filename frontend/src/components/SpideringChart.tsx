@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 
 interface SpideringChartProps {
@@ -16,6 +17,7 @@ export default function SpideringChart({
   userGender = 'female',
   ageRange = '26-35'
 }: SpideringChartProps) {
+  const { t } = useTranslation('analysis');
   
   /**
    * Helper: converts age range to category (from JavaScript)
@@ -131,48 +133,12 @@ export default function SpideringChart({
 
   // Build chart data array (6 metrics - pores excluded)
   const chartData = [
-    { 
-      label: 'Brufoli', 
-      userValue: userMetrics.acne,
-      benchmarkValue: benchmarks.acne,
-      max: 4,
-      color: '#ff6b6b' 
-    },
-    { 
-      label: 'Secchezza', 
-      userValue: userMetrics.dryness,
-      benchmarkValue: benchmarks.dryness,
-      max: 5,
-      color: '#4dabf7' 
-    },
-    { 
-      label: 'Rughe', 
-      userValue: userMetrics.wrinkles,
-      benchmarkValue: benchmarks.wrinkles,
-      max: 5,
-      color: '#ff922b' 
-    },
-    { 
-      label: 'Macchie', 
-      userValue: userMetrics.spots,
-      benchmarkValue: benchmarks.spots,
-      max: 4,
-      color: '#9775fa' 
-    },
-    { 
-      label: 'Rossore', 
-      userValue: userMetrics.redness,
-      benchmarkValue: benchmarks.redness,
-      max: 5,
-      color: '#ff6b9d' 
-    },
-    { 
-      label: 'Lassità\nCutanea', 
-      userValue: userMetrics.laxity,
-      benchmarkValue: benchmarks.laxity,
-      max: 4,
-      color: '#20c997' 
-    }
+    { labelKey: 'chart.acne', label: t('chart.acne'), userValue: userMetrics.acne, benchmarkValue: benchmarks.acne, max: 4, color: '#ff6b6b' },
+    { labelKey: 'chart.dryness', label: t('chart.dryness'), userValue: userMetrics.dryness, benchmarkValue: benchmarks.dryness, max: 5, color: '#4dabf7' },
+    { labelKey: 'chart.wrinkles', label: t('chart.wrinkles'), userValue: userMetrics.wrinkles, benchmarkValue: benchmarks.wrinkles, max: 5, color: '#ff922b' },
+    { labelKey: 'chart.spots', label: t('chart.spots'), userValue: userMetrics.spots, benchmarkValue: benchmarks.spots, max: 4, color: '#9775fa' },
+    { labelKey: 'chart.redness', label: t('chart.redness'), userValue: userMetrics.redness, benchmarkValue: benchmarks.redness, max: 5, color: '#ff6b9d' },
+    { labelKey: 'chart.laxity_skin', label: t('chart.laxity_skin'), userValue: userMetrics.laxity, benchmarkValue: benchmarks.laxity, max: 4, color: '#20c997' }
   ];
 
   const centerX = 150;
@@ -216,17 +182,17 @@ export default function SpideringChart({
 
   return (
     <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center">Panoramica Analisi della Pelle</h3>
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center">{t('chart.overview_title')}</h3>
       
       {/* Legend info - Above chart */}
       <div className="mb-4 flex items-center justify-center gap-4 text-xs sm:text-sm text-gray-500">
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5 bg-purple-600"></div>
-          <span>La tua pelle</span>
+          <span>{t('chart.your_skin')}</span>
         </div>
         <div className="flex items-center gap-2">
           <div className="w-3 h-0.5 border-t-2 border-green-600 border-dashed"></div>
-          <span>Valore di riferimento</span>
+          <span>{t('chart.reference_value')}</span>
         </div>
       </div>
       
@@ -344,6 +310,7 @@ export default function SpideringChart({
           {/* Labels */}
           {chartData.map((metric, index) => {
             const pos = getLabelPosition(index);
+            const displayLabel = metric.labelKey === 'chart.laxity_skin' ? metric.label.replace(/\s/g, '\n') : metric.label;
             return (
               <text
                 key={index}
@@ -353,7 +320,7 @@ export default function SpideringChart({
                 dominantBaseline="middle"
                 className="text-[10px] sm:text-xs font-medium fill-gray-600"
               >
-                {metric.label}
+                {displayLabel}
               </text>
             );
           })}
@@ -380,7 +347,7 @@ export default function SpideringChart({
                   style={{ backgroundColor: metric.color }}
                 />
                 <span className="text-sm sm:text-base font-medium text-gray-700">
-                  {metric.label.replace('\n', ' ')}
+                  {metric.label.replace(/\n/g, ' ')}
                 </span>
               </div>
               
@@ -391,7 +358,7 @@ export default function SpideringChart({
                   : 'bg-amber-100 text-amber-700'
               }`}>
                 <span className="mr-1">{isOk ? '✓' : '⚠'}</span>
-                <span>{isOk ? 'Ok' : 'Da Migliorare'}</span>
+                <span>{isOk ? t('chart.ok') : t('chart.needs_improvement')}</span>
               </div>
             </motion.div>
           );

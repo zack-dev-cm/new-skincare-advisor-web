@@ -1,5 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
@@ -21,9 +22,10 @@ export default function ImagePreloader({
 	  analysisProgress = 0,
 	  analysisImageUrl,
 }: ImagePreloaderProps) {
+  const { t } = useTranslation('analysis');
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
-  const [loadingText, setLoadingText] = useState('Preparando la tua analisi della pelle...');
+  const [loadingText, setLoadingText] = useState('');
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'analyzing' | 'complete'>('preparing');
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export default function ImagePreloader({
       try {
         if (mode === 'initial') {
           // Precaricamento iniziale delle immagini
-          setLoadingText('Dermaself - Analisi della Pelle AI');
+          setLoadingText(t('preloader.dermaself_title'));
           setCurrentPhase('preparing');
           
           // Avvia il precaricamento delle immagini
@@ -71,7 +73,7 @@ export default function ImagePreloader({
           
         } else if (mode === 'analysis') {
           // Modalità caricamento analisi
-          setLoadingText('Analizzando la Tua Foto');
+          setLoadingText(t('preloader.analyzing_photo'));
           setCurrentPhase('analyzing');
           
           // Simula il progresso dell'analisi
@@ -81,7 +83,7 @@ export default function ImagePreloader({
             if (analysisProgress >= 100) {
               clearInterval(analysisInterval);
               setCurrentPhase('complete');
-              setLoadingText('Analisi Completata!');
+              setLoadingText(t('preloader.analysis_complete'));
               
               setTimeout(() => {
                 setIsLoading(false);
@@ -95,7 +97,7 @@ export default function ImagePreloader({
         
       } catch (error) {
         console.error('Caricamento fallito:', error);
-        setLoadingText('Continuando...');
+        setLoadingText(t('preloader.continuing'));
         // Anche se il caricamento fallisce, continua con l'app
         setTimeout(() => {
           setIsLoading(false);
@@ -105,7 +107,7 @@ export default function ImagePreloader({
     };
 
     loadImages();
-  }, [onComplete, mode, analysisProgress]);
+  }, [onComplete, mode, analysisProgress, t]);
 
 	  if (!isLoading) {
 	    return <>{children}</>;
@@ -163,8 +165,8 @@ export default function ImagePreloader({
               
               <p className="text-sm text-gray-600">
                 {mode === 'initial' 
-                  ? 'Preparazione della tua esperienza di analisi della pelle...'
-                  : 'La nostra AI sta analizzando la tua pelle e creando raccomandazioni personalizzate...'
+                  ? t('preloader.preparing_experience')
+                  : t('preloader.ai_analyzing')
                 }
               </p>
             </div>
@@ -201,8 +203,8 @@ export default function ImagePreloader({
           <div className="flex items-center justify-center">
             <p className="text-xs text-white/70">
               {mode === 'initial' 
-                ? 'Ottimizzazione della tua esperienza...'
-                : 'Attendi mentre elaboriamo la tua immagine...'
+                ? t('preloader.optimizing')
+                : t('preloader.processing_image')
               }
             </p>
           </div>

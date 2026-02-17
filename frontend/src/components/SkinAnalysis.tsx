@@ -1,5 +1,6 @@
 'use client';
 import React, { useState, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import Image from 'next/image';
 import LogoWhite from '../app/RGB_Logo_White.png';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,6 +62,7 @@ export type AnalysisResult = {
 };
 
 export default function SkinAnalysis() {
+  const { t } = useTranslation('common');
   const [step, setStep] = useState<'upload' | 'camera' | 'analyzing' | 'results'>('upload');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
@@ -117,10 +119,10 @@ export default function SkinAnalysis() {
           >
             <div className="text-center mb-6">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                Start Your Skin Analysis
+                {t('analysis_flow.start_analysis')}
               </h2>
               <p className="text-gray-600">
-                Upload a clear selfie or take a photo to get personalized skincare recommendations
+                {t('analysis_flow.upload_selfie_subtitle')}
               </p>
             </div>
 
@@ -130,9 +132,9 @@ export default function SkinAnalysis() {
                   <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Upload className="w-8 h-8 text-primary-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Upload Photo</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">{t('analysis_flow.upload_photo')}</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Choose a photo from your device
+                    {t('analysis_flow.choose_photo')}
                   </p>
                   <ImageUpload onImageSelect={handleImageSelect} />
                 </div>
@@ -143,15 +145,15 @@ export default function SkinAnalysis() {
                   <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <Camera className="w-8 h-8 text-primary-600" />
                   </div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Take Photo</h3>
+                  <h3 className="font-semibold text-gray-900 mb-2">{t('analysis_flow.take_photo')}</h3>
                   <p className="text-sm text-gray-600 mb-4">
-                    Use your camera to take a new photo
+                    {t('analysis_flow.use_camera')}
                   </p>
                   <button
                     onClick={() => setStep('camera')}
                     className="btn-primary w-full"
                   >
-                    Open Camera
+                    {t('analysis_flow.open_camera')}
                   </button>
                 </div>
               </div>
@@ -183,7 +185,7 @@ export default function SkinAnalysis() {
                   <button
                     onClick={() => setSelectedImage(null)}
                     className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600 transition-colors"
-                    aria-label="Rimuovi immagine"
+                    aria-label={t('analysis_flow.remove_image')}
                   >
                     <X className="w-4 h-4" />
                   </button>
@@ -197,12 +199,12 @@ export default function SkinAnalysis() {
                     {isAnalyzing ? (
                       <>
                         <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                        Analyzing...
+                        {t('analysis_flow.analyzing')}
                       </>
                     ) : (
                       <>
                         <Sparkles className="w-5 h-5 mr-2" />
-                        Analyze Skin
+                        {t('analysis_flow.analyze_skin')}
                       </>
                     )}
                   </button>
@@ -242,10 +244,10 @@ export default function SkinAnalysis() {
               
               <div>
                 <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Analyzing Your Skin
+                  {t('analysis_flow.analyzing_your_skin')}
                 </h3>
                 <p className="text-gray-600">
-                  Our AI is examining your skin for concerns and generating personalized recommendations...
+                  {t('analysis_flow.ai_examining')}
                 </p>
               </div>
 
@@ -260,19 +262,19 @@ export default function SkinAnalysis() {
                   <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <CheckCircle className="w-4 h-4 text-blue-600" />
                   </div>
-                  <span>Image Processing</span>
+                  <span>{t('analysis_flow.image_processing')}</span>
                 </div>
                 <div className="text-center">
                   <div className="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <Loader2 className="w-4 h-4 text-primary-600 animate-spin" />
                   </div>
-                  <span>AI Analysis</span>
+                  <span>{t('analysis_flow.ai_analysis')}</span>
                 </div>
                 <div className="text-center">
                   <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2">
                     <Sparkles className="w-4 h-4 text-gray-400" />
                   </div>
-                  <span>Recommendations</span>
+                  <span>{t('analysis_flow.recommendations')}</span>
                 </div>
               </div>
             </div>

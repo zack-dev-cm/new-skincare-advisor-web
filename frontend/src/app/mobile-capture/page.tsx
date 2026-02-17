@@ -1,8 +1,10 @@
 'use client';
 import { Suspense, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 function MobileCapturePageInner() {
+  const { t } = useTranslation('camera');
   const searchParams = useSearchParams();
   const session = searchParams.get('session');
 
@@ -46,7 +48,7 @@ function MobileCapturePageInner() {
         const video = videoRef.current;
         if (!video) {
           console.error('Video element not ready.');
-          setError('Video not ready. Try refreshing.');
+          setError(t('mobile.video_not_ready'));
           return;
         }
 
@@ -58,7 +60,7 @@ function MobileCapturePageInner() {
         video.onloadedmetadata = async () => {
           await video.play().catch((err) => {
             console.error('Video play() failed:', err);
-            setError('Unable to start camera. Tap the screen to allow playback.');
+            setError(t('mobile.unable_start_camera'));
           });
 
           const w = video.videoWidth;
@@ -79,7 +81,7 @@ function MobileCapturePageInner() {
         };
       } catch (err) {
         console.error('Camera error:', err);
-        setError('Unable to access camera. Please check permissions.');
+        setError(t('mobile.unable_access_camera'));
       }
     };
 
@@ -116,7 +118,7 @@ function MobileCapturePageInner() {
   };
 
   const uploadPhoto = async (base64: string) => {
-    if (!session) return setError('Missing session.');
+    if (!session) return setError(t('mobile.missing_session'));
     setStatus('uploading');
     try {
       const res = await fetch('/api/photo-upload', {
@@ -134,7 +136,7 @@ function MobileCapturePageInner() {
 
   return (
     <main className="flex flex-col items-center justify-center min-h-screen p-4 bg-gray-50">
-      <h1 className="text-2xl font-bold mb-4">Take a Selfie</h1>
+      <h1 className="text-2xl font-bold mb-4">{t('mobile.take_selfie')}</h1>
 
       {error && <p className="text-red-500 mb-2">{error}</p>}
 
@@ -153,7 +155,7 @@ function MobileCapturePageInner() {
         {image && (
           <img
             src={image}
-            alt="Captured"
+            alt={t('mobile.captured')}
             className="rounded shadow mb-4 max-w-full"
           />
         )}
@@ -165,24 +167,25 @@ function MobileCapturePageInner() {
           onClick={capturePhoto}
           className="bg-primary-600 text-white px-6 py-2 rounded shadow"
         >
-          Capture Photo
+          {t('mobile.capture_photo')}
         </button>
       )}
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {status === 'uploading' && <p>Uploading...</p>}
+      {status === 'uploading' && <p>{t('mobile.uploading')}</p>}
       {status === 'done' && (
-        <p className="text-green-600 mt-2">Photo uploaded! You can return to your desktop.</p>
+        <p className="text-green-600 mt-2">{t('mobile.photo_uploaded')}</p>
       )}
-      {status === 'error' && <p className="text-red-500 mt-2">Upload failed. Try again.</p>}
+      {status === 'error' && <p className="text-red-500 mt-2">{t('mobile.upload_failed')}</p>}
     </main>
   );
 }
 
 export default function MobileCapturePage() {
+  const { t } = useTranslation('camera');
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>{t('mobile.loading')}</div>}>
       <MobileCapturePageInner />
     </Suspense>
   );

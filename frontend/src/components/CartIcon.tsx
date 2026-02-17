@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, X } from 'lucide-react';
 import { useCart } from './CartContext';
 import Cart from './Cart';
 
 export default function CartIcon() {
+  const { t } = useTranslation('products');
   const { state } = useCart();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const { cart } = state;
@@ -45,11 +47,11 @@ export default function CartIcon() {
           >
             <div className="p-4">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900">Carrello</h3>
+                <h3 className="text-lg font-semibold text-gray-900">{t('cart.cart_title')}</h3>
                 <button
                   onClick={() => setIsCartOpen(false)}
                   className="text-gray-400 hover:text-gray-600"
-                  aria-label="Chiudi carrello"
+                  aria-label={t('cart.close_notification')}
                 >
                   <X className="w-5 h-5" />
                 </button>

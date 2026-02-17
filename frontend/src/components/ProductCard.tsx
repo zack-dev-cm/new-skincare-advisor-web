@@ -191,8 +191,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={() => handleQuantityChange(quantity - 1)}
               disabled={quantity <= 1}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-              aria-label="Diminuisci quantità"
-              title="Diminuisci quantità"
+              aria-label={t('products:cart.decrease_qty')}
+              title={t('products:cart.decrease_qty')}
             >
               <Minus className="w-4 h-4" />
             </button>
@@ -205,8 +205,8 @@ export default function ProductCard({ product }: ProductCardProps) {
               onClick={() => handleQuantityChange(quantity + 1)}
               disabled={quantity >= 99}
               className="w-8 h-8 rounded-full border border-gray-300 flex items-center justify-center hover:bg-gray-50 disabled:opacity-50"
-              aria-label="Aumenta quantità"
-              title="Aumenta quantità"
+              aria-label={t('products:cart.increase_qty')}
+              title={t('products:cart.increase_qty')}
             >
               <Plus className="w-4 h-4" />
             </button>

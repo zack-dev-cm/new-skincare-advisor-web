@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslation } from 'react-i18next';
+
 /**
  * MINIMAL LOADER - Ultra-leggero per fast embed
  * 
@@ -7,6 +9,7 @@
  * Rendering istantaneo senza dipendenze pesanti
  */
 export default function MinimalLoader() {
+  const { t } = useTranslation('common');
   return (
     <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
       <div className="text-center">
@@ -17,7 +20,7 @@ export default function MinimalLoader() {
           Dermaself
         </h2>
         <p className="text-sm text-gray-600">
-          Preparando l'analisi...
+          {t('loading.preparing_analysis')}
         </p>
       </div>
     </div>
