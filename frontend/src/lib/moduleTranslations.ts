@@ -1,3 +1,5 @@
+import i18n from './i18n';
+
 // Mappatura per tradurre i nomi dei moduli dall'inglese all'italiano
 export const moduleTranslations: Record<string, string> = {
   // Skincare Morning
@@ -70,66 +72,50 @@ async function loadDynamicTranslations(): Promise<Record<string, string>> {
   return {};
 }
 
+/** Lingua supportata per i nomi moduli: solo 'it' ha mappa EN→IT; 'en' e 'es' usano il nome in inglese. */
+function shouldTranslateToItalian(): boolean {
+  const lng = (i18n.language || i18n.resolvedLanguage || '').split('-')[0];
+  return lng === 'it';
+}
+
 /**
- * Traduce il nome di un modulo dall'inglese all'italiano
- * @param moduleName - Nome del modulo in inglese
- * @returns Nome del modulo tradotto in italiano, o il nome originale se non trovato
+ * Restituisce il nome del modulo nella lingua corrente (EN/ES = inglese, IT = italiano).
+ * @param moduleName - Nome del modulo in inglese (es. "Cleansing")
+ * @returns Nome tradotto in italiano se locale=it, altrimenti il nome originale
  */
 export function translateModuleName(moduleName: string): string {
   if (!moduleName) return moduleName;
-  
-  // Cerca corrispondenza esatta nelle traduzioni statiche
-  if (moduleTranslations[moduleName]) {
-    return moduleTranslations[moduleName];
-  }
-  
-  // Cerca corrispondenza case-insensitive nelle traduzioni statiche
-  const lowerModuleName = moduleName.toLowerCase();
+  if (!shouldTranslateToItalian()) return moduleName;
+
+  if (moduleTranslations[moduleName]) return moduleTranslations[moduleName];
+  const lower = moduleName.toLowerCase();
   for (const [english, italian] of Object.entries(moduleTranslations)) {
-    if (english.toLowerCase() === lowerModuleName) {
-      return italian;
-    }
+    if (english.toLowerCase() === lower) return italian;
   }
-  
-  // Se non trova corrispondenza, restituisce il nome originale
   return moduleName;
 }
 
 /**
- * Traduce il nome di un modulo dall'inglese all'italiano (versione asincrona con caricamento dinamico)
- * @param moduleName - Nome del modulo in inglese
- * @returns Promise che risolve con il nome del modulo tradotto in italiano
+ * Restituisce il nome del modulo nella lingua corrente (versione async con config esterno).
+ * Con locale=en/es restituisce il nome in inglese; con locale=it usa le traduzioni (statiche o da JSON).
  */
 export async function translateModuleNameAsync(moduleName: string): Promise<string> {
   if (!moduleName) return moduleName;
-  
-  // Prima prova con le traduzioni statiche
+  if (!shouldTranslateToItalian()) return moduleName;
+
   const staticTranslation = translateModuleName(moduleName);
-  if (staticTranslation !== moduleName) {
-    return staticTranslation;
-  }
-  
-  // Poi prova con le traduzioni dinamiche
+  if (staticTranslation !== moduleName) return staticTranslation;
+
   try {
     const dynamicTranslations = await loadDynamicTranslations();
-    
-    // Cerca corrispondenza esatta
-    if (dynamicTranslations[moduleName]) {
-      return dynamicTranslations[moduleName];
-    }
-    
-    // Cerca corrispondenza case-insensitive
-    const lowerModuleName = moduleName.toLowerCase();
+    if (dynamicTranslations[moduleName]) return dynamicTranslations[moduleName];
+    const lower = moduleName.toLowerCase();
     for (const [english, italian] of Object.entries(dynamicTranslations)) {
-      if (english.toLowerCase() === lowerModuleName) {
-        return italian;
-      }
+      if (english.toLowerCase() === lower) return italian;
     }
   } catch (error) {
-    console.warn('Failed to load dynamic translations:', error);
+    console.warn('Failed to load dynamic module translations:', error);
   }
-  
-  // Se non trova corrispondenza, restituisce il nome originale
   return moduleName;
 }
 
