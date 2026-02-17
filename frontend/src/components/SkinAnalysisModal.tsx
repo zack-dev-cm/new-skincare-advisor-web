@@ -22,6 +22,7 @@ import ImagePreloader from './ImagePreloader';
 
 // Import app configuration
 import { useAppConfig } from '@/lib/AppConfigContext';
+import { useLocale } from '@/lib/LocaleContext';
 
 import dynamic from 'next/dynamic';
 
@@ -90,6 +91,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const { t } = useTranslation(['steps', 'common']);
   // Get app configuration
   const appConfig = useAppConfig();
+  const { locale } = useLocale();
 
   // Initialize face detection models when modal opens
 
@@ -308,7 +310,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       const { analyzeSkinWithRecommendations } = await import('../lib/api');
       const analysisResult = await analyzeSkinWithRecommendations(
         imageData,
-        userData
+        userData,
+        undefined,
+        locale
       );
       
       setAnalysisData(analysisResult);

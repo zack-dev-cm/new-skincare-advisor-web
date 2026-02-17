@@ -91,6 +91,9 @@ const requestSchema = Joi.object({
   
   // Flag per includere raccomandazioni prodotti
   includeRecommendations: Joi.boolean().default(true),
+
+  // Codice lingua per raccomandazioni prodotti (opzionale)
+  language_code: Joi.string().valid('it', 'en', 'es').optional(),
   
   // Metadati opzionali per tracking e debugging
   metadata: Joi.object({
@@ -251,6 +254,7 @@ module.exports = async function (context, req) {
       webhookUrl,
       userData,
       includeRecommendations,
+      language_code,
       metadata,
       acneData,
       skinMetrics: clientSkinMetrics,
@@ -301,7 +305,7 @@ module.exports = async function (context, req) {
 
       // Enrich con raccomandazioni mantenendo la stessa firma delle funzioni
       if (includeRecommendations) {
-        const enriched = await enrichWithRecommendations(finalResult, userData);
+        const enriched = await enrichWithRecommendations(finalResult, userData, language_code);
         finalResult = {
           ...enriched,
           recommendationData: enriched.recommendations
@@ -629,7 +633,7 @@ module.exports = async function (context, req) {
     
     // Enrich with recommendations if requested
     if (includeRecommendations) {
-      const enriched = await enrichWithRecommendations(finalResult, userData);
+      const enriched = await enrichWithRecommendations(finalResult, userData, language_code);
       // Add both "recommendations" and "recommendationData" for JavaScript compatibility
       finalResult = {
         ...enriched,

@@ -394,7 +394,8 @@ export async function uploadBase64Image(imageDataUrl: string): Promise<string> {
 export async function analyzeSkinWithRecommendations(
   imageSource: string | File,
   userData?: UserData,
-  metadata?: ImageMetadata
+  metadata?: ImageMetadata,
+  language_code?: string
 ): Promise<AnalysisResponse> {
   try {
     let inferenceId: string;
@@ -419,7 +420,7 @@ export async function analyzeSkinWithRecommendations(
     
     // Prepare inference request
     const resolvedShopDomain = userData?.shop_domain || getShopifyDomain();
-    const requestBody = {
+    const requestBody: Record<string, unknown> = {
       inferenceId,
       userData: {
         ...(userData || {}),
@@ -433,6 +434,10 @@ export async function analyzeSkinWithRecommendations(
         clientTimestamp: Date.now()
       }
     };
+
+    if (language_code) {
+      requestBody.language_code = language_code;
+    }
     
     console.log('Calling /infer with inferenceId:', inferenceId);
     

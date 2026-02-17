@@ -89,7 +89,7 @@ function determineRecommendationStrategy(inferenceResult, userData) {
  * @param {Object} userData - User data
  * @returns {Object} Payload for RecommendationFunction
  */
-function mapAcneToRecommendationPayload(inferenceResult, userData) {
+function mapAcneToRecommendationPayload(inferenceResult, userData, languageCode) {
   const acneFullData = inferenceResult.acneFullData || {};
   const acneClassification = acneFullData["acne-classification"] || "no-acne";
   const acneSeverity = acneFullData["acne-severity"] || "None";
@@ -106,6 +106,10 @@ function mapAcneToRecommendationPayload(inferenceResult, userData) {
     shop_domain: userData.shop_domain || 'dermaself'
   };
 
+  if (languageCode) {
+    payload.language_code = languageCode;
+  }
+
   logger.info('Mapped to acne recommendation payload', { payload });
 
   return payload;
@@ -118,7 +122,7 @@ function mapAcneToRecommendationPayload(inferenceResult, userData) {
  * @param {string} skinCondition - Priority skin condition
  * @returns {Object} Payload for SkinRecommendationFunction
  */
-function mapSkinToRecommendationPayload(inferenceResult, userData, skinCondition) {
+function mapSkinToRecommendationPayload(inferenceResult, userData, skinCondition, languageCode) {
   const payload = {
     first_name: userData.first_name || 'User',
     last_name: userData.last_name || '',
@@ -128,6 +132,10 @@ function mapSkinToRecommendationPayload(inferenceResult, userData, skinCondition
     budget_level: 'High', // Always High as per JavaScript
     shop_domain: userData.shop_domain || 'dermaself'
   };
+
+  if (languageCode) {
+    payload.language_code = languageCode;
+  }
 
   logger.info('Mapped to skin recommendation payload', { payload });
 
@@ -140,7 +148,7 @@ function mapSkinToRecommendationPayload(inferenceResult, userData, skinCondition
  * @param {Object} userData - User data
  * @returns {Promise<Object>} Recommendations response
  */
-async function getProductRecommendations(inferenceResult, userData = {}) {
+async function getProductRecommendations(inferenceResult, userData = {}, languageCode) {
   const startTime = Date.now();
   
   try {
@@ -152,11 +160,11 @@ async function getProductRecommendations(inferenceResult, userData = {}) {
     if (strategy.useAcneApi) {
       // Young with acne: use RecommendationFunction
       apiUrl = config.recommendations.acneApiUrl;
-      payload = mapAcneToRecommendationPayload(inferenceResult, userData);
+      payload = mapAcneToRecommendationPayload(inferenceResult, userData, languageCode);
     } else {
       // Adults or no acne: use SkinRecommendationFunction
       apiUrl = config.recommendations.skinApiUrl;
-      payload = mapSkinToRecommendationPayload(inferenceResult, userData, strategy.skinCondition);
+      payload = mapSkinToRecommendationPayload(inferenceResult, userData, strategy.skinCondition, languageCode);
     }
     
     logger.info('Calling recommendations API', {
@@ -225,9 +233,9 @@ async function getProductRecommendations(inferenceResult, userData = {}) {
  * @param {Object} userData - User data
  * @returns {Promise<Object>} Enriched result
  */
-async function enrichWithRecommendations(inferenceResult, userData = {}) {
+async function enrichWithRecommendations(inferenceResult, userData = {}, languageCode) {
   try {
-    const recommendations = await getProductRecommendations(inferenceResult, userData);
+    const recommendations = await getProductRecommendations(inferenceResult, userData, languageCode);
     
     return {
       ...inferenceResult,

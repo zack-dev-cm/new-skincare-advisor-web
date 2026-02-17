@@ -34,25 +34,26 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     const marketParam = urlParams.get('market');
     const countryParam = urlParams.get('country');
 
-    // Set locale
-    if (localeParam && ['it', 'es', 'en'].includes(localeParam)) {
+    const supported: Locale[] = ['it', 'es', 'en'];
+
+    if (localeParam && supported.includes(localeParam)) {
       setLocale(localeParam);
       i18n.changeLanguage(localeParam);
     } else {
-      // Fallback to Italian
-      setLocale('it');
-      i18n.changeLanguage('it');
+      // No URL param: use i18next's detected language (querystring, localStorage, navigator)
+      const detected = i18n.language || i18n.resolvedLanguage;
+      const normalized = (typeof detected === 'string' ? detected.split('-')[0] : 'it') as Locale;
+      const resolved = supported.includes(normalized) ? normalized : 'it';
+      setLocale(resolved);
+      i18n.changeLanguage(resolved);
     }
 
-    // Set currency (default EUR)
     setCurrency(currencyParam || 'EUR');
-
-    // Set market and country if provided
     setMarket(marketParam);
     setCountry(countryParam);
 
     console.log('🌍 Locale initialized:', {
-      locale: localeParam || 'it',
+      locale: localeParam || i18n.language || 'it',
       currency: currencyParam || 'EUR',
       market: marketParam,
       country: countryParam,

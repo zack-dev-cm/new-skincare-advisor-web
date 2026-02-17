@@ -11,6 +11,7 @@ import dynamic from 'next/dynamic';
 const ScanStep = dynamic(() => import('./steps/scan_step'), { ssr: false });
 const ResultsStep = dynamic(() => import('./steps/results_step'), { ssr: false });
 import ImagePreloader from './ImagePreloader';
+import { useLocale } from '@/lib/LocaleContext';
 
 interface QuizOption {
   id: string;
@@ -64,6 +65,7 @@ type QuizStep = 'quiz' | 'photo-instructions' | 'camera-capture' | 'scan' | 'res
 
 export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFormProps) {
   const { t } = useTranslation('common');
+  const { locale } = useLocale();
   const [currentStep, setCurrentStep] = useState<QuizStep>('quiz');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
@@ -153,7 +155,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
         budget_level: 'High' as const,
       };
       
-      const analysisResult = await analyzeSkinWithRecommendations(imageData, userData);
+      const analysisResult = await analyzeSkinWithRecommendations(imageData, userData, undefined, locale);
       setAnalysisData(analysisResult);
       setCurrentStep('results');
     } catch (error) {
