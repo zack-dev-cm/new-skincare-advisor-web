@@ -630,7 +630,7 @@ export default function SkinAnalysisImage({
             {getUniqueClasses().map((className) => {
               const color = getClassColor(className);
               const textColor = getTextColor(color);
-              const translated = getLegendLabel(currentView, className, 'it');
+              const translated = getLegendLabel(currentView, className);
 
               return (
                 <div

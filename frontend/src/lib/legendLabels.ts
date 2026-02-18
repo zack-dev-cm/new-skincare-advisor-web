@@ -1,4 +1,5 @@
 import translations from './legend-translations.json';
+import i18n from './i18n';
 
 export type AnalysisView = 'acne' | 'redness' | 'wrinkles';
 
@@ -12,12 +13,22 @@ function toTitleCaseFromSnakeCase(input: string): string {
     .join(' ');
 }
 
-export function getLegendLabel(view: AnalysisView, className: string, locale: string = 'it'): string {
+/** Resolve locale: explicit param > i18n current language > 'en'. */
+function resolveLocale(locale?: string): string {
+  if (locale && (locale === 'it' || locale === 'en')) return locale;
+  const lng = (typeof i18n !== 'undefined' && (i18n.language || i18n.resolvedLanguage))
+    ? (i18n.language || i18n.resolvedLanguage).split('-')[0]
+    : '';
+  return lng === 'it' ? 'it' : 'en';
+}
+
+export function getLegendLabel(view: AnalysisView, className: string, locale?: string): string {
+  const lng = resolveLocale(locale);
   try {
     const viewMap: any = (translations as any)[view] || {};
     const entry: any = viewMap[className];
     if (entry) {
-      return entry[locale] || entry['en'] || className;
+      return entry[lng] || entry['en'] || className;
     }
 
     // No explicit entry: provide a safe fallback
