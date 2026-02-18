@@ -16,9 +16,10 @@ function toTitleCaseFromSnakeCase(input: string): string {
 /** Resolve locale: explicit param > i18n current language > 'en'. */
 function resolveLocale(locale?: string): string {
   if (locale && (locale === 'it' || locale === 'en')) return locale;
-  const lng = (typeof i18n !== 'undefined' && (i18n.language || i18n.resolvedLanguage))
-    ? (i18n.language || i18n.resolvedLanguage).split('-')[0]
+  const raw = (typeof i18n !== 'undefined' && (i18n.language || i18n.resolvedLanguage))
+    ? (i18n.language || i18n.resolvedLanguage || '')
     : '';
+  const lng = raw.split('-')[0] || '';
   return lng === 'it' ? 'it' : 'en';
 }
 
