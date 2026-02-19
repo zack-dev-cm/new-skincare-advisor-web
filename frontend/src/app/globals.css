@@ -370,8 +370,8 @@ body {
   border-color: hsl(var(--primary));
 }
 
-.modal-header-bar img,
-.modal-footer-bar img {
+.modal-header-bar img:not(.logo-violet),
+.modal-footer-bar img:not(.logo-violet) {
   filter: brightness(0);
 }
 
@@ -585,6 +585,11 @@ body {
 /* Bottom nav: use padding-bottom: calc(1.5rem + env(safe-area-inset-bottom)) for fixed nav */
 .safe-area-bottom-nav {
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+/* Modal footer on iOS: ensure tab bar stays above system nav (Safari iOS 26+) */
+.modal-footer-bar.safe-area-bottom-nav {
+  padding-bottom: max(2rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)));
 }
 
 .safe-area-left {

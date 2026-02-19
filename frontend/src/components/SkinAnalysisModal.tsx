@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Camera } from 'lucide-react';
 
@@ -26,8 +25,8 @@ import { useLocale } from '@/lib/LocaleContext';
 
 import dynamic from 'next/dynamic';
 
-// Brand logo
-import LogoWhite from '../app/RGB_Logo_White.png';
+// Brand logo (violet SVG)
+const LOGO_VIOLET = '/RGM_Logo_Violet.svg';
 
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
   loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
@@ -358,7 +357,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh]"
       >
         {/* Fixed Header inside Modal - Sticky on all screen sizes */}
-        <div className="sticky top-0 z-50 modal-header-bar px-4 py-3 safe-area-top flex items-center justify-between border-b flex-shrink-0">
+        <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
           {/* Back Button - hidden in demo mode */}
           <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
@@ -378,13 +377,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           {/* Centered Brand Logo */}
           <div className="flex-1 text-center flex items-center justify-center">
             <div className={`${currentStep === 'onboarding' || appConfig.skipOnboarding ? 'pl-0' : ''}`}>
-              <Image
-                src={LogoWhite}
+              <img
+                src={LOGO_VIOLET}
                 alt="Dermaself"
-                priority
-                className="inline-block h-12 w-auto max-h-12"
-                width={3042}
-                height={947}
+                className="inline-block h-8 w-auto max-h-8 logo-violet"
               />
             </div>
           </div>

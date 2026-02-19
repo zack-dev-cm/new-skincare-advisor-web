@@ -967,8 +967,8 @@ export const translations = {
       results_labels: {
         analysis_title: 'Your Skin Analysis',
         skin_type: 'Skin Type',
-        acne_classification: 'Acne Classification',
-        acne_severity: 'Acne Severity',
+        acne_classification: 'Pimples Classification',
+        acne_severity: 'Pimples Severity',
         redness: 'Redness',
         wrinkles: 'Wrinkles',
         dryness: 'Dryness',
@@ -992,7 +992,7 @@ export const translations = {
         start_new_analysis: 'Start New Analysis',
       },
       chart: {
-        acne: 'Acne',
+        acne: 'Pimples',
         dryness: 'Dryness',
         wrinkles: 'Wrinkles',
         spots: 'Spots',
@@ -1029,7 +1029,7 @@ export const translations = {
         pores: 'pores...',
         eye_area: 'eye area...',
         pigmentation: 'pigmentation...',
-        acne: 'acne...',
+        acne: 'pimples...',
         hydration: 'hydration...',
         redness: 'redness...',
         translucency: 'translucency...',

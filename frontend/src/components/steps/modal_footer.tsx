@@ -22,7 +22,7 @@ export default function ModalFooter({
 }: ModalFooterProps) {
   const { t } = useTranslation('steps');
   return (
-    <div className={`border-t modal-footer-bar safe-area-bottom ${className}`}>
+    <div className={`border-t modal-footer-bar safe-area-bottom-nav ${className}`}>
       {/* Tab Navigation - Only show on results step */}
       {(showTabButtons && onTabChange) ? (
         <div className="routine-btns w-full flex">
