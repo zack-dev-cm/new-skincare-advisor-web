@@ -2,28 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Background image utilities */
-.bg-main {
-  background-image: var(--bg-main);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  min-height: 100%;
-}
-
-.bg-bg1 {
-  background-image: var(--bg-1);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  min-height: 100%;
-}
-
+/* Background: solid white (no images) */
+.bg-main,
+.bg-bg1,
 .bg-bg2 {
-  background-image: var(--bg-2);
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
+  background-color: #fff;
+  background-image: none;
   min-height: 100%;
 }
 
@@ -43,10 +27,10 @@
 
 /* Custom CSS Variables - Dermaself Design System */
 :root {
-  /* Background images */
-  --bg-main: url('/assets/images/backgrounds/bg-main.jpg');
-  --bg-1: url('/assets/images/backgrounds/bg-1.jpg');
-  --bg-2: url('/assets/images/backgrounds/bg-2.jpg');
+  /* Backgrounds: white (no image URLs) */
+  --bg-main: none;
+  --bg-1: none;
+  --bg-2: none;
 
   /* Design system base (HSL values without % for hsl(var(--name))) */
   --background: 0 0% 98%;
@@ -587,9 +571,9 @@ body {
   padding-bottom: calc(1.5rem + env(safe-area-inset-bottom));
 }
 
-/* Modal footer on iOS: ensure tab bar stays above system nav (Safari iOS 26+) */
+/* Modal footer: compact height + iOS safe area */
 .modal-footer-bar.safe-area-bottom-nav {
-  padding-bottom: max(2rem, calc(1.5rem + env(safe-area-inset-bottom, 0px)));
+  padding-bottom: max(1rem, calc(0.75rem + env(safe-area-inset-bottom, 0px)));
 }
 
 .safe-area-left {

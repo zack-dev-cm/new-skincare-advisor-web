@@ -43,12 +43,13 @@ export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
 	}, [windowSize]);
 
 	return (
-		<div className="absolute inset-0 z-30 bg-black flex flex-col items-center justify-center text-center overflow-hidden">
-		{/* Darkened background image */}
+		<div className="absolute inset-0 z-30 bg-white flex flex-col items-center justify-center text-center overflow-hidden">
+		{/* Plain white background (no image) */}
 		<img
 			src={imageUrl}
 			alt="Captured"
-			className="absolute inset-0 w-full h-full object-cover brightness-50"
+			className="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
+			aria-hidden
 		/>
 
 		{/* Full-screen scanner */}
@@ -76,7 +77,7 @@ export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
 		)}
 
 	{/* Typing text overlay */}
-	<div className="absolute z-40 text-white text-lg md:text-xl font-medium">
+	<div className="absolute z-40 text-gray-800 text-lg md:text-xl font-medium">
 		<TypingEffect
 			baseContent={t('uploading.we_are_analyzing')}
             typingEffectContent={[

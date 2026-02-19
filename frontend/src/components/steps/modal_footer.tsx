@@ -28,33 +28,33 @@ export default function ModalFooter({
         <div className="routine-btns w-full flex">
           <button
             onClick={() => onTabChange('results')}
-            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-white py-1 border-b-4 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-1 border-b-4 border-transparent'}
+            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-white py-0.5 border-b-2 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-0.5 border-b-2 border-transparent'}
           >
             <img 
               src={ASSETS.images.icons.results} 
               alt=""
-              width={30}
-              height={30}
+              width={24}
+              height={24}
               className="opacity-90"
             />
-            <p className="heading-4">{t('modal_footer.results_tab')}</p>
+            <p className="text-xs font-semibold">{t('modal_footer.results_tab')}</p>
           </button>
           <button
             onClick={() => onTabChange('routine')}
-            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-white py-1 border-b-4 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-1 border-b-4 border-transparent'}
+            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-white py-0.5 border-b-2 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-0.5 border-b-2 border-transparent'}
           >
             <img 
               src={ASSETS.images.icons.routine} 
               alt="" 
-              width={30}
-              height={30}
+              width={24}
+              height={24}
               className="opacity-90"
             />
-            <p className="heading-4">{t('modal_footer.routine_tab')}</p>
+            <p className="text-xs font-semibold">{t('modal_footer.routine_tab')}</p>
           </button>
         </div>
       ) : (
-        <div className="px-4 py-3">
+        <div className="px-4 py-2">
           <div className="flex justify-center space-x-2">
             {Array.from({ length: totalSteps }, (_, index) => (
               <div

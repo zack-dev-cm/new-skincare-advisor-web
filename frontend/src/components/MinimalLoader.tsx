@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 export default function MinimalLoader() {
   const { t } = useTranslation('common');
   return (
-    <div className="fixed inset-0 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+    <div className="fixed inset-0 flex items-center justify-center bg-white">
       <div className="text-center">
         {/* Spinner CSS puro */}
         <div className="inline-block w-12 h-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin mb-4"></div>
