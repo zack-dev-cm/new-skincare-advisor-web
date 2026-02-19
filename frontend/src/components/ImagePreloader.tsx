@@ -113,11 +113,31 @@ export default function ImagePreloader({
 	    return <>{children}</>;
 	  }
 
-	  // Durante la fase di analisi, usa l'UploadingScreen a schermo intero se è disponibile un'immagine
+	  // Durante la fase di analisi: stesso contenitore modal dell'app, con preview contenuta
 	  if (mode === 'analysis' && analysisImageUrl) {
 	    return (
-	      <div className="fixed inset-0 z-50">
-	        <UploadingScreen imageUrl={analysisImageUrl} />
+	      <div className="fixed inset-0 z-50 flex items-center justify-center">
+	        <div className="absolute inset-0 bg-black bg-opacity-50" />
+	        <motion.div
+	          initial={{ opacity: 0, scale: 0.95 }}
+	          animate={{ opacity: 1, scale: 1 }}
+	          transition={{ duration: 0.2 }}
+	          className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
+	        >
+	          <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar flex-shrink-0">
+	            <div className="flex-1 text-center flex items-center justify-center">
+	              <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+	            </div>
+	          </div>
+	          <div className="flex-1 min-h-0 flex flex-col">
+	            <UploadingScreen imageUrl={analysisImageUrl} contained />
+	          </div>
+	          <div className="modal-footer-bar px-4 py-2 border-t flex-shrink-0">
+	            <p className="text-xs text-muted-foreground text-center">
+	              {t('preloader.processing_image')}
+	            </p>
+	          </div>
+	        </motion.div>
 	      </div>
 	    );
 	  }
@@ -142,7 +162,7 @@ export default function ImagePreloader({
         </div>
 
         {/* Contenuto di Caricamento */}
-        <div className="flex-1 flex items-center justify-center bg-gradient-to-br from-primary-50 to-primary-100">
+        <div className="flex-1 flex items-center justify-center bg-white">
           <div className="text-center max-w-sm w-full mx-4">
             {/* Animazione di Caricamento */}
             <div className="mb-6">

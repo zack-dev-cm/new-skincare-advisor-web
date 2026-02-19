@@ -270,9 +270,9 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     setImageMetadata({ timestamp: new Date().toISOString() }); // Default metadata
     setShowCamera(false);
     
-    // Set default skin type if empty to ensure proper flow
+    // Set default skin type if empty to ensure proper flow (use key, not translated label)
     if (!selectedSkinType) {
-      setSelectedSkinType(t('steps:skin_type.normal'));
+      setSelectedSkinType('normal');
     }
     
     // Show loading state immediately
@@ -300,7 +300,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             last_name: 'Test',
             ageRange: mapAgeToAgeRange(selectedAge),
             gender: mapGenderToApiFormat(selectedGender),
-            skin_type: selectedSkinType || t('steps:skin_type.normal'),
+            skin_type: selectedSkinType || 'normal',
             concerns: selectedConcerns,
             budget_level: 'High' as const
           };
@@ -363,11 +363,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
-                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
                 aria-label={t('common:buttons.go_back')}
                 title={t('common:buttons.go_back')}
               >
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-4 h-4 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
@@ -390,11 +390,11 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             {!appConfig.skipOnboarding && (
               <button
                 onClick={handleClose}
-                className="w-8 h-8 bg-white/10 rounded-lg flex items-center justify-center hover:bg-white/20 transition-colors"
+                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
                 aria-label={t('common:buttons.close_modal_aria')}
                 title={t('common:buttons.close_modal_aria')}
               >
-                <X className="w-5 h-5 text-white" />
+                <X className="w-5 h-5 text-current" />
               </button>
             )}
           </div>

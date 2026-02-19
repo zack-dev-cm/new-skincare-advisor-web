@@ -36,7 +36,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
       className="bg-bg2 bg-cover bg-center h-full flex flex-col"
     >
       {/* Gender Selection */}
-      <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {t('steps:gender.gender_question')}

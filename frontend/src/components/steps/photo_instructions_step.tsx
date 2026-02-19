@@ -51,7 +51,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
       className="bg-main bg-cover bg-center h-full flex flex-col"
     >
       {/* Photo Instructions */}
-      <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">
         <div className="text-center mb-6">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {t('photo_instructions:title')}

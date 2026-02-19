@@ -377,7 +377,7 @@ export default function ResultsStep({
       {/* Tab Content */}
       <div className="flex-1">
         {activeTab === 'results' && (
-          <div className="bg-gradient-to-br from-primary-50 to-primary-100 min-h-full">
+          <div className="bg-white min-h-full">
             {/* AI Photo Analysis Section */}
             <div className="p-6">
               <div className="relative">
@@ -409,7 +409,22 @@ export default function ResultsStep({
                       <div className="grid grid-cols-1 gap-4">
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
                           <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.skin_type')}</span>
-                          <span className="text-sm font-semibold text-primary-600">{analysisData.userData?.skin_type || t('steps:skin_type.normal')}</span>
+                          <span className="text-sm font-semibold text-primary-600">
+                            {(() => {
+                              const raw = analysisData.userData?.skin_type;
+                              if (!raw) return t('steps:skin_type.normal');
+                              const lower = raw.toLowerCase().replace(/\s+/g, '_');
+                              const legacyMap: Record<string, string> = {
+                                normale: 'normal', secca: 'dry', grassa: 'oily', mista: 'combination',
+                                normal: 'normal', dry: 'dry', oily: 'oily', combination: 'combination',
+                                dont_know: 'dont_know', no_lo_sé: 'dont_know', no_lo_se: 'dont_know',
+                              };
+                              const key = legacyMap[lower] ?? lower;
+                              const known = ['normal', 'dry', 'oily', 'combination', 'dont_know'];
+                              if (known.includes(key)) return t(`steps:skin_type.${key}`);
+                              return raw;
+                            })()}
+                          </span>
                         </div>
                         <div className="flex justify-between items-center p-3 bg-primary-50 rounded-xl">
                           <span className="text-sm font-medium text-gray-700">{t('analysis:results_labels.acne_classification')}</span>
@@ -469,7 +484,7 @@ export default function ResultsStep({
         )}
 
         {activeTab === 'routine' && (
-          <div className="bg-gradient-to-br from-primary-50 to-primary-100 min-h-full p-6">
+          <div className="bg-white min-h-full p-6">
             {/* Category Selector */}
             <div className="mb-4 sticky top-0 z-30 bg-transparent py-2 flex justify-center">
                       <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-primary-100">

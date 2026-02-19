@@ -1,86 +1,69 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import TypingEffect from './TypingEffect';
 import RandomCircles from './RandomCircles';
-import { getFaceFrameRect } from '@/lib/face-utils';
 
 interface UploadingScreenProps {
-  	imageUrl: string;
+  imageUrl: string;
+  /** Se true, la preview è contenuta nel contenitore (modal) invece che a schermo intero */
+  contained?: boolean;
 }
 
-export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
-	const { t } = useTranslation('analysis');
-	const [windowRect, setWindowRect] = useState({ x: 0, y: 0, width: 0, height: 0 });
-	const [windowSize, setWindowSize] = useState({ width: 0, height: 0 });
+export default function UploadingScreen({ imageUrl, contained = false }: UploadingScreenProps) {
+  const { t } = useTranslation('analysis');
+  const photoContainerRef = useRef<HTMLDivElement>(null);
+  const [containerRect, setContainerRect] = useState({ width: 0, height: 0, top: 0, left: 0 });
 
-	useEffect(() => {
-		// set initial window size
-		const handleResize = () => {
-			setWindowSize({ width: window.innerWidth, height: window.innerHeight });
-		};
-		handleResize();
-		window.addEventListener('resize', handleResize);
+  useEffect(() => {
+    if (!contained || !photoContainerRef.current) return;
+    const el = photoContainerRef.current;
+    const updateRect = () => {
+      const r = el.getBoundingClientRect();
+      setContainerRect({ width: r.width, height: r.height, top: r.top, left: r.left });
+    };
+    updateRect();
+    const ro = new ResizeObserver(updateRect);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [contained]);
 
-		return () => window.removeEventListener('resize', handleResize);
-	}, []);
-
-	useEffect(() => {
-		if (windowSize.width === 0 || windowSize.height === 0) return;
-
-		// define safe area (top/bottom)
-		const safeAreaTop = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-top')) || 0;
-		const safeAreaBottom = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--safe-area-inset-bottom')) || 0;
-
-		const rect = getFaceFrameRect(
-			windowSize,
-			{ top: safeAreaTop, bottom: safeAreaBottom },
-			{ width: windowSize.width, height: windowSize.height }
-		);
-
-		setWindowRect(rect.windowRect);
-	}, [windowSize]);
-
-	return (
-		<div className="absolute inset-0 z-30 bg-white flex flex-col items-center justify-center text-center overflow-hidden">
-		{/* Plain white background (no image) */}
-		<img
-			src={imageUrl}
-			alt="Captured"
-			className="absolute inset-0 w-full h-full object-cover opacity-0 pointer-events-none"
-			aria-hidden
-		/>
-
-		{/* Full-screen scanner */}
-		<div className="scanner" />
-
-		{/* Random circles inside face */}
-		{windowRect.width > 0 && windowRect.height > 0 && (
-			<div
-				className="absolute pointer-events-none"
-				style={{
-					left: windowRect.x + windowRect.width * 0.12,            
-					top: windowRect.y - windowRect.height * 0.15,           
-					width: windowRect.width * 0.76,                          
-					height: windowRect.height * 0.9,                       
-				}}
-			>
-				<RandomCircles
-					numCircles={8} 
-					minSize={4} 
-					maxSize={8} 
-					speed={0.7} 
-					color="#0092FF" 
-				/>
-			</div>
-		)}
-
-	{/* Typing text overlay */}
-	<div className="absolute z-40 text-gray-800 text-lg md:text-xl font-medium">
-		<TypingEffect
-			baseContent={t('uploading.we_are_analyzing')}
-            typingEffectContent={[
+  if (contained) {
+    return (
+      <div className="flex-1 min-h-0 flex flex-col bg-white overflow-hidden">
+        {/* Area preview foto: contenuta, non a tutto schermo */}
+        <div
+          ref={photoContainerRef}
+          className="flex-1 min-h-0 flex items-center justify-center p-4 relative bg-gray-50"
+        >
+          <img
+            src={imageUrl}
+            alt="Captured"
+            className="max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
+          />
+          {/* Scanner leggero solo sull'area foto */}
+          <div className="scanner-contained absolute inset-4 pointer-events-none rounded-xl overflow-hidden" />
+          {containerRect.width > 0 && (
+            <div
+              className="absolute pointer-events-none rounded-xl overflow-hidden"
+              style={{
+                left: 'calc(1rem + 12%)',
+                top: 'calc(1rem + 10%)',
+                width: '76%',
+                height: '80%',
+              }}
+            >
+              <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
+            </div>
+          )}
+        </div>
+        {/* Testo in basso, sempre visibile */}
+        <div className="flex-shrink-0 py-4 px-4 text-center bg-white border-t border-gray-100">
+          <div className="text-gray-800 text-lg md:text-xl font-medium">
+            <TypingEffect
+              baseContent={t('uploading.we_are_analyzing')}
+              typingEffectContent={[
                 t('uploading.wrinkles'),
                 t('uploading.pores'),
                 t('uploading.eye_area'),
@@ -89,72 +72,62 @@ export default function UploadingScreen({ imageUrl }: UploadingScreenProps) {
                 t('uploading.hydration'),
                 t('uploading.redness'),
                 t('uploading.translucency'),
-                ''
-            ]}
-			typingSpeed={120}
-			delayBetween={800}
-		/>
-	</div>
+                '',
+              ]}
+              typingSpeed={120}
+              delayBetween={800}
+            />
+          </div>
+        </div>
+        <style jsx>{`
+          .scanner-contained {
+            background: linear-gradient(
+              to bottom,
+              rgba(0, 146, 255, 0) 20%,
+              rgba(0, 146, 255, 0.4) 100%
+            );
+            transform: translateY(-100%);
+            animation: scanLoop 4s linear infinite;
+          }
+          @keyframes scanLoop {
+            0% { transform: translateY(-100%); }
+            40% { transform: translateY(100%); }
+            50% { transform: translateY(100%); }
+            90% { transform: translateY(-100%); }
+            100% { transform: translateY(-100%); }
+          }
+        `}</style>
+      </div>
+    );
+  }
 
-	<style jsx>{`
-		.scanner {
-			position: absolute;
-			inset: 0;
-			width: 100%;
-			height: 100%;
-			pointer-events: none;
-			background: linear-gradient(
-				to bottom,
-				rgba(0, 146, 255, 0.0) 20%,
-				rgba(0, 146, 255, 0.6) 100%
-			);
-			transform: translateY(-100%);
-			animation: scanLoop 4s linear infinite;
-		}
-
-		@keyframes scanLoop {
-			0% {
-				transform: translateY(-100%);
-				background: linear-gradient(
-					to bottom,
-					rgba(0, 146, 255, 0.0) 20%,
-					rgba(0, 146, 255, 0.6) 100%
-				);
-			}
-			40% {
-				transform: translateY(100%);
-				background: linear-gradient(
-					to bottom,
-					rgba(0, 146, 255, 0.0) 20%,
-					rgba(0, 146, 255, 0.6) 100%
-				);
-			}
-			50% {
-				transform: translateY(100%);
-				background: linear-gradient(
-					to top,
-					rgba(0, 146, 255, 0.0) 20%,
-					rgba(0, 146, 255, 0.6) 100%
-				);
-			}
-			90% {
-				transform: translateY(-100%);
-				background: linear-gradient(
-					to top,
-					rgba(0, 146, 255, 0.0) 20%,
-					rgba(0, 146, 255, 0.6) 100%
-				);
-			}
-			100% {
-				transform: translateY(-100%);
-				background: linear-gradient(
-					to bottom,
-					rgba(0, 146, 255, 0.0) 20%,
-					rgba(0, 146, 255, 0.6) 100%
-				);
-			}
-		}
-	`}</style>
-	</div>
+  /* Modalità legacy full-screen (non usata se sempre contained) */
+  return (
+    <div className="absolute inset-0 z-30 bg-white flex flex-col items-center justify-center text-center overflow-hidden">
+      <img
+        src={imageUrl}
+        alt="Captured"
+        className="absolute inset-0 w-full h-full object-cover opacity-30"
+        aria-hidden
+      />
+      <div className="absolute z-40 text-gray-800 text-lg md:text-xl font-medium">
+        <TypingEffect
+          baseContent={t('uploading.we_are_analyzing')}
+          typingEffectContent={[
+            t('uploading.wrinkles'),
+            t('uploading.pores'),
+            t('uploading.eye_area'),
+            t('uploading.pigmentation'),
+            t('uploading.acne'),
+            t('uploading.hydration'),
+            t('uploading.redness'),
+            t('uploading.translucency'),
+            '',
+          ]}
+          typingSpeed={120}
+          delayBetween={800}
+        />
+      </div>
+    </div>
   );
 }

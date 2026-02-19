@@ -746,14 +746,14 @@ export default function CameraCaptureStep({ onNext }: Props) {
       )}
 
       {!showDesktopGate && (
-        <div className="bg-white/50 backdrop-blur-sm border-t border-white/30 p-4 flex justify-center gap-4">
+        <div className="bg-gray-50 border-t border-gray-200 p-4 flex justify-center gap-4">
           {cameraState === 'live' ? (
             <>
               <button
                 onClick={switchCamera}
-                className="p-3 bg-white/20 rounded-full"
+                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700 transition-colors"
               >
-                <SwitchCameraIcon className="text-white" />
+                <SwitchCameraIcon className="w-6 h-6" />
               </button>
 
               <button
@@ -765,9 +765,9 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-3 bg-white/20 rounded-full"
+                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700 transition-colors"
               >
-                <Upload className="text-white" />
+                <Upload className="w-6 h-6" />
               </button>
             </>
           ) : (

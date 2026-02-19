@@ -6,7 +6,7 @@
  */
 export default function SkeletonStep() {
   return (
-    <div className="h-full flex flex-col bg-gradient-to-br from-primary-50 to-primary-100 animate-pulse">
+    <div className="h-full flex flex-col bg-white animate-pulse">
       {/* Skeleton header */}
       <div className="p-6">
         <div className="h-8 bg-primary-200 rounded-lg w-3/4 mx-auto mb-4"></div>

@@ -566,7 +566,7 @@ export default function SkinAnalysisImage({
           <div className="absolute top-1/2 left-4 transform -translate-y-1/2">
             <button
               onClick={prevImage}
-              className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 p-2 rounded-full shadow-lg transition-all"
               title={t('image.prev_image')}
             >
               <ChevronLeft className="w-5 h-5" />
@@ -576,7 +576,7 @@ export default function SkinAnalysisImage({
           <div className="absolute top-1/2 right-4 transform -translate-y-1/2">
             <button
               onClick={nextImage}
-              className="bg-white/20 hover:bg-white text-gray-800 p-2 rounded-full shadow-lg transition-all"
+              className="bg-gray-200 hover:bg-gray-300 text-gray-800 p-2 rounded-full shadow-lg transition-all"
               title={t('image.next_image')}
             >
               <ChevronRight className="w-5 h-5" />

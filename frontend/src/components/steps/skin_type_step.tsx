@@ -6,10 +6,11 @@ import { motion } from 'framer-motion';
 import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 
-interface SkinType {
-  name: string;
+interface SkinTypeOption {
+  id: string;
   image: string;
-  description: string;
+  nameKey: string;
+  descKey: string;
 }
 
 interface SkinTypeStepProps {
@@ -19,32 +20,12 @@ interface SkinTypeStepProps {
   onBack: () => void;
 }
 
-const skinTypes: SkinType[] = [
-  {
-    name: 'Normale',
-    image: ASSETS.images.skinTypes.normal,
-    description: 'Equilibrata e senza problemi'
-  },
-  {
-    name: 'Secca',
-    image: ASSETS.images.skinTypes.dry,
-    description: 'Opaca, a volte tesa e irritata'
-  },
-  {
-    name: 'Grassa',
-    image: ASSETS.images.skinTypes.oily,
-    description: 'Lucida nella zona T, con pori visibili e punti neri.'
-  },
-  {
-    name: 'Mista',
-    image: ASSETS.images.skinTypes.combination,
-    description: 'Grassa in zona T, normale sulle guance'
-  },
-  {
-    name: 'Non lo so',
-    image: ASSETS.images.skinTypes.dontKnow,
-    description: 'Scopriamolo insieme!'
-  }
+const skinTypeOptions: SkinTypeOption[] = [
+  { id: 'normal', image: ASSETS.images.skinTypes.normal, nameKey: 'steps:skin_type.normal', descKey: 'steps:skin_type.normal_desc' },
+  { id: 'dry', image: ASSETS.images.skinTypes.dry, nameKey: 'steps:skin_type.dry', descKey: 'steps:skin_type.dry_desc' },
+  { id: 'oily', image: ASSETS.images.skinTypes.oily, nameKey: 'steps:skin_type.oily', descKey: 'steps:skin_type.oily_desc' },
+  { id: 'combination', image: ASSETS.images.skinTypes.combination, nameKey: 'steps:skin_type.combination', descKey: 'steps:skin_type.combination_desc' },
+  { id: 'dont_know', image: ASSETS.images.skinTypes.dontKnow, nameKey: 'steps:skin_type.dont_know', descKey: 'steps:skin_type.dont_know_desc' },
 ];
 
 export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNext, onBack }: SkinTypeStepProps) {
@@ -59,7 +40,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
       className="bg-bg1 bg-cover bg-center h-full flex flex-col"
     >
       {/* Skin Type Selection */}
-      <div className="flex flex-col px-4 py-4 overflow-y-auto bg-white/50 backdrop-blur-sm p-4 overflow-y-auto mt-auto mx-4 mb-4 rounded-lg">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">
         <div className="text-center mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {t('steps:skin_type.title')}
@@ -68,22 +49,22 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
         
         
         <div className="grid grid-cols-2 gap-3 items-stretch">
-          {skinTypes.map((type) => (
+          {skinTypeOptions.map((type) => (
             // eslint-disable-next-line jsx-a11y/aria-proptypes
             <div 
-              key={type.name} 
+              key={type.id} 
               role="radio"
-              aria-checked={selectedSkinType === type.name}
+              aria-checked={selectedSkinType === type.id}
               tabIndex={0}
               className={`relative cursor-pointer transition-all duration-200 ${
-                selectedSkinType === type.name 
+                selectedSkinType === type.id 
                   ? 'transform scale-[1.02]' 
                   : 'hover:transform hover:scale-[1.01]'
               }`}
-              onClick={() => onSkinTypeSelect(type.name)}
+              onClick={() => onSkinTypeSelect(type.id)}
             >
               <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
-                selectedSkinType === type.name
+                selectedSkinType === type.id
                   ? 'border-primary-500 shadow-lg shadow-primary-100'
                   : 'border-transparent hover:border-primary-300'
               }`}>
@@ -91,16 +72,16 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                   <div className="w-16 overflow-hidden flex-shrink-0">
                     <img
                       src={type.image}
-                      alt={type.name}
+                      alt={t(type.nameKey)}
                       className="w-full h-full object-cover"
                     />
                   </div>
                   <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
                     <div className="font-semibold text-gray-900 text-sm mb-1">
-                      {type.name}
+                      {t(type.nameKey)}
                     </div>
                     <div className="text-xs text-gray-600 hidden md:block">
-                      {type.description}
+                      {t(type.descKey)}
                     </div>
                   </div>
                 </div>
