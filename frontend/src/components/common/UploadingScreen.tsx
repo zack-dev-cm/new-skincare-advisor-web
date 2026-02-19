@@ -37,25 +37,21 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
           ref={photoContainerRef}
           className="flex-1 min-h-0 flex items-center justify-center p-4 relative bg-gray-50"
         >
-          {/* Wrapper che si adatta all'immagine: scanner e bolle confinati dentro */
-          <div className="relative inline-block max-w-full max-h-full flex-shrink-0">
-            <img
+          <>
+            <div className="relative inline-block max-w-full max-h-full flex-shrink-0">
+              <img
               src={imageUrl}
               alt="Captured"
               className="relative z-0 block max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
             />
-            {/* Scanner confinato all'area dell'immagine (inset-0 sul wrapper) */}
             <div className="scanner-contained absolute inset-0 z-10 pointer-events-none rounded-xl overflow-hidden" />
-            {containerRect.width > 0 && (
-              <div
-                className="absolute z-20 pointer-events-none rounded-xl overflow-hidden inset-[10%]"
-              >
+            {containerRect.width > 0 ? (
+              <div className="absolute z-20 pointer-events-none rounded-xl overflow-hidden inset-[10%]">
                 <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
               </div>
-            )}
-          </div>
-          {/* Testo sopra l'immagine al centro */}
-          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
+            ) : null}
+            </div>
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
             <div className="text-gray-800 text-lg md:text-xl font-medium text-center drop-shadow-sm">
               <TypingEffect
                 baseContent={t('uploading.we_are_analyzing')}
@@ -74,26 +70,9 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
                 delayBetween={800}
               />
             </div>
-          </div>
+            </div>
+          </>
         </div>
-        <style jsx>{`
-          .scanner-contained {
-            background: linear-gradient(
-              to bottom,
-              rgba(0, 146, 255, 0) 20%,
-              rgba(0, 146, 255, 0.4) 100%
-            );
-            transform: translateY(-100%);
-            animation: scanLoop 4s linear infinite;
-          }
-          @keyframes scanLoop {
-            0% { transform: translateY(-100%); }
-            40% { transform: translateY(100%); }
-            50% { transform: translateY(100%); }
-            90% { transform: translateY(-100%); }
-            100% { transform: translateY(-100%); }
-          }
-        `}</style>
       </div>
     );
   }
