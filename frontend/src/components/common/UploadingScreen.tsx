@@ -37,26 +37,23 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
           ref={photoContainerRef}
           className="flex-1 min-h-0 flex items-center justify-center p-4 relative bg-gray-50"
         >
-          <img
-            src={imageUrl}
-            alt="Captured"
-            className="relative z-0 max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
-          />
-          {/* Scanner leggero solo sull'area foto - sopra l'immagine */}
-          <div className="scanner-contained absolute inset-4 z-10 pointer-events-none rounded-xl overflow-hidden" />
-          {containerRect.width > 0 && (
-            <div
-              className="absolute z-20 pointer-events-none rounded-xl overflow-hidden"
-              style={{
-                left: 'calc(1rem + 12%)',
-                top: 'calc(1rem + 10%)',
-                width: '76%',
-                height: '80%',
-              }}
-            >
-              <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
-            </div>
-          )}
+          {/* Wrapper che si adatta all'immagine: scanner e bolle confinati dentro */
+          <div className="relative inline-block max-w-full max-h-full flex-shrink-0">
+            <img
+              src={imageUrl}
+              alt="Captured"
+              className="relative z-0 block max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
+            />
+            {/* Scanner confinato all'area dell'immagine (inset-0 sul wrapper) */}
+            <div className="scanner-contained absolute inset-0 z-10 pointer-events-none rounded-xl overflow-hidden" />
+            {containerRect.width > 0 && (
+              <div
+                className="absolute z-20 pointer-events-none rounded-xl overflow-hidden inset-[10%]"
+              >
+                <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
+              </div>
+            )}
+          </div>
           {/* Testo sopra l'immagine al centro */}
           <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
             <div className="text-gray-800 text-lg md:text-xl font-medium text-center drop-shadow-sm">
