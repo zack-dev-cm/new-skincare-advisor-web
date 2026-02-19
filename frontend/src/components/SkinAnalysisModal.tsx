@@ -380,7 +380,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <img
                 src={LOGO_VIOLET}
                 alt="Dermaself"
-                className="inline-block h-8 w-auto max-h-8 logo-violet"
+                className="inline-block h-7 w-auto max-h-7 logo-violet"
               />
             </div>
           </div>
