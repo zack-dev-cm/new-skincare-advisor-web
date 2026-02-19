@@ -402,8 +402,8 @@ export default function ResultsStep({
                     </div>
                   )}
 
-                  {/* Analysis Results */}
-                  {analysisData && (
+                  {/* Analysis Results - hidden for now */}
+                  {false && analysisData && (
                     <div className="bg-white rounded-2xl shadow-lg p-6 space-y-4">
                       <h3 className="text-xl font-bold text-gray-800 mb-4">{t('analysis:results_labels.analysis_title')}</h3>
                       <div className="grid grid-cols-1 gap-4">

@@ -28,7 +28,7 @@ export default function ModalFooter({
         <div className="routine-btns w-full flex">
           <button
             onClick={() => onTabChange('results')}
-            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-white py-0.5 border-b-2 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-0.5 border-b-2 border-transparent'}
+            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent'}
           >
             <img 
               src={ASSETS.images.icons.results} 
@@ -41,7 +41,7 @@ export default function ModalFooter({
           </button>
           <button
             onClick={() => onTabChange('routine')}
-            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-white py-0.5 border-b-2 border-white' : 'w-full flex flex-col items-center justify-center text-white/70 py-0.5 border-b-2 border-transparent'}
+            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent'}
           >
             <img 
               src={ASSETS.images.icons.routine} 

@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter } from 'next/font/google';
+import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { Providers } from '../components/Providers';
 
-const inter = Inter({ subsets: ['latin'] });
+const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Dermaself - AI Skin Analysis',
@@ -41,7 +41,7 @@ export default function RootLayout({
         <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js"></script>
       </head>
-      <body className={inter.className}>
+      <body className={spaceGrotesk.className}>
         <Providers>
           <div className="min-h-screen">
             {children}

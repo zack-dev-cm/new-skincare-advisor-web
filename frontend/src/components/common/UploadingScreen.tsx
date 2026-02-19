@@ -40,13 +40,13 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
           <img
             src={imageUrl}
             alt="Captured"
-            className="max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
+            className="relative z-0 max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
           />
-          {/* Scanner leggero solo sull'area foto */}
-          <div className="scanner-contained absolute inset-4 pointer-events-none rounded-xl overflow-hidden" />
+          {/* Scanner leggero solo sull'area foto - sopra l'immagine */}
+          <div className="scanner-contained absolute inset-4 z-10 pointer-events-none rounded-xl overflow-hidden" />
           {containerRect.width > 0 && (
             <div
-              className="absolute pointer-events-none rounded-xl overflow-hidden"
+              className="absolute z-20 pointer-events-none rounded-xl overflow-hidden"
               style={{
                 left: 'calc(1rem + 12%)',
                 top: 'calc(1rem + 10%)',
@@ -57,26 +57,26 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
               <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
             </div>
           )}
-        </div>
-        {/* Testo in basso, sempre visibile */}
-        <div className="flex-shrink-0 py-4 px-4 text-center bg-white border-t border-gray-100">
-          <div className="text-gray-800 text-lg md:text-xl font-medium">
-            <TypingEffect
-              baseContent={t('uploading.we_are_analyzing')}
-              typingEffectContent={[
-                t('uploading.wrinkles'),
-                t('uploading.pores'),
-                t('uploading.eye_area'),
-                t('uploading.pigmentation'),
-                t('uploading.acne'),
-                t('uploading.hydration'),
-                t('uploading.redness'),
-                t('uploading.translucency'),
-                '',
-              ]}
-              typingSpeed={120}
-              delayBetween={800}
-            />
+          {/* Testo sopra l'immagine al centro */}
+          <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
+            <div className="text-gray-800 text-lg md:text-xl font-medium text-center drop-shadow-sm">
+              <TypingEffect
+                baseContent={t('uploading.we_are_analyzing')}
+                typingEffectContent={[
+                  t('uploading.wrinkles'),
+                  t('uploading.pores'),
+                  t('uploading.eye_area'),
+                  t('uploading.pigmentation'),
+                  t('uploading.acne'),
+                  t('uploading.hydration'),
+                  t('uploading.redness'),
+                  t('uploading.translucency'),
+                  '',
+                ]}
+                typingSpeed={120}
+                delayBetween={800}
+              />
+            </div>
           </div>
         </div>
         <style jsx>{`
