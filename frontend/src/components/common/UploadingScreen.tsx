@@ -30,6 +30,11 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
   }, [contained]);
 
   if (contained) {
+    // p-4 = 16px padding on each side → subtract 32px from each axis
+    const pad = 32;
+    const maxW = containerRect.width > 0 ? containerRect.width - pad : undefined;
+    const maxH = containerRect.height > 0 ? containerRect.height - pad : undefined;
+
     return (
       <div className="flex-1 min-h-0 flex flex-col bg-white overflow-hidden">
         {/* Area preview foto: contenuta, non a tutto schermo */}
@@ -37,41 +42,45 @@ export default function UploadingScreen({ imageUrl, contained = false }: Uploadi
           ref={photoContainerRef}
           className="flex-1 min-h-0 flex items-center justify-center p-4 relative bg-gray-50"
         >
-          <>
-            <div className="relative inline-block max-w-full max-h-full flex-shrink-0">
-              <img
+          {/* Il wrapper si dimensiona all'immagine effettiva grazie ai px espliciti */}
+          <div
+            className="relative flex-shrink-0"
+            style={{ maxWidth: maxW, maxHeight: maxH }}
+          >
+            <img
               src={imageUrl}
               alt="Captured"
-              className="relative z-0 block max-w-full max-h-full w-auto h-auto object-contain rounded-xl shadow-md"
+              className="block w-auto h-auto rounded-xl shadow-md"
+              style={{ maxWidth: maxW, maxHeight: maxH }}
             />
+            {/* Tutti gli overlay sono dentro il wrapper → coprono esattamente l'immagine */}
             <div className="scanner-contained absolute inset-0 z-10 pointer-events-none rounded-xl overflow-hidden" />
-            {containerRect.width > 0 ? (
+            {containerRect.width > 0 && (
               <div className="absolute z-20 pointer-events-none rounded-xl overflow-hidden inset-[10%]">
                 <RandomCircles numCircles={8} minSize={4} maxSize={8} speed={0.7} color="#0092FF" />
               </div>
-            ) : null}
+            )}
+            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4 rounded-xl overflow-hidden">
+              <div className="text-gray-800 text-lg md:text-xl font-medium text-center drop-shadow-sm">
+                <TypingEffect
+                  baseContent={t('uploading.we_are_analyzing')}
+                  typingEffectContent={[
+                    t('uploading.wrinkles'),
+                    t('uploading.pores'),
+                    t('uploading.eye_area'),
+                    t('uploading.pigmentation'),
+                    t('uploading.acne'),
+                    t('uploading.hydration'),
+                    t('uploading.redness'),
+                    t('uploading.translucency'),
+                    '',
+                  ]}
+                  typingSpeed={120}
+                  delayBetween={800}
+                />
+              </div>
             </div>
-            <div className="absolute inset-0 z-30 flex items-center justify-center pointer-events-none px-4">
-            <div className="text-gray-800 text-lg md:text-xl font-medium text-center drop-shadow-sm">
-              <TypingEffect
-                baseContent={t('uploading.we_are_analyzing')}
-                typingEffectContent={[
-                  t('uploading.wrinkles'),
-                  t('uploading.pores'),
-                  t('uploading.eye_area'),
-                  t('uploading.pigmentation'),
-                  t('uploading.acne'),
-                  t('uploading.hydration'),
-                  t('uploading.redness'),
-                  t('uploading.translucency'),
-                  '',
-                ]}
-                typingSpeed={120}
-                delayBetween={800}
-              />
-            </div>
-            </div>
-          </>
+          </div>
         </div>
       </div>
     );
