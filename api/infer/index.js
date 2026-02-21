@@ -186,6 +186,18 @@ const wrinklesBreaker = cache.createCircuitBreaker(callWrinklesAPI, {
   }
 });
 
+// Circuit breaker per Pores API (Cloud Run)
+const poresBreaker = cache.createCircuitBreaker(callPoresAPI, {
+  timeout: config.pores.timeout,
+  errorThresholdPercentage: 50,
+  resetTimeout: 30000,
+  name: 'PoresAPI',
+  fallback: async () => {
+    logger.warn('Pores circuit breaker open, returning fallback response');
+    return null;
+  }
+});
+
 // Variables globali per Service Bus
 let serviceBusClient = null;
 let queueSender = null;
@@ -525,7 +537,7 @@ module.exports = async function (context, req) {
     // Esegui chiamate alle tre API in parallelo
     const base64Image = await imageUrlToBase64(imageUrl);
     
-    const [acneFullResp, laxityRednessResp, wrinklesResp] = await Promise.allSettled([
+    const [acneFullResp, laxityRednessResp, wrinklesResp, poresResp] = await Promise.allSettled([
       pRetry(() => acneBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Acne attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
@@ -537,13 +549,16 @@ module.exports = async function (context, req) {
       pRetry(() => wrinklesBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Wrinkles attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
-      })
+      }),
+      // Pores runs without retry to stay within the Azure Functions 60s wall-clock budget
+      poresBreaker.fire(base64Image)
     ]);
     
     // Handle fulfilled/rejected responses
     logApiOutcome('AcneDetectionFullAPI', acneFullResp);
     logApiOutcome('LaxityRednessAPI', laxityRednessResp);
     logApiOutcome('WrinklesAPI', wrinklesResp);
+    logApiOutcome('PoresAPI', poresResp);
 
     const acneFullData = acneFullResp.status === 'fulfilled' ? acneFullResp.value : {
       predictions: [],
@@ -588,6 +603,11 @@ module.exports = async function (context, req) {
       wrinkleSeverity: { overall: { severity: 1 } }
     };
 
+    // Pores: null when failed/timed-out — skinMetrics.pores stays null gracefully
+    const poresData = (poresResp.status === 'fulfilled' && poresResp.value !== null)
+      ? poresResp.value
+      : null;
+
     // Calculate erythema from redness predictedClass
     const rednessClass = laxityRednessData.predictions?.redness?.predictedClass || 1;
     const erythema = rednessClass >= 3; // moderate or severe
@@ -601,8 +621,8 @@ module.exports = async function (context, req) {
       ]
     };
     
-    // Calculate skin metrics
-    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData);
+    // Calculate skin metrics (poresData populates skinMetrics.pores)
+    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData);
     const skinBenchmarks = getBenchmarks(userData.ageRange || '26-35', userData.gender || 'female');
 
     // Build final result matching JavaScript structure EXACTLY
@@ -620,6 +640,8 @@ module.exports = async function (context, req) {
       laxityRednessData,
       // Add wrinkles data
       wrinklesData,
+      // Add pores data (null if analysis failed or timed out)
+      poresData,
       // Add calculated erythema
       erythema,
       // Add skin metrics and benchmarks
@@ -644,8 +666,8 @@ module.exports = async function (context, req) {
       finalResult.recommendations_meta.deprecated_fields = ['recommendationData'];
     }
     
-    // Save to cache if not a fallback
-    if (!disableCache && !acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback) {
+    // Save to cache only when all APIs returned real data (no fallbacks, pores not null)
+    if (!disableCache && !acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback && poresData !== null) {
       await cache.set(cacheKey, finalResult, 300); // Cache for 5 minutes
     }
 
@@ -1111,6 +1133,115 @@ async function callWrinklesAPI(base64Image) {
       error: 'Wrinkles API call failed'
     };
   }
+}
+
+/**
+ * Calls Pores Detection API on Cloud Run (multipart upload + async polling)
+ * @param {string} base64Image - Base64 encoded image (no data URI prefix)
+ * @returns {Promise<Object|null>} Pores analysis result, or null on failure
+ */
+async function callPoresAPI(base64Image) {
+  const apiUrl = await config.pores.getApiUrl();
+  if (!apiUrl) throw new Error('PORES_API_URL not configured');
+
+  const startTime = Date.now();
+  const imageBuffer = Buffer.from(base64Image, 'base64');
+
+  // Build multipart form using Node.js 20 native FormData + Blob
+  const form = new FormData();
+  form.append('image', new Blob([imageBuffer], { type: 'image/jpeg' }), 'photo.jpg');
+  form.append('task', 'pores');
+  form.append('run_async', 'true');
+  form.append('face_focus', 'true');
+  form.append('remove_background', 'true');
+
+  logger.info('Calling Pores API (submit)', { url: apiUrl });
+
+  // Submit the analysis job
+  const startResp = await axios.post(`${apiUrl}/v1/analyze`, form, { timeout: 15000 });
+  const { job_id, progress_url, results_url } = startResp.data;
+
+  logger.info('Pores API job submitted', { job_id });
+
+  // Poll progress with a 40-second budget
+  const deadline = Date.now() + 40000;
+  let lastStatus = 'pending';
+  while (Date.now() < deadline) {
+    await new Promise(r => setTimeout(r, 1500));
+    const prog = await axios.get(`${apiUrl}${progress_url}`, { timeout: 5000 });
+    lastStatus = prog.data.status;
+    if (lastStatus === 'completed') break;
+    if (lastStatus === 'failed') throw new Error(`Pores analysis job failed: ${prog.data.detail || 'unknown reason'}`);
+  }
+
+  if (lastStatus !== 'completed') {
+    throw new Error('Pores analysis timed out before completion');
+  }
+
+  // Fetch final results
+  const resultsResp = await axios.get(`${apiUrl}${results_url}`, { timeout: 10000 });
+  const r = resultsResp.data;
+
+  const duration = Date.now() - startTime;
+  logger.info('Pores API success', {
+    job_id,
+    duration,
+    pore_total: r.summary?.aggregate?.pore_total,
+    pore_severity_1_5: r.summary?.aggregate?.pore_severity_1_5
+  });
+
+  const poreSeverity = r.summary?.analysis?.pore_severity ?? {};
+  const assessment = r.summary?.analysis?.assessment ?? {};
+  const poreMetrics = r.summary?.analysis?.pore_metrics ?? {};
+  const regionBreakdown = r.summary?.analysis?.region_breakdown ?? {};
+  const preprocess = r.preprocess ?? r.summary?.yolo_pores?.preprocess ?? {};
+
+  // Project region bounding boxes — bbox_full is already in original-image pixel space
+  const regions = {};
+  for (const [region, data] of Object.entries(regionBreakdown)) {
+    if (data && typeof data === 'object') {
+      regions[region] = {
+        bbox_full: data.bbox_full ?? null,     // coordinates on the original selfie (pixels)
+        pore_count: data.pores?.metrics?.count ?? 0,
+        visible_count: data.pores?.metrics?.visible_count ?? 0,
+        visible_fraction: data.pores?.metrics?.visible_fraction ?? null,
+        quality_visibility: data.quality?.visibility ?? null,
+      };
+    }
+  }
+
+  return {
+    job_id,
+    // Aggregate counts + severity (1–5 scale)
+    pore_total: r.summary?.aggregate?.pore_total ?? 0,
+    pore_severity_1_5: r.summary?.aggregate?.pore_severity_1_5 ?? null,
+    pore_size_severity_1_5: r.summary?.aggregate?.pore_size_severity_1_5 ?? null,
+    // Severity detail
+    score_label: poreSeverity.score_label ?? null,          // "minimal"|"mild"|"moderate"|"high"|"very_high"
+    score_0_100: poreSeverity.score_0_100 ?? null,          // normalized 0-100 index
+    // Visible pore stats (pores clearly detectable vs low-contrast)
+    visible_count: poreMetrics.visible_count ?? null,
+    visible_fraction: poreMetrics.visible_fraction ?? null, // 0.0-1.0
+    // Assessment flags
+    large_pores_present: assessment.large_pores_present ?? null,
+    pores_visibility: assessment.pores_visibility ?? null,  // "low"|"medium"|"high"
+    // Per-region breakdown with bbox_full in original image coordinates
+    // → use these to draw colored region overlays on the selfie in the frontend
+    regions,
+    // Preprocessor metadata (crop_bbox + resized_scale needed to map crop-space → original space)
+    preprocess: {
+      crop_bbox: preprocess.crop_bbox ?? null,
+      resized_scale: preprocess.resized_scale ?? null,
+      resized_from: preprocess.resized_from ?? null,
+    },
+    // Pre-rendered overlay image — easiest path for frontend display
+    overlay_preview_url: r.selected_overlay_preview_url
+      ? `${apiUrl}${r.selected_overlay_preview_url}`
+      : null,
+    overlay_url: r.selected_overlay_url
+      ? `${apiUrl}${r.selected_overlay_url}`
+      : null,
+  };
 }
 
 /**

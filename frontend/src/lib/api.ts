@@ -134,6 +134,34 @@ export interface AnalysisResponse {
     error?: string;
   };
   
+  // Pores analysis from Cloud Run
+  poresData?: {
+    job_id: string;
+    pore_total: number;
+    pore_severity_1_5: number | null;
+    pore_size_severity_1_5: number | null;
+    score_label: string | null;
+    score_0_100: number | null;
+    visible_count: number | null;
+    visible_fraction: number | null;
+    large_pores_present: boolean | null;
+    pores_visibility: string | null;
+    regions: Record<string, {
+      bbox_full: { x0: number; y0: number; x1: number; y1: number } | null;
+      pore_count: number;
+      visible_count: number;
+      visible_fraction: number | null;
+      quality_visibility: string | null;
+    }>;
+    preprocess: {
+      crop_bbox: { x0: number; y0: number; x1: number; y1: number } | null;
+      resized_scale: number | null;
+      resized_from: { width: number; height: number } | null;
+    };
+    overlay_preview_url: string | null;
+    overlay_url: string | null;
+  };
+
   // Legacy compatibility
   concerns?: Array<{
     name: string;
@@ -257,75 +285,74 @@ export async function uploadImageFile(file: File): Promise<string> {
 }
 
 /**
- * Resize image ONLY if file size >2MB (match JavaScript logic EXACTLY)
+ * Resize image if needed for upload.
+ * Max side 1800px to preserve enough resolution for pore detection
+ * (Cloud Run's internal preprocessing handles the final downsampling to its working size).
+ * Only caps at 10MB to stay within Azure Blob upload limits.
  */
 async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
+  // Max side for the uploaded image — Cloud Run works well up to 1800px
+  // and performs its own smart downsampling internally.
+  const MAX_SIDE = 1800;
+  const MAX_FILE_MB = 10;
+
   return new Promise((resolve, reject) => {
-    // Convert data URL to blob to check file size
     fetch(imageDataUrl)
       .then(res => res.blob())
       .then(blob => {
-        const MAX_SIZE_MB = 2;
         const sizeMB = blob.size / (1024 * 1024);
-        
         console.log(`Image file size: ${sizeMB.toFixed(2)}MB`);
-        
-        // Match JavaScript: resize ONLY if file size > 2MB
-        if (blob.size <= MAX_SIZE_MB * 1024 * 1024) {
-          console.log('File size ≤ 2MB, no resize needed (match JavaScript logic)');
-          resolve(imageDataUrl);
-          return;
-        }
-        
-        console.log(`File size > 2MB, resizing to 1024x1024 @ 80% quality...`);
-        
-        // Now we need to resize
+
         const img = new Image();
         img.src = imageDataUrl;
-        
+
         img.onload = () => {
-              try {
-                const originalWidth = img.naturalWidth;
-                const originalHeight = img.naturalHeight;
-                
-                // Calculate new dimensions maintaining aspect ratio (max 1024x1024)
-                const maxWidth = 1024;
-                const maxHeight = 1024;
-                const ratio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight, 1);
-                const newWidth = Math.round(originalWidth * ratio);
-                const newHeight = Math.round(originalHeight * ratio);
-                
-                console.log(`Resizing image: ${originalWidth}x${originalHeight} → ${newWidth}x${newHeight}`);
-                
-                // Create canvas and resize
-                const canvas = document.createElement('canvas');
-                canvas.width = newWidth;
-                canvas.height = newHeight;
-                const ctx = canvas.getContext('2d');
-                
-                if (!ctx) {
-                  reject(new Error('Could not get canvas context'));
-                  return;
-                }
-                
-                ctx.imageSmoothingEnabled = true;
-                ctx.imageSmoothingQuality = 'high';
-                ctx.drawImage(img, 0, 0, newWidth, newHeight);
-                
-                // Convert to base64 with 80% quality (match JavaScript)
-                const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                console.log('Image resized successfully');
-                resolve(resizedDataUrl);
-              } catch (error) {
-                console.error('Error resizing image:', error);
-                reject(error);
-              }
-            };
-            
-            img.onerror = () => {
-              reject(new Error('Failed to load image for resizing'));
-            };
-          })
+          try {
+            const originalWidth = img.naturalWidth;
+            const originalHeight = img.naturalHeight;
+            const maxDimension = Math.max(originalWidth, originalHeight);
+
+            // Skip resize if already within limits and size is acceptable
+            if (maxDimension <= MAX_SIDE && sizeMB <= MAX_FILE_MB) {
+              console.log(`Image ${originalWidth}×${originalHeight} within limits, no resize needed`);
+              resolve(imageDataUrl);
+              return;
+            }
+
+            const ratio = Math.min(MAX_SIDE / originalWidth, MAX_SIDE / originalHeight, 1);
+            const newWidth = Math.round(originalWidth * ratio);
+            const newHeight = Math.round(originalHeight * ratio);
+
+            console.log(`Resizing image: ${originalWidth}×${originalHeight} → ${newWidth}×${newHeight}`);
+
+            const canvas = document.createElement('canvas');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (!ctx) {
+              reject(new Error('Could not get canvas context'));
+              return;
+            }
+
+            ctx.imageSmoothingEnabled = true;
+            ctx.imageSmoothingQuality = 'high';
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+
+            // JPEG quality 90 to retain pore-level detail at higher resolution
+            const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+            console.log('Image resized successfully');
+            resolve(resizedDataUrl);
+          } catch (error) {
+            console.error('Error resizing image:', error);
+            reject(error);
+          }
+        };
+
+        img.onerror = () => {
+          reject(new Error('Failed to load image for resizing'));
+        };
+      })
       .catch(error => {
         console.error('Error checking file size:', error);
         reject(error);

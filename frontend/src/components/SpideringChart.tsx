@@ -131,14 +131,25 @@ export default function SpideringChart({
 
   const { userMetrics, benchmarks } = getMetricsAndBenchmarks();
 
-  // Build chart data array (6 metrics - pores excluded)
+  // Pores: include in chart only when the Cloud Run API returned a real value
+  const hasPores = userMetrics.pores != null && typeof userMetrics.pores === 'number';
+
+  // Build chart data array (6 base metrics + optional pores)
   const chartData = [
     { labelKey: 'chart.acne', label: t('chart.acne'), userValue: userMetrics.acne, benchmarkValue: benchmarks.acne, max: 4, color: '#ff6b6b' },
     { labelKey: 'chart.dryness', label: t('chart.dryness'), userValue: userMetrics.dryness, benchmarkValue: benchmarks.dryness, max: 5, color: '#4dabf7' },
     { labelKey: 'chart.wrinkles', label: t('chart.wrinkles'), userValue: userMetrics.wrinkles, benchmarkValue: benchmarks.wrinkles, max: 5, color: '#ff922b' },
     { labelKey: 'chart.spots', label: t('chart.spots'), userValue: userMetrics.spots, benchmarkValue: benchmarks.spots, max: 4, color: '#9775fa' },
     { labelKey: 'chart.redness', label: t('chart.redness'), userValue: userMetrics.redness, benchmarkValue: benchmarks.redness, max: 5, color: '#ff6b9d' },
-    { labelKey: 'chart.laxity_skin', label: t('chart.laxity_skin'), userValue: userMetrics.laxity, benchmarkValue: benchmarks.laxity, max: 4, color: '#20c997' }
+    { labelKey: 'chart.laxity_skin', label: t('chart.laxity_skin'), userValue: userMetrics.laxity, benchmarkValue: benchmarks.laxity, max: 4, color: '#20c997' },
+    ...(hasPores ? [{
+      labelKey: 'chart.pores',
+      label: t('chart.pores'),
+      userValue: userMetrics.pores as number,
+      benchmarkValue: (benchmarks.pores as number | null) ?? 2, // 2 = "mild" reference
+      max: 5,
+      color: '#6362EE'
+    }] : [])
   ];
 
   const centerX = 150;

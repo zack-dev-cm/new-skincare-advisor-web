@@ -87,9 +87,10 @@ function isYoungAgeRange(ageRange) {
  * @param {Object} acneFullData - Acne detection results
  * @param {Object} laxityRednessData - Laxity/redness/dryness results
  * @param {Object} wrinklesData - Wrinkles detection results
+ * @param {Object|null} poresData - Pores analysis results from Cloud Run (null if unavailable)
  * @returns {Object} Metrics with standardized scales
  */
-function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData) {
+function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData) {
   // Validation
   if (!acneFullData || !laxityRednessData || !wrinklesData) {
     logger.error('Incomplete data in calculateSkinMetrics');
@@ -119,8 +120,8 @@ function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData) {
   // Wrinkles/Rughe (1-5): from wrinkleSeverity.overall.severity
   const wrinkles = wrinklesData.wrinkleSeverity?.overall?.severity || 1;
   
-  // Pores/Pori: not implemented
-  const pores = null;
+  // Pores/Pori (1-5): from pore_severity_1_5 returned by Cloud Run Pores API
+  const pores = poresData?.pore_severity_1_5 ?? null;
   
   // Redness/Rossore (1-5): from predictedClass
   const redness = parseInt(laxityRednessData.predictions?.redness?.predictedClass) || 1;

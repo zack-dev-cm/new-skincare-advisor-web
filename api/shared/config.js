@@ -71,6 +71,10 @@ const config = {
     getApiKey: () => getSecret('WrinklesApiKey', 'WRINKLES_API_KEY'),
     timeout: parseInt(process.env.WRINKLES_API_TIMEOUT || '15000')
   },
+  pores: {
+    getApiUrl: () => getSecret('PoresApiUrl', 'PORES_API_URL'),
+    timeout: parseInt(process.env.PORES_API_TIMEOUT || '55000')
+  },
   recommendations: {
     acneApiUrl: 'https://azure-products-recommendation-api-ekbsh3gzhug3cecv.westeurope-01.azurewebsites.net/api/RecommendationFunction',
     skinApiUrl: 'https://azure-products-recommendation-api-ekbsh3gzhug3cecv.westeurope-01.azurewebsites.net/api/SkinRecommendationFunction',

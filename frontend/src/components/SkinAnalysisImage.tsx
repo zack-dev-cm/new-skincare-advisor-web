@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Eye, EyeOff, Info, AlertTriangle, ChevronLeft, ChevronRight, Zap } from 'lucide-react';
-import { getLegendLabel } from '@/lib/legendLabels';
+import { getLegendLabel, AnalysisView } from '@/lib/legendLabels';
 
 interface Prediction {
   x: number;
@@ -60,6 +60,15 @@ interface AnalysisData {
     has_forehead_wrinkles?: boolean;
     has_expression_lines?: boolean;
     has_under_eye_concerns?: boolean;
+  };
+  poresData?: {
+    pore_total: number;
+    pore_severity_1_5: number | null;
+    score_label: string | null;
+    score_0_100: number | null;
+    visible_count: number | null;
+    pores_visibility: string | null;
+    overlay_preview_url: string | null;
   };
   image: {
     width: number;
@@ -131,7 +140,7 @@ export default function SkinAnalysisImage({
   className = '' 
 }: SkinAnalysisImageProps) {
   const { t } = useTranslation('analysis');
-  const [currentView, setCurrentView] = useState<'acne' | 'wrinkles'>('acne');
+  const [currentView, setCurrentView] = useState<'acne' | 'wrinkles' | 'pores'>('acne');
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -154,7 +163,10 @@ export default function SkinAnalysisImage({
 
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
-    { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const }
+    { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const },
+    ...(analysisData.poresData?.overlay_preview_url
+      ? [{ url: analysisData.poresData.overlay_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
+      : [])
   ];
 
   const drawImage = useCallback(
@@ -475,9 +487,13 @@ export default function SkinAnalysisImage({
       case 'acne':
         analysisData.predictions?.forEach((p) => classes.add(p.class));
         break;
-      case 'wrinkles':
+      case 'wrinkles': {
         const wrinklesData = analysisData.wrinklesData || analysisData.wrinkles;
         wrinklesData?.predictions?.forEach((p) => classes.add(p.class));
+        break;
+      }
+      case 'pores':
+        // Pores legend is handled separately via the severity info bar
         break;
     }
 
@@ -490,8 +506,9 @@ export default function SkinAnalysisImage({
         return getAcneColor(className);
       case 'wrinkles':
         return getWrinkleColor(className);
+      case 'pores':
       default:
-        return '#666666';
+        return '#6362EE';
     }
   };
 
@@ -534,29 +551,43 @@ export default function SkinAnalysisImage({
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
+                className="w-full"
               >
-                {/* Hidden image only for dimensions & load */}
-                <img
-                  ref={imageRef}
-                  src={carouselImages[currentImageIndex].url}
-                  alt={carouselImages[currentImageIndex].label}
-                  className="hidden"
-                  onLoad={handleImageLoad}
-                  key={`${carouselImages[currentImageIndex].url}-${currentImageIndex}`}
-                />
-
-                {/* Canvas that contains image (object-contain) + overlays */}
-                {imageLoaded && (
-                  <canvas
-                    ref={canvasRef}
-                    className="w-full h-full pointer-events-auto cursor-pointer"
-                    onClick={handleCanvasClick}
-                    style={{
-                      maxWidth: '100%',
-                      height: 'auto',
-                      display: 'block',
-                    }}
+                {currentView === 'pores' && analysisData.poresData?.overlay_preview_url ? (
+                  /* Pores: render the pre-drawn Cloud Run overlay directly as <img>.
+                     Using <img> (not canvas) avoids cross-origin canvas tainting. */
+                  <img
+                    src={analysisData.poresData.overlay_preview_url}
+                    alt={t('image.pores_analysis')}
+                    className="w-full object-contain rounded-xl"
+                    style={{ maxHeight: '384px', display: 'block', margin: '0 auto' }}
                   />
+                ) : (
+                  <>
+                    {/* Hidden image only for dimensions & load */}
+                    <img
+                      ref={imageRef}
+                      src={carouselImages[currentImageIndex].url}
+                      alt={carouselImages[currentImageIndex].label}
+                      className="hidden"
+                      onLoad={handleImageLoad}
+                      key={`${carouselImages[currentImageIndex].url}-${currentImageIndex}`}
+                    />
+
+                    {/* Canvas that contains image (object-contain) + overlays */}
+                    {imageLoaded && (
+                      <canvas
+                        ref={canvasRef}
+                        className="w-full h-full pointer-events-auto cursor-pointer"
+                        onClick={handleCanvasClick}
+                        style={{
+                          maxWidth: '100%',
+                          height: 'auto',
+                          display: 'block',
+                        }}
+                      />
+                    )}
+                  </>
                 )}
               </motion.div>
             </AnimatePresence>
@@ -621,31 +652,60 @@ export default function SkinAnalysisImage({
           </div>
         </div>
 
-        {/* Color Legend Bar */}
+        {/* Legend / Info Bar */}
         <div className="bg-white rounded-lg p-4 shadow-sm border">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             {carouselImages[currentImageIndex].label}{t('image.legend_suffix')}
           </h3>
-          <div className="flex flex-wrap gap-2 align-center justify-center">
-            {getUniqueClasses().map((className) => {
-              const color = getClassColor(className);
-              const textColor = getTextColor(color);
-              const translated = getLegendLabel(currentView, className);
 
-              return (
+          {currentView === 'pores' && analysisData.poresData ? (
+            /* Pores view: show severity + count badges instead of class legend */
+            <div className="flex flex-wrap gap-2 justify-center">
+              {analysisData.poresData.pore_severity_1_5 != null && (
                 <div
-                  key={className}
-                  className="px-3 py-1 rounded rounded-full text-sm font-medium transition-all hover:opacity-80"
-                  style={{
-                    backgroundColor: color,
-                    color: textColor,
-                  }}
+                  className="px-3 py-1 rounded-full text-sm font-medium"
+                  style={{ backgroundColor: '#6362EE', color: '#ffffff' }}
                 >
-                  {translated}
+                  {t('image.pores_legend_severity', {
+                    label: analysisData.poresData.score_label ?? String(analysisData.poresData.pore_severity_1_5),
+                    score: analysisData.poresData.pore_severity_1_5,
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              )}
+              <div
+                className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700"
+              >
+                {t('image.pores_legend_count', { count: analysisData.poresData.pore_total })}
+              </div>
+              {analysisData.poresData.visible_count != null && (
+                <div className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
+                  {analysisData.poresData.visible_count} visibili
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Acne / Wrinkles view: existing class color legend */
+            <div className="flex flex-wrap gap-2 align-center justify-center">
+              {getUniqueClasses().map((className) => {
+                const color = getClassColor(className);
+                const textColor = getTextColor(color);
+                const translated = getLegendLabel(currentView as AnalysisView, className);
+
+                return (
+                  <div
+                    key={className}
+                    className="px-3 py-1 rounded rounded-full text-sm font-medium transition-all hover:opacity-80"
+                    style={{
+                      backgroundColor: color,
+                      color: textColor,
+                    }}
+                  >
+                    {translated}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     </div>
