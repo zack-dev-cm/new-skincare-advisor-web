@@ -354,7 +354,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh] md:max-h-[100vh]"
+        className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]"
       >
         {/* Fixed Header inside Modal - Sticky on all screen sizes */}
         <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
@@ -380,7 +380,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <img
                 src={LOGO_VIOLET}
                 alt="Dermaself"
-                className="inline-block h-7 w-auto max-h-7 logo-violet"
+                className="inline-block h-5 w-auto max-h-5 logo-violet"
               />
             </div>
           </div>

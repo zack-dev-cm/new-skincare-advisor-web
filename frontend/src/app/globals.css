@@ -883,9 +883,10 @@ body {
 }
 
 /* Sticky header and footer optimizations */
-/* Ensure sticky positioning works across all browsers */
+/* Belt-and-suspenders: modal header/footer are anchored by flexbox (flex-shrink-0)
+   AND by sticky. Both work together — sticky requires overflow-clip (not overflow-hidden)
+   on the modal container, which is set on .motion.div in SkinAnalysisModal.tsx */
 .sticky {
-  position: -webkit-sticky;
   position: sticky;
 }
 
