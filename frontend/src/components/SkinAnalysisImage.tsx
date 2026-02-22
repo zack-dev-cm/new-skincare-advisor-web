@@ -69,6 +69,7 @@ interface AnalysisData {
     visible_count: number | null;
     pores_visibility: string | null;
     overlay_preview_url: string | null;
+    overlay_circles_preview_url: string | null;
   };
   image: {
     width: number;
@@ -164,8 +165,8 @@ export default function SkinAnalysisImage({
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
     { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const },
-    ...(analysisData.poresData?.overlay_preview_url
-      ? [{ url: analysisData.poresData.overlay_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
+    ...(analysisData.poresData?.overlay_circles_preview_url
+      ? [{ url: analysisData.poresData.overlay_circles_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
       : [])
   ];
 
@@ -553,11 +554,11 @@ export default function SkinAnalysisImage({
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                {currentView === 'pores' && analysisData.poresData?.overlay_preview_url ? (
-                  /* Pores: render the pre-drawn Cloud Run overlay directly as <img>.
+                {currentView === 'pores' && analysisData.poresData?.overlay_circles_preview_url ? (
+                  /* Pores: render the circles-only Cloud Run overlay directly as <img>.
                      Using <img> (not canvas) avoids cross-origin canvas tainting. */
                   <img
-                    src={analysisData.poresData.overlay_preview_url}
+                    src={analysisData.poresData.overlay_circles_preview_url}
                     alt={t('image.pores_analysis')}
                     className="w-full object-contain rounded-xl"
                     style={{ maxHeight: '384px', display: 'block', margin: '0 auto' }}

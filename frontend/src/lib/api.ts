@@ -160,6 +160,7 @@ export interface AnalysisResponse {
     };
     overlay_preview_url: string | null;
     overlay_url: string | null;
+    overlay_circles_preview_url: string | null;
   };
 
   // Legacy compatibility

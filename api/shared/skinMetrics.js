@@ -158,19 +158,28 @@ function getBenchmarks(ageRange, gender) {
   const isMale = genderNormalized === "male";
   
   // Benchmark for females and non-binary
+  // Pores scale 1-5, derived from:
+  //   - Lee et al. (2022) Skin Res Technol: K-means clustering (101 women, 3D imaging)
+  //     C2 mean-age 31→score 2, C3 mean-age 36→2.5, C4 mean-age 49→3.5, C5 mean-age 56→4.5
+  //   - Flament et al. (2015) CCID: 2,585 women multiethnic study (Caucasian plateau at 40+)
+  //   - Jang et al. (2018) Skin Res Technol: no significant gender difference in pore counts;
+  //     significant jump between 30s and 40s confirmed
   const femaleBenchmarks = {
-    "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1 },
-    "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5 },
-    "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2 },
-    ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3 }
+    "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1, pores: 2.0 },
+    "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5, pores: 2.5 },
+    "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2, pores: 3.5 },
+    ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3, pores: 4.5 }
   };
   
   // Benchmark for males
+  // Gender effect: Jang (2018) found no significant difference in pore counts by sex.
+  // However, Flament (2015) notes lower visible-pore prevalence in men despite higher sebum
+  // (thicker skin reduces apparent pore depth). A modest downward correction is applied at 41+.
   const maleBenchmarks = {
-    "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1 },
-    "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5 },
-    "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2.5 },
-    ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3 }
+    "<30": { acne: 2, dryness: 1, redness: 1, wrinkles: 1, spots: 1, laxity: 1, pores: 2.0 },
+    "30-40": { acne: 1, dryness: 2, redness: 1.5, wrinkles: 1.8, spots: 1, laxity: 1.5, pores: 2.5 },
+    "41-50": { acne: 1, dryness: 3, redness: 1.5, wrinkles: 3, spots: 2, laxity: 2.5, pores: 3.0 },
+    ">50": { acne: 1, dryness: 4, redness: 2, wrinkles: 4, spots: 3, laxity: 3, pores: 4.0 }
   };
   
   const benchmarks = isMale ? maleBenchmarks[ageCategory] : femaleBenchmarks[ageCategory];
@@ -182,7 +191,7 @@ function getBenchmarks(ageRange, gender) {
     spots: benchmarks.spots,
     dryness: benchmarks.dryness,
     wrinkles: benchmarks.wrinkles,
-    pores: null, // not implemented
+    pores: benchmarks.pores,
     redness: benchmarks.redness,
     laxity: benchmarks.laxity
   };

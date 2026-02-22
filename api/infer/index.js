@@ -1241,6 +1241,10 @@ async function callPoresAPI(base64Image) {
     overlay_url: r.selected_overlay_url
       ? `${apiUrl}${r.selected_overlay_url}`
       : null,
+    // Circles-only overlay: pores rendered as green dots only, no region masks
+    overlay_circles_preview_url: r.overlay_preview_urls?.pores_circles
+      ? `${apiUrl}${r.overlay_preview_urls.pores_circles}`
+      : null,
   };
 }
 
