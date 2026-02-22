@@ -286,16 +286,21 @@ export async function uploadImageFile(file: File): Promise<string> {
 }
 
 /**
- * Resize image if needed for upload.
- * Max side 1800px to preserve enough resolution for pore detection
- * (Cloud Run's internal preprocessing handles the final downsampling to its working size).
- * Only caps at 10MB to stay within Azure Blob upload limits.
+ * Resize image only if file size exceeds the threshold.
+ *
+ * Files ≤ 2MB are uploaded at their original resolution — this preserves
+ * full quality for the acne/laxity/wrinkles APIs and for file uploads where
+ * the user already has a compact image.
+ *
+ * Files > 2MB (typically camera captures) are resized to max 1800px per side.
+ * 1800px is large enough for pore detection (Cloud Run's internal preprocessing
+ * handles final downsampling) and keeps the upload under ~3MB.
  */
 async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
-  // Max side for the uploaded image — Cloud Run works well up to 1800px
-  // and performs its own smart downsampling internally.
-  const MAX_SIDE = 1800;
-  const MAX_FILE_MB = 10;
+  const MAX_SIZE_MB = 2;
+  // For files that do need resizing, cap at 1800px to give pore detection
+  // enough resolution while keeping uploads manageable.
+  const MAX_SIDE_PX = 1800;
 
   return new Promise((resolve, reject) => {
     fetch(imageDataUrl)
@@ -304,6 +309,15 @@ async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
         const sizeMB = blob.size / (1024 * 1024);
         console.log(`Image file size: ${sizeMB.toFixed(2)}MB`);
 
+        // Files under the threshold: upload as-is, no quality loss.
+        if (blob.size <= MAX_SIZE_MB * 1024 * 1024) {
+          console.log(`File size ≤ ${MAX_SIZE_MB}MB, uploading at original resolution`);
+          resolve(imageDataUrl);
+          return;
+        }
+
+        console.log(`File size > ${MAX_SIZE_MB}MB, resizing to max ${MAX_SIDE_PX}px side @ 90% quality...`);
+
         const img = new Image();
         img.src = imageDataUrl;
 
@@ -311,16 +325,8 @@ async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
           try {
             const originalWidth = img.naturalWidth;
             const originalHeight = img.naturalHeight;
-            const maxDimension = Math.max(originalWidth, originalHeight);
 
-            // Skip resize if already within limits and size is acceptable
-            if (maxDimension <= MAX_SIDE && sizeMB <= MAX_FILE_MB) {
-              console.log(`Image ${originalWidth}×${originalHeight} within limits, no resize needed`);
-              resolve(imageDataUrl);
-              return;
-            }
-
-            const ratio = Math.min(MAX_SIDE / originalWidth, MAX_SIDE / originalHeight, 1);
+            const ratio = Math.min(MAX_SIDE_PX / originalWidth, MAX_SIDE_PX / originalHeight, 1);
             const newWidth = Math.round(originalWidth * ratio);
             const newHeight = Math.round(originalHeight * ratio);
 
@@ -340,7 +346,7 @@ async function resizeImageIfNeeded(imageDataUrl: string): Promise<string> {
             ctx.imageSmoothingQuality = 'high';
             ctx.drawImage(img, 0, 0, newWidth, newHeight);
 
-            // JPEG quality 90 to retain pore-level detail at higher resolution
+            // 90% quality retains enough detail for all skin analysis models.
             const resizedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
             console.log('Image resized successfully');
             resolve(resizedDataUrl);
