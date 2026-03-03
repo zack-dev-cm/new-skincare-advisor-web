@@ -198,13 +198,13 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     }
   }, [isOpen, fastMode]);
 
-  // Set initial step if provided and skipOnboarding is enabled (demo mode)
+  // Set initial step if provided (demo mode)
   useEffect(() => {
-    if (isOpen && initialStep && appConfig.skipOnboarding) {
+    if (isOpen && initialStep) {
       setCurrentStep(initialStep);
       console.log(`🎯 Demo mode: Starting at step '${initialStep}'`);
     }
-  }, [isOpen, initialStep, appConfig.skipOnboarding]);
+  }, [isOpen, initialStep]);
 
   // Step navigation
   const handleNext = () => {
@@ -242,8 +242,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleRestart = () => {
-    // In demo mode, restart from photo-instructions instead of onboarding
-    setCurrentStep(appConfig.skipOnboarding ? 'photo-instructions' : 'onboarding');
+    // In demo mode, restart from the configured initial step (skin-type)
+    setCurrentStep(initialStep ?? (appConfig.skipOnboarding ? 'photo-instructions' : 'onboarding'));
     setSelectedSkinType('');
     setSelectedConcerns([]);
     setSelectedGender('');

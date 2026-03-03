@@ -73,7 +73,7 @@ const config = {
   },
   pores: {
     getApiUrl: () => getSecret('PoresApiUrl', 'PORES_API_URL'),
-    timeout: parseInt(process.env.PORES_API_TIMEOUT || '55000')
+    timeout: parseInt(process.env.PORES_API_TIMEOUT || '300000')
   },
   recommendations: {
     acneApiUrl: 'https://azure-products-recommendation-api-ekbsh3gzhug3cecv.westeurope-01.azurewebsites.net/api/RecommendationFunction',

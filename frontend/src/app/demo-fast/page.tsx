@@ -24,7 +24,7 @@ const DEMO_CONFIG: AppConfig = {
   shopDomain: 'dermaself',
   enableCart: false,
   enableShopifyIntegration: false,
-  skipOnboarding: true,
+  skipOnboarding: false,
   defaultUserData: {
     skin_type: 'Normale',
     ageRange: '26 - 35',
@@ -56,7 +56,7 @@ export default function DemoFastPage() {
             onClose={handleCloseModal} 
             embedded={false}
             fastMode={true}
-            initialStep="photo-instructions"
+            initialStep="skin-type"
           />
         </div>
       </div>

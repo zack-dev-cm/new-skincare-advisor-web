@@ -1163,8 +1163,10 @@ async function callPoresAPI(base64Image) {
 
   logger.info('Pores API job submitted', { job_id });
 
-  // Poll progress with a 40-second budget
-  const deadline = Date.now() + 40000;
+  // Poll progress — pipeline on Cloud Run takes 100-250+ s.
+  // Budget set to 270s (4.5 min); circuit breaker wraps at 300s (5 min);
+  // Azure Function hard limit is 600s (10 min) — all three are now aligned.
+  const deadline = Date.now() + 270000;
   let lastStatus = 'pending';
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 1500));
