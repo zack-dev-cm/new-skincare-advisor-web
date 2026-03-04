@@ -336,7 +336,7 @@ export default function SkincareRoutineCard({
         }
 
         .purchase-btn:hover:not(:disabled) {
-          background: #7c3aed;
+          background: #7547f2;
         }
 
         .purchase-btn:disabled {

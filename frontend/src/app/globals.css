@@ -68,7 +68,7 @@
   --sky: 201 100% 90%;
 
   /* Fit / status */
-  --violet-fit: 260 81% 60%;
+  --violet-fit: 256 87% 55%;
   --emerald-fit: 144 100% 80%;
   --lilac-fit: 254 73% 78%;
   --gray-fit: 0 0% 45%;
@@ -184,13 +184,13 @@ body {
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
   border: 1px solid hsl(var(--border) / 0.6);
-  box-shadow: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
+  box-shadow: 0 1px 3px 0 hsl(256 87% 55% / 0.1), 0 1px 2px -1px hsl(256 87% 55% / 0.1);
   @apply p-6 rounded-2xl transition-all duration-200;
 }
 
 .card:hover {
-  box-shadow: 0 10px 25px -3px hsl(260 81% 60% / 0.15), 0 4px 6px -2px hsl(260 81% 60% / 0.1);
-  border-color: hsl(260 81% 60% / 0.2);
+  box-shadow: 0 10px 25px -3px hsl(256 87% 55% / 0.15), 0 4px 6px -2px hsl(256 87% 55% / 0.1);
+  border-color: hsl(256 87% 55% / 0.2);
 }
 
 .input-field {
@@ -248,7 +248,7 @@ body {
 
 .answer {
   @apply cursor-pointer block relative transition-all duration-200;
-  box-shadow: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
+  box-shadow: 0 1px 3px 0 hsl(256 87% 55% / 0.1), 0 1px 2px -1px hsl(256 87% 55% / 0.1);
 }
 
 .answer.selected {
@@ -286,7 +286,7 @@ body {
 .answer__info {
   background-color: hsl(var(--card));
   border: 1px solid hsl(var(--border));
-  box-shadow: 0 10px 15px -3px hsl(260 81% 60% / 0.1), 0 4px 6px -2px hsl(260 81% 60% / 0.08);
+  box-shadow: 0 10px 15px -3px hsl(256 87% 55% / 0.1), 0 4px 6px -2px hsl(256 87% 55% / 0.08);
   @apply absolute top-full left-0 right-0 p-4 mt-2 z-10 opacity-0 pointer-events-none transition-all duration-200;
 }
 
@@ -358,7 +358,7 @@ body {
   border-color: hsl(var(--primary));
 }
 
-/* Icone header/footer viola come il logo (#9b16f5) */
+/* Icone header/footer viola come il logo (#7547f2) */
 .modal-header-bar img:not(.logo-violet),
 .modal-footer-bar img:not(.logo-violet) {
   filter: invert(31%) sepia(94%) saturate(4691%) hue-rotate(266deg);
@@ -717,10 +717,10 @@ body {
   --dermaself-radius-md: 0.5rem;
   --dermaself-radius-lg: 0.75rem;
   --dermaself-radius-xl: 1rem;
-  --dermaself-shadow-sm: 0 1px 3px 0 hsl(260 81% 60% / 0.1), 0 1px 2px -1px hsl(260 81% 60% / 0.1);
-  --dermaself-shadow-md: 0 4px 6px -1px hsl(260 81% 60% / 0.1), 0 2px 4px -1px hsl(260 81% 60% / 0.08);
-  --dermaself-shadow-lg: 0 10px 15px -3px hsl(260 81% 60% / 0.1), 0 4px 6px -2px hsl(260 81% 60% / 0.08);
-  --dermaself-shadow-xl: 0 20px 25px -5px hsl(260 81% 60% / 0.1), 0 10px 10px -5px hsl(260 81% 60% / 0.04);
+  --dermaself-shadow-sm: 0 1px 3px 0 hsl(256 87% 55% / 0.1), 0 1px 2px -1px hsl(256 87% 55% / 0.1);
+  --dermaself-shadow-md: 0 4px 6px -1px hsl(256 87% 55% / 0.1), 0 2px 4px -1px hsl(256 87% 55% / 0.08);
+  --dermaself-shadow-lg: 0 10px 15px -3px hsl(256 87% 55% / 0.1), 0 4px 6px -2px hsl(256 87% 55% / 0.08);
+  --dermaself-shadow-xl: 0 20px 25px -5px hsl(256 87% 55% / 0.1), 0 10px 10px -5px hsl(256 87% 55% / 0.04);
 }
 
 /* KIKO Modal Styles */

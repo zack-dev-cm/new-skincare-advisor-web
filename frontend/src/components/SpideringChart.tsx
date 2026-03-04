@@ -148,7 +148,7 @@ export default function SpideringChart({
       userValue: userMetrics.pores as number,
       benchmarkValue: (benchmarks.pores as number | null) ?? 2, // 2 = "mild" reference
       max: 5,
-      color: '#6362EE'
+      color: '#7547F2'
     }] : [])
   ];
 
@@ -264,8 +264,8 @@ export default function SpideringChart({
           {/* User data polygon (purple) */}
           <motion.polygon
             points={getUserPolygonPoints()}
-            fill="rgba(124, 58, 237, 0.2)"
-            stroke="#7C3AED"
+            fill="rgba(117, 71, 242, 0.2)"
+            stroke="#7547F2"
             strokeWidth="2"
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -285,7 +285,7 @@ export default function SpideringChart({
                 cx={x}
                 cy={y}
                 r="4"
-                fill="#7C3AED"
+                fill="#7547F2"
                 stroke="white"
                 strokeWidth="2"
                 initial={{ scale: 0 }}

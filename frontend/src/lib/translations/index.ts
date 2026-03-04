@@ -1174,7 +1174,7 @@ export const translations = {
         normal: 'Normal',
         dry: 'Dry',
         oily: 'Oily',
-        combination: 'Combination',
+        combination: 'Mixed',
         sensitive: 'Sensitive',
         dont_know: "I don't know",
         normal_desc: 'Balanced and problem-free',

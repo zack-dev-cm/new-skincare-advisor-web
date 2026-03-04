@@ -509,7 +509,7 @@ export default function SkinAnalysisImage({
         return getWrinkleColor(className);
       case 'pores':
       default:
-        return '#6362EE';
+        return '#7547F2';
     }
   };
 
