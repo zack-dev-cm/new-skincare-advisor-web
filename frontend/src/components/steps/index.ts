@@ -3,6 +3,7 @@ export { default as SkinTypeStep } from './skin_type_step';
 export { default as SkinConcernsStep } from './skin_concerns_step';
 export { default as GenderStep } from './gender_step';
 export { default as AgeStep } from './age_step';
+export { default as SensitivityStep } from './sensitivity_step';
 export { default as PhotoInstructionsStep } from './photo_instructions_step';
 export { default as CameraCaptureStep } from './camera_capture_step';
 export { default as ScanStep } from './scan_step';

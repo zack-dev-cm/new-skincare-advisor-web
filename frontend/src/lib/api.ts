@@ -190,6 +190,7 @@ export interface UserData {
   gender?: string;
   skin_type?: string;
   concerns?: string[];
+  sensitivity?: 'high' | 'medium' | 'low';
   budget_level?: 'Low' | 'Medium' | 'High';
   shop_domain?: string;
 }

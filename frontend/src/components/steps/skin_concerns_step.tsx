@@ -22,12 +22,13 @@ interface SkinConcernsStepProps {
 export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, onNext, onBack }: SkinConcernsStepProps) {
   const { t } = useTranslation(['steps', 'common']);
   const skinConcerns: SkinConcern[] = [
-    { id: 'wrinkles', nameKey: 'steps:skin_concerns.option_wrinkles', icon: ASSETS.images.icons.wrinkles },
-    { id: 'eyebags', nameKey: 'steps:skin_concerns.option_eyebags', icon: ASSETS.images.icons.eyebags },
-    { id: 'dullSkin', nameKey: 'steps:skin_concerns.option_dullness', icon: ASSETS.images.icons.dullSkin },
-    { id: 'aging', nameKey: 'steps:skin_concerns.option_aging', icon: ASSETS.images.icons.aging },
-    { id: 'pores', nameKey: 'steps:skin_concerns.option_pores', icon: ASSETS.images.icons.poreDilation },
-    { id: 'none', nameKey: 'steps:skin_concerns.option_none', icon: '' }
+    { id: 'acne',     nameKey: 'steps:skin_concerns.option_acne',     icon: ASSETS.images.icons.aging },
+    { id: 'spots',    nameKey: 'steps:skin_concerns.option_spots',     icon: ASSETS.images.icons.dullSkin },
+    { id: 'wrinkles', nameKey: 'steps:skin_concerns.option_wrinkles',  icon: ASSETS.images.icons.wrinkles },
+    { id: 'pores',    nameKey: 'steps:skin_concerns.option_pores',     icon: ASSETS.images.icons.poreDilation },
+    { id: 'dryness',  nameKey: 'steps:skin_concerns.option_dryness',   icon: ASSETS.images.icons.eyebags },
+    { id: 'redness',  nameKey: 'steps:skin_concerns.option_redness',   icon: ASSETS.images.icons.aging },
+    { id: 'laxity',   nameKey: 'steps:skin_concerns.option_laxity',    icon: ASSETS.images.icons.wrinkles },
   ];
   return (
     <motion.div
@@ -36,7 +37,7 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-bg1 bg-cover bg-center h-full flex flex-col"
+      className="bg-bg1 bg-cover bg-center min-h-full flex flex-col"
     >
       {/* Skin Concerns Selection */}
       <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">

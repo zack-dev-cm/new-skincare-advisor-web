@@ -33,7 +33,7 @@ export default function GenderStep({ selectedGender, onGenderSelect, onNext, onB
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-bg2 bg-cover bg-center h-full flex flex-col"
+      className="bg-bg2 bg-cover bg-center min-h-full flex flex-col"
     >
       {/* Gender Selection */}
       <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">

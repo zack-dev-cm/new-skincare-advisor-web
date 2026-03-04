@@ -29,7 +29,8 @@ const DEMO_CONFIG: AppConfig = {
     skin_type: 'Normale',
     ageRange: '26 - 35',
     gender: 'female',
-    budget_level: 'High'
+    budget_level: 'High',
+    sensitivity: 'medium'
   }
 };
 

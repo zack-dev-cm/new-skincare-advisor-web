@@ -660,29 +660,14 @@ export default function SkinAnalysisImage({
           </h3>
 
           {currentView === 'pores' && analysisData.poresData ? (
-            /* Pores view: show severity + count badges instead of class legend */
+            /* Pores view: single chip matching overlay annotation color */
             <div className="flex flex-wrap gap-2 justify-center">
-              {analysisData.poresData.pore_severity_1_5 != null && (
-                <div
-                  className="px-3 py-1 rounded-full text-sm font-medium"
-                  style={{ backgroundColor: '#6362EE', color: '#ffffff' }}
-                >
-                  {t('image.pores_legend_severity', {
-                    label: analysisData.poresData.score_label ?? String(analysisData.poresData.pore_severity_1_5),
-                    score: analysisData.poresData.pore_severity_1_5,
-                  })}
-                </div>
-              )}
               <div
-                className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700"
+                className="px-3 py-1 rounded-full text-sm font-medium"
+                style={{ backgroundColor: '#00FF00', color: '#000000' }}
               >
-                {t('image.pores_legend_count', { count: analysisData.poresData.pore_total })}
+                {t('image.pores_analysis')}
               </div>
-              {analysisData.poresData.visible_count != null && (
-                <div className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-600">
-                  {analysisData.poresData.visible_count} visibili
-                </div>
-              )}
             </div>
           ) : (
             /* Acne / Wrinkles view: existing class color legend */

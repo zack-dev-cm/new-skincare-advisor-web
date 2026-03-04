@@ -29,5 +29,6 @@ export interface AppConfig {
     ageRange: string;
     gender: string;
     budget_level: string;
+    sensitivity?: string;
   };
 }

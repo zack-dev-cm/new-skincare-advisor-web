@@ -11,6 +11,7 @@ import {
   SkinConcernsStep,
   GenderStep,
   AgeStep,
+  SensitivityStep,
   PhotoInstructionsStep,
   ResultsStep,
   ModalFooter
@@ -38,7 +39,7 @@ const ScanStep = dynamic(() => import('./steps/scan_step'), {
   ssr: false,
 });
 
-type Step = 'onboarding' | 'skin-type' | 'skin-concerns' | 'gender' | 'age' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
+type Step = 'onboarding' | 'gender' | 'age' | 'skin-concerns' | 'skin-type' | 'sensitivity' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
 interface SkinAnalysisModalProps {
   isOpen: boolean;
@@ -135,6 +136,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   const [selectedConcerns, setSelectedConcerns] = useState<string[]>([]);
   const [selectedGender, setSelectedGender] = useState<string>('');
   const [selectedAge, setSelectedAge] = useState<string>('');
+  const [selectedSensitivity, setSelectedSensitivity] = useState<string>('');
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [imageMetadata, setImageMetadata] = useState<any>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
@@ -162,6 +164,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       setSelectedConcerns([]);
       setSelectedGender('');
       setSelectedAge('');
+      setSelectedSensitivity('');
       setCapturedImage(null);
       setImageMetadata(null);
       setAnalysisData(null);
@@ -208,7 +211,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Step navigation
   const handleNext = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'gender', 'age', 'skin-concerns', 'skin-type', 'sensitivity', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     if (currentIndex < stepOrder.length - 1) {
       const nextStep = stepOrder[currentIndex + 1];
@@ -224,7 +227,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   };
 
   const handleBack = () => {
-    const stepOrder: Step[] = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
+    const stepOrder: Step[] = ['onboarding', 'gender', 'age', 'skin-concerns', 'skin-type', 'sensitivity', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     const currentIndex = stepOrder.indexOf(currentStep);
     
     if (currentStep === 'results') {
@@ -248,6 +251,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     setSelectedConcerns([]);
     setSelectedGender('');
     setSelectedAge('');
+    setSelectedSensitivity('');
     setCapturedImage(null);
     setAnalysisData(null);
     setOpenInfo(null);
@@ -260,7 +264,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Get current step number for progress indicator
   const getCurrentStepNumber = () => {
-    const stepOrder = ['onboarding', 'skin-type', 'skin-concerns', 'gender', 'age', 'photo-instructions', 'camera-capture', 'scan', 'results'];
+    const stepOrder = ['onboarding', 'gender', 'age', 'skin-concerns', 'skin-type', 'sensitivity', 'photo-instructions', 'camera-capture', 'scan', 'results'];
     return stepOrder.indexOf(currentStep) + 1;
   };
 
@@ -293,7 +297,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             gender: appConfig.defaultUserData.gender,
             skin_type: appConfig.defaultUserData.skin_type,
             budget_level: appConfig.defaultUserData.budget_level as 'Low' | 'Medium' | 'High',
-            concerns: selectedConcerns.length > 0 ? selectedConcerns : []
+            concerns: selectedConcerns.length > 0 ? selectedConcerns : [],
+            sensitivity: (appConfig.defaultUserData.sensitivity ?? 'medium') as 'high' | 'medium' | 'low'
           }
         : {
             first_name: 'User',
@@ -302,6 +307,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             gender: mapGenderToApiFormat(selectedGender),
             skin_type: selectedSkinType || 'normal',
             concerns: selectedConcerns,
+            sensitivity: (selectedSensitivity || 'medium') as 'high' | 'medium' | 'low',
             budget_level: 'High' as const
           };
       
@@ -403,17 +409,26 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         {/* Content - Scrollable area */}
         <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0">
             <AnimatePresence key="content-steps" mode="wait">
-              {currentStep === 'onboarding' && (
+            {currentStep === 'onboarding' && (
               <OnboardingStep
                 onNext={handleNext}
                 onClose={handleClose}
               />
             )}
 
-            {currentStep === 'skin-type' && (
-              <SkinTypeStep
-                selectedSkinType={selectedSkinType}
-                onSkinTypeSelect={setSelectedSkinType}
+            {currentStep === 'gender' && (
+              <GenderStep
+                selectedGender={selectedGender}
+                onGenderSelect={setSelectedGender}
+                onNext={handleNext}
+                onBack={handleBack}
+              />
+            )}
+
+            {currentStep === 'age' && (
+              <AgeStep
+                selectedAge={selectedAge}
+                onAgeSelect={setSelectedAge}
                 onNext={handleNext}
                 onBack={handleBack}
               />
@@ -434,19 +449,19 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
-            {currentStep === 'gender' && (
-              <GenderStep
-                selectedGender={selectedGender}
-                onGenderSelect={setSelectedGender}
+            {currentStep === 'skin-type' && (
+              <SkinTypeStep
+                selectedSkinType={selectedSkinType}
+                onSkinTypeSelect={setSelectedSkinType}
                 onNext={handleNext}
                 onBack={handleBack}
               />
             )}
 
-            {currentStep === 'age' && (
-              <AgeStep
-                selectedAge={selectedAge}
-                onAgeSelect={setSelectedAge}
+            {currentStep === 'sensitivity' && (
+              <SensitivityStep
+                selectedSensitivity={selectedSensitivity}
+                onSensitivitySelect={setSelectedSensitivity}
                 onNext={handleNext}
                 onBack={handleBack}
               />
@@ -512,7 +527,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         <div className="sticky bottom-0 z-50 flex-shrink-0">
           <ModalFooter
             currentStep={getCurrentStepNumber()}
-            totalSteps={9}
+            totalSteps={10}
             showTabButtons={currentStep === 'results' && !loading}
             activeTab={activeTab}
             onTabChange={setActiveTab}
