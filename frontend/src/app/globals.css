@@ -868,6 +868,15 @@ body {
   border-radius: 1rem;
 }
 
+/* Safari iOS: prevent pull-to-refresh from displacing fixed modal elements.
+   The modal uses fixed inset-0 + viewport-fit=cover; without this the header
+   can briefly slip behind the notch/Dynamic Island on refresh. */
+.derma-modal-root {
+  overscroll-behavior-y: none;
+  -webkit-overflow-scrolling: auto;
+  touch-action: pan-x pan-y;
+}
+
 /* UploadingScreen: scanner overlay confinato all'immagine */
 .scanner-contained {
   background: linear-gradient(to bottom, rgba(0, 146, 255, 0) 20%, rgba(0, 146, 255, 0.4) 100%);

@@ -2,11 +2,11 @@
 export const ASSETS = {
   images: {
     skinTypes: {
-      normal: '/assets/images/skin-types/skin-type-normal.jpg',
-      dry: '/assets/images/skin-types/skin-type-dry.jpg',
-      oily: '/assets/images/skin-types/skin-type-oily.jpg',
-      combination: '/assets/images/skin-types/skin-type-combination.jpg',
-      dontKnow: '/assets/images/skin-types/skin-type-dont-know.jpg'
+      normal: '/assets/images/skin-types/skin-type-normal.svg',
+      dry: '/assets/images/skin-types/skin-type-dry.svg',
+      oily: '/assets/images/skin-types/skin-type-oily.svg',
+      combination: '/assets/images/skin-types/skin-type-combination.svg',
+      dontKnow: '/assets/images/skin-types/skin-type-dont-know.svg'
     },
     icons: {
       results: '/assets/images/icons/results-icon.svg',

@@ -69,11 +69,11 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                   : 'border-transparent hover:border-primary-300'
               }`}>
                 <div className="flex h-16 md:h-full bg-white">
-                  <div className="w-16 overflow-hidden flex-shrink-0">
+                  <div className="w-16 overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-2">
                     <img
                       src={type.image}
                       alt={t(type.nameKey)}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">

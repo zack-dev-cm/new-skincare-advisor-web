@@ -50,16 +50,14 @@ export default function DemoFastPage() {
 
   return (
     <AppConfigProvider config={DEMO_CONFIG}>
-      <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-        <div className="w-full h-full max-w-[540px] max-h-[100vh] md:h-[95vh] md:max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
-          <SkinAnalysisModal 
-            isOpen={showModal} 
-            onClose={handleCloseModal} 
-            embedded={false}
-            fastMode={true}
-            initialStep="gender"
-          />
-        </div>
+      <div className="w-full h-screen bg-black/20 flex items-center justify-center p-0 md:p-4">
+        <SkinAnalysisModal 
+          isOpen={showModal} 
+          onClose={handleCloseModal} 
+          embedded={false}
+          fastMode={true}
+          initialStep="gender"
+        />
       </div>
     </AppConfigProvider>
   );
