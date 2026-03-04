@@ -85,6 +85,7 @@ const requestSchema = Joi.object({
     gender: Joi.string().max(50).optional(),
     skin_type: Joi.string().max(50).optional(),
     concerns: Joi.array().items(Joi.string().max(50)).optional(),
+    sensitivity: Joi.string().valid('high', 'medium', 'low').optional(),
     budget_level: Joi.string().valid('Low', 'Medium', 'High').optional(),
     shop_domain: Joi.string().max(50).optional()
   }).optional().default({}),

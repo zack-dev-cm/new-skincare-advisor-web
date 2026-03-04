@@ -57,7 +57,7 @@ export default function DemoFastPage() {
             onClose={handleCloseModal} 
             embedded={false}
             fastMode={true}
-            initialStep="skin-type"
+            initialStep="gender"
           />
         </div>
       </div>
