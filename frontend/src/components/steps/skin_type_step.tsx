@@ -67,8 +67,8 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                   ? 'border-primary-500 shadow-lg shadow-primary-100'
                   : 'border-transparent hover:border-primary-300'
               }`}>
-                <div className="flex min-h-[4.5rem] md:h-full bg-white">
-                  <div className="w-20 min-w-[5rem] overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-3">
+                <div className="flex h-16 md:h-full bg-white">
+                  <div className="w-16 overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-2">
                     <img
                       src={type.image}
                       alt={t(type.nameKey)}
@@ -76,10 +76,10 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                     />
                   </div>
                   <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
-                    <div className="font-semibold text-gray-900 text-sm mb-1">
+                    <div className="font-semibold text-gray-900 text-sm mb-1 text-center leading-tight break-words">
                       {t(type.nameKey)}
                     </div>
-                    <div className="text-xs text-gray-600 hidden md:block">
+                    <div className="text-xs text-gray-600 hidden md:block text-center">
                       {t(type.descKey)}
                     </div>
                   </div>
