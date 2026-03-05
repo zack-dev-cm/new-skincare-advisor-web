@@ -16,10 +16,6 @@ export const ASSETS = {
       position: '/assets/images/icons/position.svg',
       expression: '/assets/images/icons/expression.svg',
       wrinkles: '/assets/images/icons/wrinkles.svg',
-      eyebags: '/assets/images/icons/eyebags.svg',
-      dullSkin: '/assets/images/icons/dullSkin.svg',
-      aging: '/assets/images/icons/aging.svg',
-      poreDilation: '/assets/images/icons/poreDilation.svg',
       // Skin concerns step (nuove icone viola)
       acne: '/assets/images/icons/acne.svg',
       darkSpots: '/assets/images/icons/dark_spots.svg',

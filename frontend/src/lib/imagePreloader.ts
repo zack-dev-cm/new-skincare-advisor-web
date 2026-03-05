@@ -95,10 +95,6 @@ class ImagePreloader {
       ASSETS.images.icons.position,
       ASSETS.images.icons.expression,
       ASSETS.images.icons.wrinkles,
-      ASSETS.images.icons.eyebags,
-      ASSETS.images.icons.dullSkin,
-      ASSETS.images.icons.aging,
-      ASSETS.images.icons.poreDilation,
     ];
 
     console.log('🖼️ Preloading step images...', allImageUrls.length, 'images');

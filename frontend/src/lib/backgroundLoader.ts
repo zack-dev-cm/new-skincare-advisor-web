@@ -120,10 +120,6 @@ export function startImagesBackgroundLoading(): void {
         ASSETS.images.icons.position,
         ASSETS.images.icons.expression,
         ASSETS.images.icons.wrinkles,
-        ASSETS.images.icons.eyebags,
-        ASSETS.images.icons.dullSkin,
-        ASSETS.images.icons.aging,
-        ASSETS.images.icons.poreDilation,
       ];
 
       // Carica in cascata con priorità

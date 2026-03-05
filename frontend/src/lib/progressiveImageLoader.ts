@@ -87,10 +87,6 @@ export function preloadForStep(stepName: string): Promise<void> {
       // Icone preoccupazioni
       return loadImageBatch([
         ASSETS.images.icons.wrinkles,
-        ASSETS.images.icons.eyebags,
-        ASSETS.images.icons.dullSkin,
-        ASSETS.images.icons.aging,
-        ASSETS.images.icons.poreDilation,
       ], 'medium');
     
     case 'photo-instructions':
