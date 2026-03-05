@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 
 interface SkinConcern {
@@ -22,13 +21,13 @@ interface SkinConcernsStepProps {
 export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, onNext, onBack }: SkinConcernsStepProps) {
   const { t } = useTranslation(['steps', 'common']);
   const skinConcerns: SkinConcern[] = [
-    { id: 'acne',     nameKey: 'steps:skin_concerns.option_acne',     icon: ASSETS.images.icons.aging },
-    { id: 'spots',    nameKey: 'steps:skin_concerns.option_spots',     icon: ASSETS.images.icons.dullSkin },
+    { id: 'acne',     nameKey: 'steps:skin_concerns.option_acne',     icon: ASSETS.images.icons.acne },
+    { id: 'spots',    nameKey: 'steps:skin_concerns.option_spots',     icon: ASSETS.images.icons.darkSpots },
     { id: 'wrinkles', nameKey: 'steps:skin_concerns.option_wrinkles',  icon: ASSETS.images.icons.wrinkles },
-    { id: 'pores',    nameKey: 'steps:skin_concerns.option_pores',     icon: ASSETS.images.icons.poreDilation },
-    { id: 'dryness',  nameKey: 'steps:skin_concerns.option_dryness',   icon: ASSETS.images.icons.eyebags },
-    { id: 'redness',  nameKey: 'steps:skin_concerns.option_redness',   icon: ASSETS.images.icons.aging },
-    { id: 'laxity',   nameKey: 'steps:skin_concerns.option_laxity',    icon: ASSETS.images.icons.wrinkles },
+    { id: 'pores',    nameKey: 'steps:skin_concerns.option_pores',     icon: ASSETS.images.icons.enlargedPores },
+    { id: 'dryness',  nameKey: 'steps:skin_concerns.option_dryness',   icon: ASSETS.images.icons.dryness },
+    { id: 'redness',  nameKey: 'steps:skin_concerns.option_redness',   icon: ASSETS.images.icons.redness },
+    { id: 'laxity',   nameKey: 'steps:skin_concerns.option_laxity',    icon: ASSETS.images.icons.skinLaxity },
   ];
   return (
     <motion.div
@@ -47,30 +46,32 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
           </h1>
         </div>
         
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 items-stretch">
           {skinConcerns.map((concern) => (
-            <div 
-              key={concern.id} 
+            <div
+              key={concern.id}
+              role="checkbox"
+              aria-checked={selectedConcerns.includes(concern.id)}
               tabIndex={0}
-              className={`relative h-full cursor-pointer transition-all duration-200 ${
-                selectedConcerns.includes(concern.id) 
-                  ? 'transform scale-[1.02]' 
+              className={`relative cursor-pointer transition-all duration-200 ${
+                selectedConcerns.includes(concern.id)
+                  ? 'transform scale-[1.02]'
                   : 'hover:transform hover:scale-[1.01]'
               }`}
               onClick={() => onConcernToggle(concern.id)}
             >
-              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all h-full duration-200 ${
+              <div className={`relative rounded-2xl overflow-hidden h-full border-2 transition-all duration-200 ${
                 selectedConcerns.includes(concern.id)
                   ? 'border-primary-500 shadow-lg shadow-primary-100'
                   : 'border-transparent hover:border-primary-300'
               }`}>
-                <div className="flex bg-white h-full">
-                  <div className="w-16 overflow-hidden flex-shrink-0 bg-gray-100 flex items-center justify-center py-2">
+                <div className="flex h-16 md:h-full bg-white">
+                  <div className="w-16 overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-2">
                     {concern.icon ? (
                       <img
                         src={concern.icon}
                         alt={t(concern.nameKey)}
-                        className="w-full h-full object-contain p-2"
+                        className="w-full h-full object-contain"
                         onError={(e) => {
                           console.error(`Failed to load icon: ${concern.icon}`);
                           e.currentTarget.style.display = 'none';
@@ -82,8 +83,8 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0 px-3 py-2 flex flex-col justify-center items-center">
-                    <div className="font-semibold text-gray-900 text-center text-xs sm:text-sm leading-tight break-words">
+                  <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
+                    <div className="font-semibold text-gray-900 text-sm mb-1 text-center leading-tight break-words">
                       {t(concern.nameKey)}
                     </div>
                   </div>

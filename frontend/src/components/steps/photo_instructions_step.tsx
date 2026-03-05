@@ -76,7 +76,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
                 />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-medium text-gray-900">
+                <p className="text-sm font-semibold text-gray-900">
                   {t(instruction.textKey)}
                 </p>
               </div>

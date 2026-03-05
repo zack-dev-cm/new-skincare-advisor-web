@@ -19,7 +19,14 @@ export const ASSETS = {
       eyebags: '/assets/images/icons/eyebags.svg',
       dullSkin: '/assets/images/icons/dullSkin.svg',
       aging: '/assets/images/icons/aging.svg',
-      poreDilation: '/assets/images/icons/poreDilation.svg'
+      poreDilation: '/assets/images/icons/poreDilation.svg',
+      // Skin concerns step (nuove icone viola)
+      acne: '/assets/images/icons/acne.svg',
+      darkSpots: '/assets/images/icons/dark_spots.svg',
+      dryness: '/assets/images/icons/dryness.svg',
+      enlargedPores: '/assets/images/icons/enlarged_pores.svg',
+      redness: '/assets/images/icons/redness.svg',
+      skinLaxity: '/assets/images/icons/skin_laxity.svg'
     },
     backgrounds: {
       main: '/assets/images/backgrounds/bg-main.jpg',

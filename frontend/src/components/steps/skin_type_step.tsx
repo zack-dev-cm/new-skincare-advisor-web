@@ -3,7 +3,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 /* eslint-disable jsx-a11y/aria-proptypes */
 import { motion } from 'framer-motion';
-import { CheckCircle } from 'lucide-react';
 import { ASSETS } from '../../lib/assets';
 
 interface SkinTypeOption {
@@ -68,8 +67,8 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                   ? 'border-primary-500 shadow-lg shadow-primary-100'
                   : 'border-transparent hover:border-primary-300'
               }`}>
-                <div className="flex h-16 md:h-full bg-white">
-                  <div className="w-16 overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-2">
+                <div className="flex min-h-[4.5rem] md:h-full bg-white">
+                  <div className="w-20 min-w-[5rem] overflow-hidden flex-shrink-0 flex items-center justify-center bg-primary-50 p-3">
                     <img
                       src={type.image}
                       alt={t(type.nameKey)}

@@ -23,7 +23,7 @@ export default function LoadingStep({}: LoadingStepProps) {
           <div className="loader">&nbsp;</div>
         </div>
         <h2 className="text-xl font-bold text-gray-900 mb-2 mt-4">{t('steps:loading.analyzing')}</h2>
-        <p className="text-gray-600 text-center max-w-md">
+        <p className="text-sm text-gray-600 text-center max-w-md">
           {t('steps:loading.processing')}
         </p>
       </div>

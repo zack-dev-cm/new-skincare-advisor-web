@@ -26,7 +26,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
     >
       {/* Main content */}
       <div className="step-content-card flex flex-col justify-center text-center m-8 mt-auto p-8 overflow-y-auto h-fit">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6 leading-tight">
+        <h1 className="text-xl font-bold text-gray-900 mb-6 leading-tight">
           {t('steps:onboarding.welcome')}
         </h1>
         

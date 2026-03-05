@@ -30,7 +30,7 @@ export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
           <div className="flex items-center justify-center h-full">
             <div className="text-center">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto mb-4"></div>
-              <p className="text-gray-600">{t('camera:status.loading')}</p>
+              <p className="text-sm text-gray-600">{t('camera:status.loading')}</p>
             </div>
           </div>
         }>
@@ -43,7 +43,7 @@ export default function ScanStep({ onBack, onImageCapture }: ScanStepProps) {
         <div className="text-center">
           <div className="flex items-center justify-center mb-2">
             <Camera className="w-5 h-5 text-primary-600 mr-2" />
-            <span className="text-sm font-medium text-gray-900">{t('camera:instructions.position_face')}</span>
+            <span className="text-sm font-semibold text-gray-900">{t('camera:instructions.position_face')}</span>
           </div>
           <p className="text-xs text-gray-600">
             {t('camera:instructions.good_lighting')}
