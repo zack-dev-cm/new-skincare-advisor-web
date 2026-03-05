@@ -1,10 +1,1 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
-<svg width="100%" height="100%" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xml:space="preserve" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;stroke-linejoin:round;">
-    <!-- Viso: cerchio ovale -->
-    <ellipse cx="12" cy="9.5" rx="4.5" ry="5.2" style="fill:none;stroke:rgb(117,71,242);stroke-width:1.2px;"/>
-    <!-- Check al centro: viso bilanciato/normale -->
-    <path d="M9.8,9.5L11.2,11L14.2,8" style="fill:none;stroke:rgb(117,71,242);stroke-width:1.2px;"/>
-    <!-- Linee base -->
-    <path d="M4,17L20,17M5,19L19,19" style="fill:none;stroke:rgb(117,71,242);stroke-width:1.2px;stroke-linecap:round;"/>
-</svg>
+<?xml version="1.0" encoding="UTF-8" standalone="no"?><!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd"><svg width="100%" height="100%" viewBox="0 0 100 100" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linecap:round;"><path d="M3.973,66.467l92.053,0m-86.3,11.507l80.547,0" style="fill:none;fill-rule:nonzero;stroke:#7547f2;stroke-width:6.9px;"/><path d="M38.043,37.7l11.507,11.507l23.013,-23.013" style="fill:none;fill-rule:nonzero;stroke:#7547f2;stroke-width:6.9px;stroke-linejoin:round;"/></svg>

@@ -72,7 +72,7 @@ export default function SkinTypeStep({ selectedSkinType, onSkinTypeSelect, onNex
                     <img
                       src={type.image}
                       alt={t(type.nameKey)}
-                      className="w-full h-full object-contain"
+                      className="max-w-full max-h-full w-auto h-auto object-contain"
                     />
                   </div>
                   <div className="flex-1 min-w-0 px-3 flex flex-col justify-center items-center">
