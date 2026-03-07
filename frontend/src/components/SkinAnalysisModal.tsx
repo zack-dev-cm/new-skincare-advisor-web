@@ -288,28 +288,23 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       
     // Trigger analysis immediately with user data and recommendations
     try {
-      // Prepare user data - use default data in demo mode, otherwise use step selections
-      const userData = appConfig.mode === 'demo' && appConfig.defaultUserData
-        ? {
-            first_name: 'Demo',
-            last_name: 'User',
-            ageRange: appConfig.defaultUserData.ageRange,
-            gender: appConfig.defaultUserData.gender,
-            skin_type: appConfig.defaultUserData.skin_type,
-            budget_level: appConfig.defaultUserData.budget_level as 'Low' | 'Medium' | 'High',
-            concerns: selectedConcerns.length > 0 ? selectedConcerns : [],
-            sensitivity: (appConfig.defaultUserData.sensitivity ?? 'medium') as 'high' | 'medium' | 'low'
-          }
-        : {
-            first_name: 'User',
-            last_name: 'Test',
-            ageRange: mapAgeToAgeRange(selectedAge),
-            gender: mapGenderToApiFormat(selectedGender),
-            skin_type: selectedSkinType || 'normal',
-            concerns: selectedConcerns,
-            sensitivity: (selectedSensitivity || 'medium') as 'high' | 'medium' | 'low',
-            budget_level: 'High' as const
-          };
+      // Prepare user data — user selections always take priority over defaultUserData fallbacks.
+      // defaultUserData is only used when the user skipped a step (empty selection).
+      const defaults = appConfig.defaultUserData;
+      const userData = {
+        first_name: appConfig.mode === 'demo' ? 'Demo' : 'User',
+        last_name: appConfig.mode === 'demo' ? 'User' : 'Test',
+        ageRange: selectedAge
+          ? mapAgeToAgeRange(selectedAge)
+          : (defaults?.ageRange ?? '26 - 35'),
+        gender: selectedGender
+          ? mapGenderToApiFormat(selectedGender)
+          : (defaults?.gender ?? 'female'),
+        skin_type: selectedSkinType || defaults?.skin_type || 'normal',
+        concerns: selectedConcerns.length > 0 ? selectedConcerns : [],
+        sensitivity: (selectedSensitivity || defaults?.sensitivity || 'medium') as 'high' | 'medium' | 'low',
+        budget_level: (defaults?.budget_level ?? 'High') as 'Low' | 'Medium' | 'High',
+      };
       
       // Call the new API with recommendations
       const { analyzeSkinWithRecommendations } = await import('../lib/api');
