@@ -71,18 +71,10 @@ function createBlobServiceClient() {
 }
 
 // ---------------------------------------------------------------------------
-// Filename flattening: "uploads/2026-03-01/uuid.jpg" -> "selfies__uploads__2026-03-01__uuid.jpg"
-// ---------------------------------------------------------------------------
-function flattenBlobName(containerName, blobName) {
-  const parts = blobName.split('/');
-  return [containerName, ...parts].join('__');
-}
-
-// ---------------------------------------------------------------------------
-// Download a single blob
+// Download a single blob — salva direttamente nella root con il basename del blob
 // ---------------------------------------------------------------------------
 async function downloadBlob(containerClient, blobName, containerName, destDir) {
-  const localFileName = flattenBlobName(containerName, blobName);
+  const localFileName = path.basename(blobName);
   const localFilePath = path.join(destDir, localFileName);
 
   const blobClient = containerClient.getBlobClient(blobName);

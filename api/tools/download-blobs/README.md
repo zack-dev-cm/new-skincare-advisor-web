@@ -9,6 +9,7 @@ api/tools/download-blobs/
 ├── download-blobs.js       ← script principale
 ├── package.json
 ├── .env.example            ← template configurazione
+├── .env                    ← configurazione locale (non committare)
 ├── download-state.json     ← creato automaticamente dopo il primo run
 └── README.md
 ```
@@ -16,9 +17,10 @@ api/tools/download-blobs/
 ## Prerequisiti
 
 - Node.js >= 20
-- Accesso all'account Azure Blob Storage `stdermaselfprdwesteurope`
+- Azure CLI (`az`) installato e configurato
+- Accesso all'account Azure Blob Storage `stdermaselfprdwesteurope` (subscription `Dermaself`)
 
-## Setup
+## Setup (una tantum)
 
 ### 1. Installa le dipendenze
 
@@ -36,17 +38,23 @@ cp .env.example .env
 Modifica `.env` con i tuoi valori:
 
 ```env
-# Nome account storage (obbligatorio)
 AZURE_STORAGE_ACCOUNT=stdermaselfprdwesteurope
-
-# Chiave account (opzionale — vedi sezione Autenticazione)
-AZURE_STORAGE_KEY=<la-tua-chiave>
-
-# Cartella di destinazione locale (obbligatorio)
 DOWNLOAD_DEST_PATH=C:\Dermaself\blobs-local
-
-# Container da scaricare (default: selfies,user-images)
 CONTAINERS=selfies,user-images
+```
+
+### 3. Autenticati con Azure CLI
+
+```bash
+az login
+# seleziona la subscription "Dermaself" (ID: 3e3c04b4-ca5e-4209-ad07-7ddb0700486c)
+```
+
+## Esecuzione
+
+```bash
+cd api/tools/download-blobs
+npm run download
 ```
 
 ## Autenticazione
@@ -55,26 +63,10 @@ Lo script supporta due modalità:
 
 | Scenario | Configurazione |
 |---|---|
-| **Chiave account** (più semplice per uso locale) | Imposta `AZURE_STORAGE_KEY` nel file `.env` |
-| **Azure CLI / Managed Identity** | Lascia `AZURE_STORAGE_KEY` vuoto e autenticati con `az login` |
+| **Azure CLI** (consigliato per uso locale) | Lascia `AZURE_STORAGE_KEY` vuoto — usa `az login` |
+| **Chiave account** (alternativa) | Imposta `AZURE_STORAGE_KEY` nel file `.env` |
 
-Per usare Azure CLI:
-
-```bash
-az login
-# oppure, se hai più subscription:
-az account set --subscription <subscription-id>
-```
-
-## Esecuzione
-
-```bash
-# dalla cartella dello script
-npm run download
-
-# oppure direttamente
-node download-blobs.js
-```
+Con Azure CLI attivo, `DefaultAzureCredential` rileva automaticamente la sessione `az login` senza ulteriore configurazione.
 
 ## Comportamento
 
@@ -82,7 +74,7 @@ node download-blobs.js
 - Non esiste `download-state.json`
 - Scarica **tutti** i blob da tutti i container configurati
 
-### Run successivi (incremental)
+### Run successivi (incrementale)
 - Legge `lastSuccessfulRun` da `download-state.json`
 - Scarica solo i blob con `Last-Modified > lastSuccessfulRun`
 
@@ -100,28 +92,29 @@ Se ci sono errori, lo script termina con exit code `1` e non aggiorna lo stato, 
 
 ## Naming dei file in locale
 
-I file vengono salvati tutti nella stessa cartella (`DOWNLOAD_DEST_PATH`) con il path del blob "appiattito":
+Tutti i file vengono salvati direttamente nella root di `DOWNLOAD_DEST_PATH` usando solo il nome del file originale (basename), senza sottocartelle:
 
 | Blob originale | File locale |
 |---|---|
-| `selfies/uploads/2026-03-01/abc123.jpg` | `selfies__uploads__2026-03-01__abc123.jpg` |
-| `user-images/profiles/user42/avatar.png` | `user-images__profiles__user42__avatar.png` |
+| `selfies/uploads/2026-03-01/abc123.jpg` | `abc123.jpg` |
+| `user-images/profiles/user42/avatar.png` | `avatar.png` |
 
 ## Configurazione avanzata
 
 | Variabile | Default | Descrizione |
 |---|---|---|
 | `AZURE_STORAGE_ACCOUNT` | *(obbligatorio)* | Nome account storage |
-| `AZURE_STORAGE_KEY` | *(vuoto)* | Chiave account (opzionale) |
+| `AZURE_STORAGE_KEY` | *(vuoto)* | Chiave account (opzionale, alternativa ad `az login`) |
 | `DOWNLOAD_DEST_PATH` | *(obbligatorio)* | Cartella locale di destinazione |
 | `CONTAINERS` | `selfies,user-images` | Container da scaricare, separati da virgola |
 | `STATE_FILE_PATH` | `./download-state.json` | Path del file di stato |
 
 ## Reset del file di stato
 
-Per forzare un full sync, elimina semplicemente `download-state.json`:
+Per forzare un full sync, elimina `download-state.json`:
 
 ```bash
-rm download-state.json
-node download-blobs.js
+# PowerShell
+Remove-Item download-state.json
+npm run download
 ```
