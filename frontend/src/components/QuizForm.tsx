@@ -101,13 +101,16 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   // Helper function to get translated question title
   const getQuestionTitle = (question: QuizQuestion): string => {
     const translationKey = `question.${question.id}.title`;
-    return getTranslation(translationKey, undefined, undefined) || question.question;
+    const translated = getTranslation(translationKey, undefined, undefined);
+    // If no custom translation is found, getTranslation returns the key itself
+    return translated === translationKey ? question.question : translated;
   };
 
   // Helper function to get translated option label
   const getOptionLabel = (questionId: string, option: QuizOption): string => {
     const translationKey = `question.${questionId}.option.${option.id}.label`;
-    return getTranslation(translationKey, undefined, undefined) || option.label;
+    const translated = getTranslation(translationKey, undefined, undefined);
+    return translated === translationKey ? option.label : translated;
   };
 
   // Sort questions by order
