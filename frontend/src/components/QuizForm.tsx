@@ -50,11 +50,16 @@ interface QuizConfig {
   };
 }
 
+interface QuizTranslations {
+  [key: string]: string;
+}
+
 interface QuizFormProps {
   config: QuizConfig;
   isOpen: boolean;
   onClose: () => void;
   storeData?: any;
+  translations?: QuizTranslations | null;
 }
 
 interface QuizAnswers {
@@ -63,7 +68,7 @@ interface QuizAnswers {
 
 type QuizStep = 'quiz' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
-export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFormProps) {
+export default function QuizForm({ config, isOpen, onClose, storeData, translations }: QuizFormProps) {
   const { t } = useTranslation('common');
   const { locale } = useLocale();
   const [currentStep, setCurrentStep] = useState<QuizStep>('quiz');
@@ -72,6 +77,38 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+
+  // Helper function to get translated text, falling back to i18n or default
+  const getTranslation = (key: string, fallbackKey?: string, params?: Record<string, any>): string => {
+    // First try custom translations from API
+    if (translations && translations[key]) {
+      let translated = translations[key];
+      // Handle placeholders like {current} and {total}
+      if (params) {
+        Object.keys(params).forEach(paramKey => {
+          translated = translated.replace(new RegExp(`\\{${paramKey}\\}`, 'g'), String(params[paramKey]));
+        });
+      }
+      return translated;
+    }
+    // Fall back to i18n translations
+    if (fallbackKey) {
+      return t(fallbackKey, params);
+    }
+    return key;
+  };
+
+  // Helper function to get translated question title
+  const getQuestionTitle = (question: QuizQuestion): string => {
+    const translationKey = `question.${question.id}.title`;
+    return getTranslation(translationKey, undefined, undefined) || question.question;
+  };
+
+  // Helper function to get translated option label
+  const getOptionLabel = (questionId: string, option: QuizOption): string => {
+    const translationKey = `question.${questionId}.option.${option.id}.label`;
+    return getTranslation(translationKey, undefined, undefined) || option.label;
+  };
 
   // Sort questions by order
   const sortedQuestions = [...config.questions].sort((a, b) => a.order - b.order);
@@ -223,11 +260,15 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
 
       <div className="flex-1 text-center">
         <div className="text-sm font-medium">
-          {currentStep === 'quiz' && t('quiz.question_of', { current: currentQuestionIndex + 1, total: sortedQuestions.length })}
-          {currentStep === 'photo-instructions' && t('quiz.photo_instructions')}
-          {currentStep === 'camera-capture' && t('quiz.take_photo')}
-          {currentStep === 'scan' && t('quiz.analyzing')}
-          {currentStep === 'results' && t('quiz.results')}
+          {currentStep === 'quiz' && getTranslation(
+            'progressLabel',
+            'quiz.question_of',
+            { current: currentQuestionIndex + 1, total: sortedQuestions.length }
+          )}
+          {currentStep === 'photo-instructions' && getTranslation('photoInstructions', 'quiz.photo_instructions')}
+          {currentStep === 'camera-capture' && getTranslation('takePhoto', 'quiz.take_photo')}
+          {currentStep === 'scan' && getTranslation('loadingMessage', 'quiz.analyzing')}
+          {currentStep === 'results' && getTranslation('results', 'quiz.results')}
         </div>
       </div>
 
@@ -398,7 +439,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-2xl font-bold mb-6">{currentQuestion.question}</h2>
+            <h2 className="text-2xl font-bold mb-6">{getQuestionTitle(currentQuestion)}</h2>
 
             {/* Multiple Choice */}
             {currentQuestion.type === 'multiple-choice' && (
@@ -419,7 +460,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
                         backgroundColor: isSelected ? `${config.settings.theme.primaryColor}10` : undefined,
                       }}
                     >
-                      {option.label}
+                      {getOptionLabel(currentQuestion.id, option)}
                     </button>
                   );
                 })}
@@ -443,7 +484,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
                       }}
                     >
                       <div className="aspect-square bg-gray-100 flex items-center justify-center">
-                        {option.label}
+                        {getOptionLabel(currentQuestion.id, option)}
                       </div>
                       {isSelected && (
                         <div
@@ -490,7 +531,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
                 onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
                 className="w-full p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500"
                 rows={6}
-                placeholder={t('quiz.placeholder')}
+                placeholder={getTranslation('placeholder', 'quiz.placeholder')}
                 style={{ borderColor: config.settings.theme.primaryColor + '40' }}
               />
             )}
@@ -505,7 +546,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
             onClick={handleSkip}
             className="px-6 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
-            {t('quiz.skip')}
+            {getTranslation('skipButton', 'quiz.skip')}
           </button>
         )}
         <button
@@ -520,7 +561,9 @@ export default function QuizForm({ config, isOpen, onClose, storeData }: QuizFor
             backgroundColor: canProceed() ? config.settings.theme.primaryColor : undefined,
           }}
         >
-          {currentQuestionIndex < sortedQuestions.length - 1 ? t('quiz.next') : t('quiz.complete')}
+          {currentQuestionIndex < sortedQuestions.length - 1 
+            ? getTranslation('nextButton', 'quiz.next')
+            : getTranslation('submitButton', 'quiz.complete')}
           <ChevronRight className="inline-block ml-2 w-5 h-5" />
         </button>
       </div>

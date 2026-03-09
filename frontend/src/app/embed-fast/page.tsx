@@ -41,12 +41,68 @@ interface QuizConfig {
   };
 }
 
+interface QuizTranslations {
+  [key: string]: string;
+}
+
 export default function FastEmbedPage() {
   const [showModal, setShowModal] = useState(true);
   const [storeData, setStoreData] = useState<any>(null);
   const [quizConfig, setQuizConfig] = useState<QuizConfig | null>(null);
+  const [quizTranslations, setQuizTranslations] = useState<QuizTranslations | null>(null);
   const [mode, setMode] = useState<'default' | 'quiz'>('default');
   const [loadingConfig, setLoadingConfig] = useState(true);
+
+  // Function to fetch quiz config (reusable)
+  const fetchQuizConfig = async (shop: string, locale?: string) => {
+    try {
+      const connectorApiUrl = (process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it').replace(/\/$/, '');
+      
+      if (connectorApiUrl) {
+        // Determine locale for API request - use provided locale or fallback to detected language
+        const apiLocale = locale || i18n.language || 'en';
+        // Normalize locale to match API expectations (e.g., 'en-US' -> 'en')
+        const normalizedLocale = apiLocale.split('-')[0];
+        
+        const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}&locale=${encodeURIComponent(normalizedLocale)}`;
+        console.log('📥 Fetching quiz configuration from:', apiUrl);
+        console.log('🌍 Using locale for translations:', normalizedLocale);
+        
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          
+          if (result.success && result.config && result.isActive) {
+            console.log('✅ Quiz configuration loaded from API:', result.config);
+            console.log('📝 Quiz translations loaded:', result.translations);
+            setQuizConfig(result.config);
+            setQuizTranslations(result.translations || null);
+            setMode('quiz');
+            setShowModal(true);
+            return true;
+          } else {
+            console.log('ℹ️ No active quiz configuration found, using default flow');
+            return false;
+          }
+        } else {
+          console.warn('⚠️ Failed to fetch quiz config, using default flow');
+          return false;
+        }
+      } else {
+        console.warn('⚠️ NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL not set, skipping quiz config load');
+        return false;
+      }
+    } catch (error) {
+      console.error('❌ Error loading quiz configuration:', error);
+      return false;
+    }
+  };
 
   // Load quiz configuration from API and initialize
   useEffect(() => {
@@ -76,41 +132,7 @@ export default function FastEmbedPage() {
 
       // Fetch quiz configuration from API if shop is provided
       if (shop) {
-        try {
-          const connectorApiUrl = (process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it').replace(/\/$/, '');
-          
-          if (connectorApiUrl) {
-            const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}`;
-            console.log('📥 Fetching quiz configuration from:', apiUrl);
-            
-            const response = await fetch(apiUrl, {
-              method: 'GET',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-            });
-
-            if (response.ok) {
-              const result = await response.json();
-              
-              if (result.success && result.config && result.isActive) {
-                console.log('✅ Quiz configuration loaded from API:', result.config);
-                setQuizConfig(result.config);
-                setMode('quiz');
-                setShowModal(true);
-              } else {
-                console.log('ℹ️ No active quiz configuration found, using default flow');
-              }
-            } else {
-              console.warn('⚠️ Failed to fetch quiz config, using default flow');
-            }
-          } else {
-            console.warn('⚠️ NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL not set, skipping quiz config load');
-          }
-        } catch (error) {
-          console.error('❌ Error loading quiz configuration:', error);
-          // Continue with default flow on error
-        }
+        fetchQuizConfig(shop, locale);
       }
       
       setLoadingConfig(false);
@@ -130,8 +152,20 @@ export default function FastEmbedPage() {
         setShowModal(false);
       } else if (event.data.type === 'SHOPIFY_STORE_DATA') {
         // Receive store data via postMessage (preferred method to avoid query param issues)
-        setStoreData(event.data.payload);
-        console.log('Store data received via postMessage:', event.data.payload);
+        const payload = event.data.payload;
+        setStoreData(payload);
+        console.log('Store data received via postMessage:', payload);
+        
+        // Update i18n language if locale is provided
+        if (payload.locale && ['it', 'es', 'en'].includes(payload.locale) && i18n.language !== payload.locale) {
+          i18n.changeLanguage(payload.locale);
+          console.log('🌍 Language changed to:', payload.locale);
+        }
+        
+        // Re-fetch quiz config with the new locale if shop is provided
+        if (payload.shop) {
+          fetchQuizConfig(payload.shop, payload.locale);
+        }
       }
     };
 
@@ -172,6 +206,7 @@ export default function FastEmbedPage() {
             isOpen={showModal}
             onClose={handleCloseModal}
             storeData={storeData}
+            translations={quizTranslations}
           />
         </div>
       </div>
