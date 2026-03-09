@@ -132,7 +132,7 @@ export default function FastEmbedPage() {
 
       // Fetch quiz configuration from API if shop is provided
       if (shop) {
-        fetchQuizConfig(shop, locale);
+        fetchQuizConfig(shop, locale ?? undefined);
       }
       
       setLoadingConfig(false);
