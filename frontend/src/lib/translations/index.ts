@@ -1145,7 +1145,7 @@ export const translations = {
     },
     steps: {
       onboarding: {
-        welcome: 'Discover Your Perfect Skincare Routine with AI-Powered Analysis',
+        welcome: 'Discover Your Perfect Skincare Routine with AI Powered Analysis',
         privacy_text: 'By using this service, you accept our',
         privacy_link: 'Privacy Policy',
         privacy_detail: 'Your data will be processed securely and used only to provide personalized skincare recommendations.',
