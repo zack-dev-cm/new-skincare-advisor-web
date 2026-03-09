@@ -32,10 +32,10 @@ export default function SensitivityStep({ selectedSensitivity, onSensitivitySele
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-bg2 bg-cover bg-center min-h-full flex flex-col"
+      className="bg-bg2 bg-cover bg-center min-h-full flex flex-col justify-center"
     >
-      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 mt-auto mx-4 mb-4">
-        <div className="text-center mb-4">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 my-4 mx-4">
+        <div className="mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {t('steps:sensitivity.title')}
           </h1>

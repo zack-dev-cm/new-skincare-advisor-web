@@ -36,14 +36,17 @@ export default function SkinConcernsStep({ selectedConcerns, onConcernToggle, on
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-bg1 bg-cover bg-center min-h-full flex flex-col"
+      className="bg-bg1 bg-cover bg-center min-h-full flex flex-col justify-center"
     >
       {/* Skin Concerns Selection */}
-      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">
-        <div className="text-center mb-4">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto my-4 mx-4">
+        <div className="mb-4">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
-            {t('steps:skin_concerns.question_text')}
+            {t('steps:skin_concerns.question')}
           </h1>
+          <p className="text-sm text-gray-600">
+            {t('steps:skin_concerns.subtitle')}
+          </p>
         </div>
         
         <div className="grid grid-cols-2 gap-3 items-stretch">

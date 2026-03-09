@@ -323,6 +323,9 @@ export default function SkinAnalysisImage({
     const imgW = img.naturalWidth;
     const imgH = img.naturalHeight;
 
+    // Account for device pixel ratio to avoid blurriness on retina/HiDPI screens
+    const dpr = window.devicePixelRatio || 1;
+
     // Object-contain: uniform scale based on the limiting dimension
     const scale = Math.min(containerWidth / imgW, containerHeight / imgH);
     const drawWidth = imgW * scale;
@@ -331,8 +334,13 @@ export default function SkinAnalysisImage({
     const offsetX = (containerWidth - drawWidth) / 2;
     const offsetY = (containerHeight - drawHeight) / 2;
 
-    canvas.width = containerWidth;
-    canvas.height = containerHeight;
+    canvas.width = containerWidth * dpr;
+    canvas.height = containerHeight * dpr;
+    canvas.style.width = `${containerWidth}px`;
+    canvas.style.height = `${containerHeight}px`;
+
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.scale(dpr, dpr);
 
     setCanvasSize({ width: containerWidth, height: containerHeight });
     setScaleFactors({ x: scale, y: scale });
