@@ -48,11 +48,11 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
       animate={{ opacity: 1, x: 0 }}
       exit={{ opacity: 0, x: -20 }}
       transition={{ duration: 0.3 }}
-      className="bg-main bg-cover bg-center min-h-full flex flex-col"
+      className="bg-main bg-cover bg-center min-h-full flex flex-col justify-center"
     >
       {/* Photo Instructions */}
-      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto mt-auto mx-4 mb-4">
-        <div className="text-center mb-6">
+      <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto p-4 overflow-y-auto my-4 mx-4">
+        <div className="mb-6">
           <h1 className="text-xl font-bold text-gray-900 mb-2">
             {t('photo_instructions:title')}
           </h1>
@@ -76,7 +76,7 @@ export default function PhotoInstructionsStep({ onNext, onBack }: PhotoInstructi
                 />
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-900">
+                <p className="text-sm text-gray-700 text-center">
                   {t(instruction.textKey)}
                 </p>
               </div>

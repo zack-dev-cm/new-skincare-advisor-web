@@ -1,0 +1,18 @@
+{
+  "name": "dermaself-download-blobs",
+  "version": "1.0.0",
+  "description": "Incremental Azure Blob Storage downloader for Dermaself selfies and user-images",
+  "main": "download-blobs.js",
+  "scripts": {
+    "start": "node download-blobs.js",
+    "download": "node download-blobs.js"
+  },
+  "dependencies": {
+    "@azure/identity": "^4.0.0",
+    "@azure/storage-blob": "^12.27.0",
+    "dotenv": "^16.4.5"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}
