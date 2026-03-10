@@ -23,6 +23,7 @@ import ImagePreloader from './ImagePreloader';
 // Import app configuration
 import { useAppConfig } from '@/lib/AppConfigContext';
 import { useLocale } from '@/lib/LocaleContext';
+import { applyThemeConfig, type WidgetThemeConfig } from '@/lib/widget-theme';
 
 import dynamic from 'next/dynamic';
 
@@ -48,6 +49,7 @@ interface SkinAnalysisModalProps {
   onReady?: () => void;
   fastMode?: boolean; // Modalità ultra-veloce per embed (no preloading bloccante)
   initialStep?: Step; // Step iniziale per saltare l'onboarding (usato in demo mode)
+  themeConfig?: Partial<WidgetThemeConfig>; // Merchant widget theming
 }
 
 // Product data interfaces
@@ -87,11 +89,12 @@ const getProducts = async (): Promise<Product[]> => {
   return [];
 };
 
-export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false, initialStep }: SkinAnalysisModalProps) {
+export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, onReady, fastMode = false, initialStep, themeConfig }: SkinAnalysisModalProps) {
   const { t } = useTranslation(['steps', 'common']);
   // Get app configuration
   const appConfig = useAppConfig();
   const { locale } = useLocale();
+  const modalRootRef = React.useRef<HTMLDivElement>(null);
 
   // Initialize face detection models when modal opens
 
@@ -208,6 +211,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       console.log(`🎯 Demo mode: Starting at step '${initialStep}'`);
     }
   }, [isOpen, initialStep]);
+
+  // Apply merchant theme config to the modal root element
+  useEffect(() => {
+    if (isOpen && themeConfig && modalRootRef.current) {
+      applyThemeConfig(modalRootRef.current, themeConfig);
+      console.log('🎨 Theme config applied to modal root');
+    }
+  }, [isOpen, themeConfig]);
 
   // Step navigation
   const handleNext = () => {
@@ -351,6 +362,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
       {/* Modal Container */}
       <motion.div
+        ref={modalRootRef}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
@@ -379,7 +391,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
           <div className="flex-1 text-center flex items-center justify-center">
             <div className={`${currentStep === 'onboarding' || appConfig.skipOnboarding ? 'pl-0' : ''}`}>
               <img
-                src={LOGO_VIOLET}
+                src={themeConfig?.logoUrl || LOGO_VIOLET}
                 alt="Dermaself"
                 className="inline-block h-5 w-auto max-h-5 logo-violet"
               />

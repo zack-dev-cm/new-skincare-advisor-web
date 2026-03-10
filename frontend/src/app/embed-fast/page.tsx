@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 import { startBackgroundLoading } from '@/lib/backgroundLoader';
 import i18n from '@/lib/i18n';
 import dynamic from 'next/dynamic';
+import { applyThemeConfig, type WidgetThemeConfig } from '@/lib/widget-theme';
 
 const QuizForm = dynamic(() => import('@/components/QuizForm'), {
   ssr: false,
@@ -50,59 +51,70 @@ export default function FastEmbedPage() {
   const [storeData, setStoreData] = useState<any>(null);
   const [quizConfig, setQuizConfig] = useState<QuizConfig | null>(null);
   const [quizTranslations, setQuizTranslations] = useState<QuizTranslations | null>(null);
+  const [themeConfig, setThemeConfig] = useState<Partial<WidgetThemeConfig> | null>(null);
   const [mode, setMode] = useState<'default' | 'quiz'>('default');
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const widgetRootRef = useRef<HTMLDivElement>(null);
 
-  // Function to fetch quiz config (reusable)
-  const fetchQuizConfig = async (shop: string, locale?: string) => {
+  // Function to fetch quiz config (reusable, stable across renders)
+  const fetchQuizConfig = useCallback(async (shop: string, locale?: string) => {
     try {
       const connectorApiUrl = (process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it').replace(/\/$/, '');
       
-      if (connectorApiUrl) {
-        // Determine locale for API request - use provided locale or fallback to detected language
-        const apiLocale = locale || i18n.language || 'en';
-        // Normalize locale to match API expectations (e.g., 'en-US' -> 'en')
-        const normalizedLocale = apiLocale.split('-')[0];
-        
-        const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}&locale=${encodeURIComponent(normalizedLocale)}`;
-        console.log('📥 Fetching quiz configuration from:', apiUrl);
-        console.log('🌍 Using locale for translations:', normalizedLocale);
-        
-        const response = await fetch(apiUrl, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        });
+      if (!connectorApiUrl) {
+        console.warn('⚠️ NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL not set, skipping quiz config load');
+        return false;
+      }
 
-        if (response.ok) {
-          const result = await response.json();
-          
-          if (result.success && result.config && result.isActive) {
-            console.log('✅ Quiz configuration loaded from API:', result.config);
-            console.log('📝 Quiz translations loaded:', result.translations);
-            setQuizConfig(result.config);
-            setQuizTranslations(result.translations || null);
-            setMode('quiz');
-            setShowModal(true);
-            return true;
-          } else {
-            console.log('ℹ️ No active quiz configuration found, using default flow');
-            return false;
+      // Determine locale for API request - use provided locale or fallback to detected language
+      const apiLocale = locale || i18n.language || 'en';
+      // Normalize locale to match API expectations (e.g., 'en-US' -> 'en')
+      const normalizedLocale = apiLocale.split('-')[0];
+      
+      const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}&locale=${encodeURIComponent(normalizedLocale)}`;
+      console.log('📥 Fetching quiz configuration from:', apiUrl);
+      console.log('🌍 Using locale for translations:', normalizedLocale);
+      
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.config && result.isActive) {
+          console.log('✅ Quiz configuration loaded from API:', result.config);
+          console.log('📝 Quiz translations loaded:', result.translations);
+          if (result.template) {
+            console.log('🎨 Widget theme config loaded:', result.template);
+            setThemeConfig(result.template);
           }
+          setQuizConfig(result.config);
+          setQuizTranslations(result.translations || null);
+          setMode('quiz');
+          setShowModal(true);
+          return true;
         } else {
-          console.warn('⚠️ Failed to fetch quiz config, using default flow');
+          // Even without active quiz, apply template theme if present
+          if (result.template) {
+            console.log('🎨 Widget theme config loaded (no quiz):', result.template);
+            setThemeConfig(result.template);
+          }
+          console.log('ℹ️ No active quiz configuration found, using default flow');
           return false;
         }
       } else {
-        console.warn('⚠️ NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL not set, skipping quiz config load');
+        console.warn('⚠️ Failed to fetch quiz config, using default flow');
         return false;
       }
     } catch (error) {
       console.error('❌ Error loading quiz configuration:', error);
       return false;
     }
-  };
+  }, []);
 
   // Load quiz configuration from API and initialize
   useEffect(() => {
@@ -114,10 +126,13 @@ export default function FastEmbedPage() {
       // Read query parameters
       const urlParams = new URLSearchParams(window.location.search);
       const shop = urlParams.get('shop');
-      const locale = urlParams.get('locale');
+      const rawLocale = urlParams.get('locale');
       const currency = urlParams.get('currency');
       const market = urlParams.get('market');
       const country = urlParams.get('country');
+      
+      // Normalize locale from URL params (e.g., 'it-IT' -> 'it')
+      const locale = rawLocale?.split('-')[0] ?? null;
       
       // Change i18n language if locale param is provided
       if (locale && ['it', 'es', 'en'].includes(locale) && i18n.language !== locale) {
@@ -150,7 +165,7 @@ export default function FastEmbedPage() {
     };
 
     initialize();
-  }, []);
+  }, [fetchQuizConfig]);
 
   // Listen for messages from parent Shopify page
   useEffect(() => {
@@ -168,8 +183,8 @@ export default function FastEmbedPage() {
         setStoreData(payload);
         console.log('🌍 Store data received via postMessage:', payload);
         
-        // Update i18n language if locale is provided
-        const locale = payload.locale?.split('-')[0]; // Normalize e.g. "it-IT" → "it"
+        // Normalize locale from Shopify (e.g. "it-IT" → "it")
+        const locale = payload.locale?.split('-')[0];
         if (locale && ['it', 'es', 'en'].includes(locale) && i18n.language !== locale) {
           i18n.changeLanguage(locale);
           console.log('🌍 Language changed to:', locale);
@@ -177,7 +192,7 @@ export default function FastEmbedPage() {
         
         // Fetch quiz config with the Shopify locale
         if (payload.shop) {
-          fetchQuizConfig(payload.shop, locale).then(() => {
+          fetchQuizConfig(payload.shop, locale).finally(() => {
             setLoadingConfig(false);
           });
         } else {
@@ -188,7 +203,15 @@ export default function FastEmbedPage() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
+  }, [fetchQuizConfig]);
+
+  // Apply theme config to the widget root when available
+  useEffect(() => {
+    if (themeConfig && widgetRootRef.current) {
+      applyThemeConfig(widgetRootRef.current, themeConfig);
+      console.log('🎨 Theme applied to widget root');
+    }
+  }, [themeConfig, showModal]);
 
   const handleCloseModal = () => {
     setShowModal(false);
@@ -217,7 +240,7 @@ export default function FastEmbedPage() {
   if (mode === 'quiz' && quizConfig) {
     return (
       <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-        <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+        <div ref={widgetRootRef} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
           <QuizForm 
             config={quizConfig}
             isOpen={showModal}
@@ -232,13 +255,14 @@ export default function FastEmbedPage() {
 
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-      <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+      <div ref={widgetRootRef} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
         {/* Modal si renderizza SUBITO - nessun Suspense, nessun preloader */}
         <SkinAnalysisModal 
           isOpen={showModal} 
           onClose={handleCloseModal} 
           embedded={true}
           fastMode={true} // Nuova prop per modalità ultra-veloce
+          themeConfig={themeConfig ?? undefined}
         />
       </div>
     </div>
