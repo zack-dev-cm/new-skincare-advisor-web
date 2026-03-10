@@ -130,12 +130,23 @@ export default function FastEmbedPage() {
         console.log('Store data from URL params:', { shop, locale, currency, market, country });
       }
 
-      // Fetch quiz configuration from API if shop is provided
+      // Fetch quiz configuration from API if shop is provided in URL params
       if (shop) {
-        fetchQuizConfig(shop, locale);
+        await fetchQuizConfig(shop, locale ?? undefined);
+        setLoadingConfig(false);
+      } else {
+        // No shop in URL params — iframe might have been loaded without query params.
+        // Ask parent Shopify page for store data via postMessage and wait briefly.
+        console.log('📡 No shop in URL params, requesting store data from parent...');
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'REQUEST_STORE_DATA' }, '*');
+        }
+        // Give the parent a short window to respond with SHOPIFY_STORE_DATA
+        // before falling back to the default flow
+        setTimeout(() => {
+          setLoadingConfig(false);
+        }, 2000);
       }
-      
-      setLoadingConfig(false);
     };
 
     initialize();
@@ -151,20 +162,26 @@ export default function FastEmbedPage() {
       } else if (event.data.type === 'CLOSE_SKIN_ANALYSIS') {
         setShowModal(false);
       } else if (event.data.type === 'SHOPIFY_STORE_DATA') {
-        // Receive store data via postMessage (preferred method to avoid query param issues)
+        // Receive store data via postMessage from Shopify parent page
+        // This is the primary way locale is passed from Shopify's Liquid context
         const payload = event.data.payload;
         setStoreData(payload);
-        console.log('Store data received via postMessage:', payload);
+        console.log('🌍 Store data received via postMessage:', payload);
         
         // Update i18n language if locale is provided
-        if (payload.locale && ['it', 'es', 'en'].includes(payload.locale) && i18n.language !== payload.locale) {
-          i18n.changeLanguage(payload.locale);
-          console.log('🌍 Language changed to:', payload.locale);
+        const locale = payload.locale?.split('-')[0]; // Normalize e.g. "it-IT" → "it"
+        if (locale && ['it', 'es', 'en'].includes(locale) && i18n.language !== locale) {
+          i18n.changeLanguage(locale);
+          console.log('🌍 Language changed to:', locale);
         }
         
-        // Re-fetch quiz config with the new locale if shop is provided
+        // Fetch quiz config with the Shopify locale
         if (payload.shop) {
-          fetchQuizConfig(payload.shop, payload.locale);
+          fetchQuizConfig(payload.shop, locale).then(() => {
+            setLoadingConfig(false);
+          });
+        } else {
+          setLoadingConfig(false);
         }
       }
     };
