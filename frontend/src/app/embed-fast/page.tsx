@@ -29,11 +29,6 @@ interface QuizConfig {
   settings: {
     showProgress: boolean;
     allowSkipping: boolean;
-    theme: {
-      primaryColor: string;
-      secondaryColor: string;
-      fontFamily: string;
-    };
   };
   resultPage: {
     enabled: boolean;

@@ -32,6 +32,7 @@ interface QuizOption {
   id: string;
   label: string;
   value: string;
+  imageUrl?: string;
 }
 
 interface QuizQuestion {
@@ -52,11 +53,6 @@ interface QuizConfig {
   settings: {
     showProgress: boolean;
     allowSkipping: boolean;
-    theme: {
-      primaryColor: string;
-      secondaryColor: string;
-      fontFamily: string;
-    };
   };
   resultPage: {
     enabled: boolean;
@@ -475,7 +471,23 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                         borderRadius: 'var(--radius, 0.5rem)',
                       }}
                     >
-                      <div className="aspect-square bg-gray-100 flex items-center justify-center">
+                      <div className="aspect-square bg-gray-100 flex items-center justify-center overflow-hidden">
+                        {option.imageUrl ? (
+                          <img
+                            src={option.imageUrl}
+                            alt={getOptionLabel(currentQuestion.id, option)}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-sm text-muted-foreground px-2 text-center">
+                            {getOptionLabel(currentQuestion.id, option)}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className="px-2 py-1.5 text-sm font-medium text-center truncate"
+                        style={{ color: isSelected ? CSS_PRIMARY : CSS_FG }}
+                      >
                         {getOptionLabel(currentQuestion.id, option)}
                       </div>
                       {isSelected && (
