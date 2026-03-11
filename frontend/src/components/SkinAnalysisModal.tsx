@@ -94,7 +94,18 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   // Get app configuration
   const appConfig = useAppConfig();
   const { locale } = useLocale();
-  const modalRootRef = React.useRef<HTMLDivElement>(null);
+
+  // Callback ref: applies merchant theme CSS variables as soon as the
+  // motion.div is mounted (or when themeConfig/isOpen changes).
+  const modalRootCallback = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && themeConfig) {
+        applyThemeConfig(node, themeConfig);
+        console.log('🎨 Theme config applied to modal root');
+      }
+    },
+    [themeConfig],
+  );
 
   // Initialize face detection models when modal opens
 
@@ -211,14 +222,6 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       console.log(`🎯 Demo mode: Starting at step '${initialStep}'`);
     }
   }, [isOpen, initialStep]);
-
-  // Apply merchant theme config to the modal root element
-  useEffect(() => {
-    if (isOpen && themeConfig && modalRootRef.current) {
-      applyThemeConfig(modalRootRef.current, themeConfig);
-      console.log('🎨 Theme config applied to modal root');
-    }
-  }, [isOpen, themeConfig]);
 
   // Step navigation
   const handleNext = () => {
@@ -362,7 +365,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
       {/* Modal Container */}
       <motion.div
-        ref={modalRootRef}
+        ref={modalRootCallback}
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}

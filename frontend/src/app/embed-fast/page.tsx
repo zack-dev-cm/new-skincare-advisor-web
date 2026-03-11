@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 import { startBackgroundLoading } from '@/lib/backgroundLoader';
 import i18n from '@/lib/i18n';
@@ -54,7 +54,20 @@ export default function FastEmbedPage() {
   const [themeConfig, setThemeConfig] = useState<Partial<WidgetThemeConfig> | null>(null);
   const [mode, setMode] = useState<'default' | 'quiz'>('default');
   const [loadingConfig, setLoadingConfig] = useState(true);
-  const widgetRootRef = useRef<HTMLDivElement>(null);
+
+  // Callback ref: applies theme as soon as the DOM node is attached (or when
+  // themeConfig changes, which creates a new callback identity and causes React
+  // to re-attach the ref).  This avoids the timing gap where a useEffect fires
+  // before the loading → content transition has mounted the ref target.
+  const widgetRootCallback = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && themeConfig) {
+        applyThemeConfig(node, themeConfig);
+        console.log('🎨 Theme applied to widget root');
+      }
+    },
+    [themeConfig],
+  );
 
   // Function to fetch quiz config (reusable, stable across renders)
   const fetchQuizConfig = useCallback(async (shop: string, locale?: string) => {
@@ -205,14 +218,6 @@ export default function FastEmbedPage() {
     return () => window.removeEventListener('message', handleMessage);
   }, [fetchQuizConfig]);
 
-  // Apply theme config to the widget root when available
-  useEffect(() => {
-    if (themeConfig && widgetRootRef.current) {
-      applyThemeConfig(widgetRootRef.current, themeConfig);
-      console.log('🎨 Theme applied to widget root');
-    }
-  }, [themeConfig, showModal]);
-
   const handleCloseModal = () => {
     setShowModal(false);
     
@@ -240,7 +245,7 @@ export default function FastEmbedPage() {
   if (mode === 'quiz' && quizConfig) {
     return (
       <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-        <div ref={widgetRootRef} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+        <div ref={widgetRootCallback} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
           <QuizForm 
             config={quizConfig}
             isOpen={showModal}
@@ -255,7 +260,7 @@ export default function FastEmbedPage() {
 
   return (
     <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-      <div ref={widgetRootRef} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+        <div ref={widgetRootCallback} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
         {/* Modal si renderizza SUBITO - nessun Suspense, nessun preloader */}
         <SkinAnalysisModal 
           isOpen={showModal} 

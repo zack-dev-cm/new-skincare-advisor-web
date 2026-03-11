@@ -13,6 +13,21 @@ const ResultsStep = dynamic(() => import('./steps/results_step'), { ssr: false }
 import ImagePreloader from './ImagePreloader';
 import { useLocale } from '@/lib/LocaleContext';
 
+// ---------------------------------------------------------------------------
+// CSS-variable helpers – read design-system tokens set on the parent by
+// applyThemeConfig().  When no template is configured the defaults defined
+// in globals.css / widget-theme.ts apply automatically.
+// ---------------------------------------------------------------------------
+
+/** Shorthand to reference a CSS custom property as an HSL color value. */
+const hsl = (v: string) => `hsl(var(${v}))`;
+
+const CSS_PRIMARY   = hsl('--primary-600');
+const CSS_PRIMARY50 = hsl('--primary-50');
+const CSS_BG        = hsl('--background');
+const CSS_FG        = hsl('--foreground');
+const CSS_BORDER    = hsl('--border');
+
 interface QuizOption {
   id: string;
   label: string;
@@ -242,8 +257,9 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
     <div 
       className="px-4 py-3 flex items-center justify-between border-b"
       style={{ 
-        backgroundColor: config.settings.theme.primaryColor,
-        color: config.settings.theme.secondaryColor,
+        backgroundColor: CSS_PRIMARY,
+        color: '#FFFFFF',
+        borderColor: CSS_BORDER,
       }}
     >
       <button
@@ -288,28 +304,29 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   const renderProgressBar = () => {
     if (!config.settings.showProgress) return null;
     return (
-      <div className="h-1 bg-gray-200">
+      <div className="h-1" style={{ backgroundColor: CSS_BORDER }}>
         <div
           className="h-full transition-all duration-300"
           style={{
             width: `${progress}%`,
-            backgroundColor: config.settings.theme.primaryColor,
+            backgroundColor: CSS_PRIMARY,
           }}
         />
       </div>
     );
   };
 
+  // Shared root-div style: inherits font + colours from CSS variables
+  const rootStyle: React.CSSProperties = {
+    fontFamily: 'var(--kiko-font-family)',
+    color: CSS_FG,
+    backgroundColor: CSS_BG,
+  };
+
   // Handle different steps - but wrap them all with header/footer
   if (currentStep === 'photo-instructions') {
     return (
-      <div 
-        className="w-full h-full flex flex-col"
-        style={{ 
-          fontFamily: config.settings.theme.fontFamily,
-          color: config.settings.theme.primaryColor,
-        }}
-      >
+      <div className="w-full h-full flex flex-col" style={rootStyle}>
         {renderHeader()}
         {renderProgressBar()}
         <div className="flex-1 overflow-hidden relative">
@@ -324,13 +341,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
 
   if (currentStep === 'camera-capture') {
     return (
-      <div 
-        className="w-full h-full flex flex-col"
-        style={{ 
-          fontFamily: config.settings.theme.fontFamily,
-          color: config.settings.theme.primaryColor,
-        }}
-      >
+      <div className="w-full h-full flex flex-col" style={rootStyle}>
         {renderHeader()}
         {renderProgressBar()}
         <div className="flex-1 overflow-hidden relative">
@@ -346,13 +357,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   if (currentStep === 'scan' || currentStep === 'results') {
     if (loading) {
       return (
-        <div 
-          className="w-full h-full flex flex-col"
-          style={{ 
-            fontFamily: config.settings.theme.fontFamily,
-            color: config.settings.theme.primaryColor,
-          }}
-        >
+        <div className="w-full h-full flex flex-col" style={rootStyle}>
           {renderHeader()}
           {renderProgressBar()}
           <div className="flex-1 overflow-hidden relative">
@@ -387,13 +392,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
 
     if (analysisData) {
       return (
-        <div 
-          className="w-full h-full flex flex-col"
-          style={{ 
-            fontFamily: config.settings.theme.fontFamily,
-            color: config.settings.theme.primaryColor,
-          }}
-        >
+        <div className="w-full h-full flex flex-col" style={rootStyle}>
           {renderHeader()}
           {renderProgressBar()}
           <div className="flex-1 overflow-hidden relative">
@@ -422,13 +421,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   if (!currentQuestion) return null;
 
   return (
-    <div 
-      className="w-full h-full bg-white flex flex-col"
-      style={{ 
-        fontFamily: config.settings.theme.fontFamily,
-        color: config.settings.theme.primaryColor,
-      }}
-    >
+    <div className="w-full h-full flex flex-col" style={rootStyle}>
       {renderHeader()}
       {renderProgressBar()}
 
@@ -453,14 +446,11 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                     <button
                       key={option.id}
                       onClick={() => handleAnswerChange(currentQuestion.id, option.value)}
-                      className={`w-full p-4 rounded-lg border-2 text-left transition-all ${
-                        isSelected
-                          ? 'border-purple-500 bg-purple-50'
-                          : 'border-gray-200 hover:border-gray-300'
-                      }`}
+                      className="w-full p-4 rounded-lg border-2 text-left transition-all"
                       style={{
-                        borderColor: isSelected ? config.settings.theme.primaryColor : undefined,
-                        backgroundColor: isSelected ? `${config.settings.theme.primaryColor}10` : undefined,
+                        borderColor: isSelected ? CSS_PRIMARY : CSS_BORDER,
+                        backgroundColor: isSelected ? CSS_PRIMARY50 : undefined,
+                        borderRadius: 'var(--radius, 0.5rem)',
                       }}
                     >
                       {getOptionLabel(currentQuestion.id, option)}
@@ -479,11 +469,10 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                     <button
                       key={option.id}
                       onClick={() => handleAnswerChange(currentQuestion.id, option.value)}
-                      className={`relative rounded-lg border-2 overflow-hidden transition-all ${
-                        isSelected ? 'border-purple-500' : 'border-gray-200'
-                      }`}
+                      className="relative rounded-lg border-2 overflow-hidden transition-all"
                       style={{
-                        borderColor: isSelected ? config.settings.theme.primaryColor : undefined,
+                        borderColor: isSelected ? CSS_PRIMARY : CSS_BORDER,
+                        borderRadius: 'var(--radius, 0.5rem)',
                       }}
                     >
                       <div className="aspect-square bg-gray-100 flex items-center justify-center">
@@ -492,7 +481,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                       {isSelected && (
                         <div
                           className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
-                          style={{ backgroundColor: config.settings.theme.primaryColor }}
+                          style={{ backgroundColor: CSS_PRIMARY }}
                         >
                           <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
@@ -515,11 +504,11 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                   value={(answers[currentQuestion.id] as number) || currentQuestion.default || 5}
                   onChange={(e) => handleAnswerChange(currentQuestion.id, parseInt(e.target.value))}
                   className="w-full"
-                  style={{ accentColor: config.settings.theme.primaryColor }}
+                  style={{ accentColor: CSS_PRIMARY }}
                 />
-                <div className="flex justify-between text-sm text-gray-500">
+                <div className="flex justify-between text-sm" style={{ color: hsl('--muted-foreground') }}>
                   <span>{currentQuestion.min || 1}</span>
-                  <span className="text-lg font-bold">
+                  <span className="text-lg font-bold" style={{ color: CSS_FG }}>
                     {answers[currentQuestion.id] || currentQuestion.default || 5}
                   </span>
                   <span>{currentQuestion.max || 10}</span>
@@ -532,10 +521,13 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
               <textarea
                 value={(answers[currentQuestion.id] as string) || ''}
                 onChange={(e) => handleAnswerChange(currentQuestion.id, e.target.value)}
-                className="w-full p-4 border-2 border-gray-200 rounded-lg focus:outline-none focus:border-purple-500"
+                className="w-full p-4 border-2 rounded-lg focus:outline-none"
                 rows={6}
                 placeholder={getTranslation('placeholder', 'quiz.placeholder')}
-                style={{ borderColor: config.settings.theme.primaryColor + '40' }}
+                style={{
+                  borderColor: CSS_BORDER,
+                  borderRadius: 'var(--radius, 0.5rem)',
+                }}
               />
             )}
           </motion.div>
@@ -543,11 +535,15 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
       </div>
 
       {/* Footer */}
-      <div className="border-t p-4 flex justify-between gap-3">
+      <div className="p-4 flex justify-between gap-3" style={{ borderTop: `1px solid ${CSS_BORDER}` }}>
         {config.settings.allowSkipping && (
           <button
             onClick={handleSkip}
-            className="px-6 py-2 border-2 border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+            className="px-6 py-2 border-2 rounded-lg hover:opacity-80 transition-colors"
+            style={{
+              borderColor: CSS_BORDER,
+              borderRadius: 'var(--radius, 0.5rem)',
+            }}
           >
             {getTranslation('skipButton', 'quiz.skip')}
           </button>
@@ -555,13 +551,14 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
         <button
           onClick={handleNext}
           disabled={!canProceed()}
-          className={`flex-1 px-6 py-3 rounded-lg font-medium transition-all ${
+          className={`flex-1 px-6 py-3 font-medium transition-all ${
             canProceed()
               ? 'text-white hover:opacity-90'
               : 'bg-gray-300 text-gray-500 cursor-not-allowed'
           }`}
           style={{
-            backgroundColor: canProceed() ? config.settings.theme.primaryColor : undefined,
+            backgroundColor: canProceed() ? CSS_PRIMARY : undefined,
+            borderRadius: 'var(--radius, 0.5rem)',
           }}
         >
           {currentQuestionIndex < sortedQuestions.length - 1 
