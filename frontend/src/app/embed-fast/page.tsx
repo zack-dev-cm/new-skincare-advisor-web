@@ -65,9 +65,9 @@ export default function FastEmbedPage() {
   );
 
   // Function to fetch quiz config (reusable, stable across renders)
-  const fetchQuizConfig = useCallback(async (shop: string, locale?: string) => {
+  const fetchQuizConfig = useCallback(async (shop: string, locale?: string, connectorUrlOverride?: string) => {
     try {
-      const connectorApiUrl = (process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it').replace(/\/$/, '');
+      const connectorApiUrl = (connectorUrlOverride || process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL || 'https://connector.dermaself.it').replace(/\/$/, '');
       
       if (!connectorApiUrl) {
         console.warn('⚠️ NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL not set, skipping quiz config load');
@@ -138,6 +138,7 @@ export default function FastEmbedPage() {
       const currency = urlParams.get('currency');
       const market = urlParams.get('market');
       const country = urlParams.get('country');
+      const connectorUrlParam = urlParams.get('connectorUrl');
       
       // Normalize locale from URL params (e.g., 'it-IT' -> 'it')
       const locale = rawLocale?.split('-')[0] ?? null;
@@ -149,13 +150,13 @@ export default function FastEmbedPage() {
       }
       
       if (shop || locale || currency || market || country) {
-        setStoreData({ shop, locale, currency, market, country });
-        console.log('Store data from URL params:', { shop, locale, currency, market, country });
+        setStoreData({ shop, locale, currency, market, country, connectorUrl: connectorUrlParam });
+        console.log('Store data from URL params:', { shop, locale, currency, market, country, connectorUrl: connectorUrlParam });
       }
 
       // Fetch quiz configuration from API if shop is provided in URL params
       if (shop) {
-        await fetchQuizConfig(shop, locale ?? undefined);
+        await fetchQuizConfig(shop, locale ?? undefined, connectorUrlParam ?? undefined);
         setLoadingConfig(false);
       } else {
         // No shop in URL params — iframe might have been loaded without query params.
