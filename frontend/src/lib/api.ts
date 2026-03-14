@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { getShopifyDomain } from './shopify';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://new-skincare-advisor-api-fqc8dffvg5ghene2.westeurope-01.azurewebsites.net/api';
 
@@ -454,7 +453,7 @@ export async function analyzeSkinWithRecommendations(
     }
     
     // Prepare inference request
-    const resolvedShopDomain = userData?.shop_domain || getShopifyDomain();
+    const resolvedShopDomain = 'shiseido.it';
     const requestBody: Record<string, unknown> = {
       inferenceId,
       userData: {

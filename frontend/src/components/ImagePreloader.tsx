@@ -1,10 +1,8 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
-import LogoWhite from '../app/RGB_Logo_White.png';
 import UploadingScreen from './common/UploadingScreen';
 
 interface ImagePreloaderProps {
@@ -14,6 +12,8 @@ interface ImagePreloaderProps {
 	  analysisProgress?: number; // Progresso dell'analisi opzionale per la modalità analisi
 	  analysisImageUrl?: string; // Immagine da mostrare durante l'analisi (per UploadingScreen)
 }
+
+const PRELOADER_LOGO = '/shiseido_logo.png';
 
 export default function ImagePreloader({ 
   onComplete, 
@@ -126,7 +126,7 @@ export default function ImagePreloader({
 	      >
 	        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar flex-shrink-0">
 	          <div className="flex-1 text-center flex items-center justify-center">
-	            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+	            <img src={PRELOADER_LOGO} alt="Shiseido" className="h-9 w-auto object-contain logo-violet" />
 	          </div>
 	        </div>
 	        <div className="flex-1 min-h-0 flex flex-col">
@@ -156,7 +156,7 @@ export default function ImagePreloader({
         {/* Intestazione - Stesso stile della modale */}
         <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar">
           <div className="flex-1 text-center flex items-center justify-center">
-            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+            <img src={PRELOADER_LOGO} alt="Shiseido" className="h-9 w-auto object-contain logo-violet" />
           </div>
         </div>
 
@@ -166,7 +166,7 @@ export default function ImagePreloader({
             {/* Animazione di Caricamento */}
             <div className="mb-6">
               <motion.div
-                className="w-16 h-16 bg-gradient-to-r from-primary-600 to-primary-500 rounded-full mx-auto mb-4"
+                className="w-16 h-16 border border-black bg-white mx-auto mb-4"
                 animate={{ 
                   scale: [1, 1.1, 1],
                   rotate: [0, 180, 360]
@@ -191,9 +191,9 @@ export default function ImagePreloader({
             </div>
 
             {/* Barra di Progresso */}
-            <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+            <div className="w-full bg-gray-200 h-2 mb-4">
               <motion.div
-                className="bg-gradient-to-r from-primary-600 to-primary-500 h-2 rounded-full"
+                className="bg-black h-2"
                 initial={{ width: 0 }}
                 animate={{ width: `${progress}%` }}
                 transition={{ duration: 0.3, ease: "easeOut" }}
@@ -209,9 +209,9 @@ export default function ImagePreloader({
             {/* Indicatore di Fase per la Modalità Analisi */}
             {mode === 'analysis' && (
               <div className="mt-4 flex justify-center space-x-2">
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'preparing' ? 'bg-primary-600' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'analyzing' ? 'bg-primary-600' : 'bg-gray-300'}`} />
-                <div className={`w-2 h-2 rounded-full ${currentPhase === 'complete' ? 'bg-primary-600' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 ${currentPhase === 'preparing' ? 'bg-black' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 ${currentPhase === 'analyzing' ? 'bg-black' : 'bg-gray-300'}`} />
+                <div className={`w-2 h-2 ${currentPhase === 'complete' ? 'bg-black' : 'bg-gray-300'}`} />
               </div>
             )}
           </div>
@@ -220,7 +220,7 @@ export default function ImagePreloader({
         {/* Piè di pagina - Stesso stile della modale */}
         <div className="modal-footer-bar px-4 py-2 border-t">
           <div className="flex items-center justify-center">
-            <p className="text-xs text-white/70">
+            <p className="text-xs text-muted-foreground">
               {mode === 'initial' 
                 ? t('preloader.optimizing')
                 : t('preloader.processing_image')

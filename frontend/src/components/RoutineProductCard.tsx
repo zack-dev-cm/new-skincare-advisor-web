@@ -88,7 +88,7 @@ export default function RoutineProductCard({
   if (!product) {
     console.error('RoutineProductCard: Product is undefined');
     return (
-      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+      <div className="bg-red-50 border border-red-200 rounded-none p-4">
         <p className="text-red-600">Error: Product data is missing</p>
       </div>
     );
@@ -239,12 +239,12 @@ export default function RoutineProductCard({
     <section className="routine-steps">
       {/* Step Header */}
       <div className="flex items-center gap-2 mb-3">
-        <span className="inline-flex items-center justify-center h-7 px-3 rounded-full bg-neutral-900 text-white text-sm font-semibold">
+        <span className="inline-flex items-center justify-center h-7 px-3 rounded-none bg-neutral-900 text-white text-sm font-semibold">
           {t('products:cart.step_label', { number: stepNumber })}
         </span>
         <h2 className="text-2xl font-semibold tracking-tight truncate flex-1">{translateModuleName(stepTitle)}</h2>
         {categoryTitle && (
-          <span className="ml-2 hidden sm:inline-flex items-center text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-full">
+          <span className="ml-2 hidden sm:inline-flex items-center text-xs bg-muted text-muted-foreground px-2 py-0.5 rounded-none">
             {categoryTitle}
           </span>
         )}
@@ -268,7 +268,7 @@ export default function RoutineProductCard({
               decoding="async"
               fetchPriority="auto"
               sizes="(max-width: 640px) 80px, 80px"
-              className="w-20 h-20 rounded-xl object-cover bg-white p-1 cursor-pointer"
+              className="w-20 h-20 rounded-none object-cover bg-white p-1 cursor-pointer"
               onClick={() => setShowDetailsModal(true)}
               onLoad={() => {
                 console.log('✅ Routine image loaded successfully:', product.images[0]?.src);
@@ -290,7 +290,7 @@ export default function RoutineProductCard({
                 </div>
               </div>
               <div className="mt-2 flex items-center gap-2 flex-wrap">
-                <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                <span className="inline-flex px-2 py-0.5 rounded-none bg-primary/10 text-primary text-xs font-semibold">
                   {selectedVariant ? formatPrice(selectedVariant.price) : formatCurrency(0)}
                 </span>
                 {(() => {
@@ -317,7 +317,7 @@ export default function RoutineProductCard({
             )}
 
             {/* Verified chip */}
-            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-semibold text-white bg-blue-600">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-none text-sm font-semibold text-white bg-blue-600">
               <CheckCircle className="w-3 h-3" />
               Dermaself Verified
             </span>
@@ -327,7 +327,7 @@ export default function RoutineProductCard({
           
           {/* Why picked bubble */}
           {whyPicked && (
-            <div className="mt-4 rounded-3xl bg-muted p-4 text-sm leading-relaxed">
+            <div className="mt-4 rounded-none bg-muted p-4 text-sm leading-relaxed">
               <div className="font-semibold text-sm mb-1">{t('products:cart.why_picked')}</div>
               <p className={`text-gray-900 ${whyExpanded ? '' : 'line-clamp-3'}`}>{whyPicked}</p>
               <button
@@ -346,7 +346,7 @@ export default function RoutineProductCard({
             {/* Show cart button only when cart is enabled (not in demo mode) */}
             {appConfig.enableCart && (
               <button 
-                className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-lg font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
+                className={`inline-flex items-center justify-center h-12 sm:h-11 w-full sm:w-auto px-4 rounded-none font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2 disabled:opacity-60 ${showSuccess ? 'bg-green-600' : 'bg-primary-600 text-white hover:bg-primary-700'}`}
                 onClick={isInCart ? handleRemoveFromCart : handleAddToCart}
                 disabled={isLoading || !selectedVariant || !isVariantAvailable(selectedVariant) || state.loading}
                 aria-label={isInCart ? t('products:cart.remove_aria') : t('products:cart.add_aria')}
@@ -373,7 +373,7 @@ export default function RoutineProductCard({
             {alternatives && alternatives.length > 0 && (
               <button 
                 type="button"
-                className="flex-1 h-12 inline-flex items-center justify-between rounded-full bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-primary-100"
+                className="flex-1 h-12 inline-flex items-center justify-between rounded-none bg-white hover:bg-gray-50 text-sm font-semibold px-4 transition-colors shadow-sm border border-primary-100"
                 onClick={onToggleAlternatives}
                 aria-controls={`alt-list-${product.id}`}
               >
@@ -390,7 +390,7 @@ export default function RoutineProductCard({
               <div className="overflow-x-auto [-webkit-overflow-scrolling:touch]">
                 <div className="flex gap-4 w-max pr-3 pb-1">
                   {alternatives.map((alt: any) => (
-                    <div key={alt.id || alt.title} className="rounded-2xl bg-white shadow-sm border border-primary-100 p-3 min-w-[280px] sm:min-w-[300px]">
+                    <div key={alt.id || alt.title} className="rounded-none bg-white shadow-sm border border-primary-100 p-3 min-w-[280px] sm:min-w-[300px]">
                       <div className="flex items-start gap-3">
                         <img
                           width="96"
@@ -402,7 +402,7 @@ export default function RoutineProductCard({
                           fetchPriority="low"
                           sizes="(max-width: 640px) 96px, 80px"
                           srcSet={`${getOptimizedImageUrl(alt.images?.[0]?.src, 120)} 120w, ${getOptimizedImageUrl(alt.images?.[0]?.src, 160)} 160w, ${getOptimizedImageUrl(alt.images?.[0]?.src, 200)} 200w`}
-                          className="w-24 h-24 sm:w-20 sm:h-20 rounded-xl object-cover bg-muted"
+                          className="w-24 h-24 sm:w-20 sm:h-20 rounded-none object-cover bg-muted"
                         />
                         <div className="min-w-0">
                           <div className="text-sm font-semibold truncate max-w-[180px]">{alt.title}</div>
@@ -412,7 +412,7 @@ export default function RoutineProductCard({
                               <span className={getFitPillClass(alt.fit, 'small')}>{alt.fit}% fit</span>
                             )}
                             {alt.variants?.[0]?.price && (
-                              <span className="inline-flex px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                              <span className="inline-flex px-2 py-0.5 rounded-none bg-primary/10 text-primary text-xs font-semibold">
                                 {formatCurrency(parseFloat(alt.variants[0].price))}
                               </span>
                             )}
@@ -429,7 +429,7 @@ export default function RoutineProductCard({
                               return (
                                 <button
                                   type="button"
-                                  className="h-9 w-9 inline-flex items-center justify-center rounded-md bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
+                                  className="h-9 w-9 inline-flex items-center justify-center rounded-none bg-primary-600 text-white hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-400 transition-colors"
                                   onClick={async () => {
                                     try {
                                       if (!alt?.variants?.[0]?.id) return;
@@ -490,7 +490,7 @@ export default function RoutineProductCard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+            className="absolute inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center rounded-none"
           >
             <div className="text-white text-center">
               <CheckCircle className="w-12 h-12 mx-auto mb-2" />
@@ -507,7 +507,7 @@ export default function RoutineProductCard({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center rounded-lg"
+            className="absolute inset-0 bg-red-500 bg-opacity-90 flex items-center justify-center rounded-none"
           >
             <div className="text-white text-center">
               <div className="w-12 h-12 mx-auto mb-2 flex items-center justify-center">
@@ -526,7 +526,7 @@ export default function RoutineProductCard({
       {/* Add All to Bag Button for Last Step */}
       {isLastStep && showAddAllButton && onAddAllToCart && (
             <button 
-              className="mt-4 bg-primary-600 text-white px-4 py-2 rounded-lg font-medium hover:bg-primary-700 transition-colors"
+              className="mt-4 bg-primary-600 text-white px-4 py-2 rounded-none font-medium hover:bg-primary-700 transition-colors"
           onClick={onAddAllToCart}
           disabled={state.loading}
         >
@@ -556,7 +556,7 @@ export default function RoutineProductCard({
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
-            className="bg-white rounded-lg w-[calc(100%-2rem)] max-w-md md:w-full max-h-[80vh] mx-auto overflow-y-auto scrollbar-thin scrollbar-thumb-primary-600 scrollbar-track-gray-200"
+            className="bg-white rounded-none w-[calc(100%-2rem)] max-w-md md:w-full max-h-[80vh] mx-auto overflow-y-auto scrollbar-thin scrollbar-thumb-primary-600 scrollbar-track-gray-200"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Modal Header */}
@@ -564,7 +564,7 @@ export default function RoutineProductCard({
               <h3 className="text-lg font-semibold">{t('products:cart.product_details')}</h3>
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="p-1 hover:bg-gray-100 rounded-full transition-colors"
+                className="p-1 hover:bg-gray-100 rounded-none transition-colors"
                 title={t('products:cart.close_modal_title')}
               >
                 <X className="w-5 h-5" />
@@ -578,7 +578,7 @@ export default function RoutineProductCard({
                 <img
                   src={product.images[0]?.src || 'https://via.placeholder.com/300x300/f0f0f0/999999?text=Product+Image'}
                   alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-48 object-cover rounded-none"
                 />
               </div>
 
@@ -604,7 +604,7 @@ export default function RoutineProductCard({
                       {productTags.map((tag, index) => (
                         <span
                           key={index}
-                          className="px-2 py-1 text-xs rounded-full border border-gray-300"
+                          className="px-2 py-1 text-xs rounded-none border border-gray-300"
                         >
                           {tag}
                         </span>
@@ -632,7 +632,7 @@ export default function RoutineProductCard({
             <div className="p-4 border-t bg-gray-50">
               <button
                 onClick={() => setShowDetailsModal(false)}
-                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg font-medium hover:bg-gray-300 transition-colors"
+                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-none font-medium hover:bg-gray-300 transition-colors"
               >
                 {t('common:buttons.close')}
               </button>

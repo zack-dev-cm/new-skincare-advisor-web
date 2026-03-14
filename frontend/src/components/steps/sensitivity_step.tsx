@@ -59,10 +59,10 @@ export default function SensitivityStep({ selectedSensitivity, onSensitivitySele
               onClick={() => onSensitivitySelect(option.id)}
               onKeyDown={(e) => e.key === 'Enter' && onSensitivitySelect(option.id)}
             >
-              <div className={`relative rounded-2xl overflow-hidden border-2 transition-all duration-200 ${
+              <div className={`relative overflow-hidden transition-all duration-200 ${
                 selectedSensitivity === option.id
-                  ? 'border-primary-500 shadow-lg shadow-primary-100'
-                  : 'border-transparent hover:border-primary-300'
+                  ? 'ds-sh-option-card ds-sh-option-card-active'
+                  : 'ds-sh-option-card ds-sh-option-card-idle'
               }`}>
                 <div className="flex bg-white">
                   <div className="flex-1 min-w-0 px-5 py-4 flex flex-col justify-center">
@@ -81,7 +81,7 @@ export default function SensitivityStep({ selectedSensitivity, onSensitivitySele
           <motion.button
             onClick={onNext}
             disabled={!selectedSensitivity}
-            className="py-3 px-8 rounded-lg transition-all duration-200 bg-primary-600 text-white hover:bg-primary-700 shadow-lg w-full md:w-48 disabled:bg-gray-300 disabled:text-gray-500 disabled:cursor-not-allowed"
+            className="ds-sh-btn-primary py-3 px-8 transition-all duration-200 w-full md:w-48 disabled:cursor-not-allowed"
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
           >

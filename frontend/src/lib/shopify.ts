@@ -7,6 +7,11 @@ export function normalizeShopifyDomain(input: string): string {
   }
 }
 
+function isLocalHost(hostname: string): boolean {
+  const host = hostname.toLowerCase();
+  return host === 'localhost' || host === '127.0.0.1' || host.endsWith('.localhost');
+}
+
 /**
  * Returns the Shopify shop domain (e.g., "your-store.myshopify.com").
  * Prefers parent window when embedded, otherwise current hostname, then environment variable.
@@ -23,7 +28,10 @@ export function getShopifyDomain(): string | undefined {
     // If embedded, try to read from parent window
     if (window.parent !== window) {
       try {
-        return normalizeShopifyDomain(window.parent.location.origin);
+        const parentHost = normalizeShopifyDomain(window.parent.location.origin);
+        if (!isLocalHost(parentHost)) {
+          return parentHost;
+        }
       } catch {
         // Cross-origin; fall back below
       }

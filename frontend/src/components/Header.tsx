@@ -1,10 +1,8 @@
 'use client';
 
-import Image from 'next/image';
 import { useTranslation } from 'react-i18next';
 import { Sparkles, Heart } from 'lucide-react';
 import CartIcon from './CartIcon';
-import LogoWhite from '../app/RGB_Logo_White.png';
 
 export default function Header() {
   const { t } = useTranslation('common');
@@ -13,7 +11,7 @@ export default function Header() {
       <div className="max-w-7xl mx-auto px-4 py-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+            <img src="/shiseido_logo.png" alt="Shiseido" className="h-12 w-auto object-contain" />
             <span className="sr-only">Dermaself</span>
           </div>
           

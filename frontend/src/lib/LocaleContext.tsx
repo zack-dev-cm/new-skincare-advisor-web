@@ -19,7 +19,7 @@ interface LocaleProviderProps {
 }
 
 export function LocaleProvider({ children }: LocaleProviderProps) {
-  const [locale, setLocale] = useState<Locale>('it');
+  const [locale, setLocale] = useState<Locale>('en');
   const [currency, setCurrency] = useState<string>('EUR');
   const [market, setMarket] = useState<string | null>(null);
   const [country, setCountry] = useState<string | null>(null);
@@ -40,12 +40,9 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
       setLocale(localeParam);
       i18n.changeLanguage(localeParam);
     } else {
-      // No URL param: use i18next's detected language (querystring, localStorage, navigator)
-      const detected = i18n.language || i18n.resolvedLanguage;
-      const normalized = (typeof detected === 'string' ? detected.split('-')[0] : 'it') as Locale;
-      const resolved = supported.includes(normalized) ? normalized : 'it';
-      setLocale(resolved);
-      i18n.changeLanguage(resolved);
+      // Force English by default for local demo/landing unless URL explicitly asks another locale.
+      setLocale('en');
+      i18n.changeLanguage('en');
     }
 
     setCurrency(currencyParam || 'EUR');
@@ -53,7 +50,7 @@ export function LocaleProvider({ children }: LocaleProviderProps) {
     setCountry(countryParam);
 
     console.log('🌍 Locale initialized:', {
-      locale: localeParam || i18n.language || 'it',
+      locale: localeParam || i18n.language || 'en',
       currency: currencyParam || 'EUR',
       market: marketParam,
       country: countryParam,

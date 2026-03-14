@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { useTranslation } from 'react-i18next'
 import DesktopPhotoReceiver from './DesktopPhotoReceiver'
 
-import { Camera as MPCamera } from '@mediapipe/camera_utils'
+import * as MPCameraModule from '@mediapipe/camera_utils'
 import {
   loadFaceMeshWithFallback,
   type FaceMeshInstance,
@@ -48,6 +48,56 @@ interface Props {
   onBack: () => void
 }
 
+interface MediaPipeCameraOptions {
+  onFrame: () => Promise<void> | void
+  width?: number
+  height?: number
+}
+
+interface MediaPipeCameraInstance {
+  start: () => Promise<void>
+  stop: () => void
+}
+
+type MediaPipeCameraCtor = new (
+  videoElement: HTMLVideoElement,
+  options: MediaPipeCameraOptions,
+) => MediaPipeCameraInstance
+
+declare global {
+  interface Window {
+    Camera?: MediaPipeCameraCtor
+  }
+}
+
+function resolveMediaPipeCameraCtor(): MediaPipeCameraCtor {
+  if (typeof window !== 'undefined' && typeof window.Camera === 'function') {
+    return window.Camera
+  }
+
+  const moduleCandidate = MPCameraModule as unknown as {
+    Camera?: MediaPipeCameraCtor
+    default?: MediaPipeCameraCtor | { Camera?: MediaPipeCameraCtor }
+  }
+
+  if (typeof moduleCandidate.Camera === 'function') {
+    return moduleCandidate.Camera
+  }
+
+  if (typeof moduleCandidate.default === 'function') {
+    return moduleCandidate.default
+  }
+
+  if (
+    moduleCandidate.default &&
+    typeof (moduleCandidate.default as { Camera?: MediaPipeCameraCtor }).Camera === 'function'
+  ) {
+    return (moduleCandidate.default as { Camera: MediaPipeCameraCtor }).Camera
+  }
+
+  throw new Error('MediaPipe camera_utils Camera constructor is unavailable')
+}
+
 const isMobileDevice = () => {
   if (typeof window === 'undefined') return false
   return (
@@ -64,7 +114,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
 
   const faceMeshRef = useRef<FaceMeshInstance | null>(null)
   const faceResultsRef = useRef<FaceMeshResults | null>(null)
-  const cameraRef = useRef<MPCamera | null>(null)
+  const cameraRef = useRef<MediaPipeCameraInstance | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
 
   const frameReqRef = useRef<number | null>(null)
@@ -100,6 +150,12 @@ export default function CameraCaptureStep({ onNext }: Props) {
   const [isResolutionAdjusting, setIsResolutionAdjusting] = useState(false)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const brightnessRef = useRef(0)
+  const zoomStatusRef = useRef<'too-close' | 'too-far' | 'perfect'>('too-far')
+  const faceCenteredRef = useRef(false)
+  const faceDetectedRef = useRef(false)
+  const perfectAlignmentStateRef = useRef(false)
+  const stableAlignmentStateRef = useRef(false)
 
   // Detect mobile vs desktop & desktop-gate QR mode
   useEffect(() => {
@@ -117,6 +173,7 @@ export default function CameraCaptureStep({ onNext }: Props) {
     if (countdownTimerRef.current) clearInterval(countdownTimerRef.current)
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current)
     if (stabilizedTimerRef.current) clearTimeout(stabilizedTimerRef.current)
+    stabilizedTimerRef.current = null
 
     if (cameraRef.current) cameraRef.current.stop()
     if (videoRef.current?.srcObject) {
@@ -269,7 +326,8 @@ export default function CameraCaptureStep({ onNext }: Props) {
       const finalVideoWidth = videoRef.current.videoWidth || videoWidth
       const finalVideoHeight = videoRef.current.videoHeight || videoHeight
 
-      const cam = new MPCamera(videoRef.current, {
+      const CameraCtor = resolveMediaPipeCameraCtor()
+      const cam = new CameraCtor(videoRef.current, {
         onFrame: async () => {
           if (videoRef.current && faceMeshRef.current) {
             await faceMeshRef.current.send({ image: videoRef.current })
@@ -323,17 +381,37 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const ch = canvas.height
     ctx.clearRect(0, 0, cw, ch)
 
-    setBrightness(calculateBrightness(video))
+    const newBrightness = calculateBrightness(video)
+    if (brightnessRef.current !== newBrightness) {
+      brightnessRef.current = newBrightness
+      setBrightness(newBrightness)
+    }
 
     if (!results || !results.multiFaceLandmarks?.length) {
-      setFaceDetected(false)
-      setPerfectAlignment(false)
-      setStableAlignment(false)
+      if (faceDetectedRef.current) {
+        faceDetectedRef.current = false
+        setFaceDetected(false)
+      }
+      if (perfectAlignmentStateRef.current) {
+        perfectAlignmentStateRef.current = false
+        setPerfectAlignment(false)
+      }
+      if (stableAlignmentStateRef.current) {
+        stableAlignmentStateRef.current = false
+        setStableAlignment(false)
+      }
+      if (stabilizedTimerRef.current) {
+        clearTimeout(stabilizedTimerRef.current)
+        stabilizedTimerRef.current = null
+      }
       perfectAlignmentRef.current = false
       return
     }
 
-    setFaceDetected(true)
+    if (!faceDetectedRef.current) {
+      faceDetectedRef.current = true
+      setFaceDetected(true)
+    }
 
     const windowSize = { width: cw, height: ch }
     const { videoRect } = getFaceFrameRect(
@@ -355,12 +433,18 @@ export default function CameraCaptureStep({ onNext }: Props) {
     }))
 
     const span = calculateFaceSpanNormalized(flipped)
-    const newZoom = determineZoomStatus(span, zoomThresholds, zoomStatus)
-    setZoomStatus(newZoom)
+    const newZoom = determineZoomStatus(span, zoomThresholds, zoomStatusRef.current)
+    if (zoomStatusRef.current !== newZoom) {
+      zoomStatusRef.current = newZoom
+      setZoomStatus(newZoom)
+    }
 
     const visible = isFaceVisible(flipped, vw, vh)
     const centered = isFaceInsideFrame(flipped, vw, vh, videoRect)
-    setFaceCentered(centered)
+    if (faceCenteredRef.current !== centered) {
+      faceCenteredRef.current = centered
+      setFaceCentered(centered)
+    }
 
     // DISPLAY (canvas) transform
     const scale = Math.max(cw / vw, ch / vh)
@@ -388,17 +472,29 @@ export default function CameraCaptureStep({ onNext }: Props) {
     const tolerance = Math.min(videoRect.width * scale, videoRect.height * scale) * 0.08
 
     const aligned = visible && centered && newZoom === 'perfect' && Math.sqrt(dx * dx + dy * dy) < tolerance
-    setPerfectAlignment(aligned)
+    if (perfectAlignmentStateRef.current !== aligned) {
+      perfectAlignmentStateRef.current = aligned
+      setPerfectAlignment(aligned)
+    }
     perfectAlignmentRef.current = aligned
 
     if (aligned) {
-      if (stabilizedTimerRef.current) 
-        clearTimeout(stabilizedTimerRef.current)
-      stabilizedTimerRef.current = setTimeout(() => {
-        setStableAlignment(true)
-      }, 600)
+      if (!stableAlignmentStateRef.current && !stabilizedTimerRef.current) {
+        stabilizedTimerRef.current = setTimeout(() => {
+          stableAlignmentStateRef.current = true
+          setStableAlignment(true)
+          stabilizedTimerRef.current = null
+        }, 600)
+      }
     } else {
-      setStableAlignment(false)
+      if (stabilizedTimerRef.current) {
+        clearTimeout(stabilizedTimerRef.current)
+        stabilizedTimerRef.current = null
+      }
+      if (stableAlignmentStateRef.current) {
+        stableAlignmentStateRef.current = false
+        setStableAlignment(false)
+      }
     }
 
     if (!aligned && centered && newZoom === 'perfect' && visible) {
@@ -670,13 +766,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
               setShowDesktopGate(false)
               setCameraState('live')
             }}
-            className="bg-white/20 px-4 py-3 rounded-lg text-white"
+            className="ds-sh-btn-secondary px-4 py-3"
           >
             {t('camera:buttons.continue_desktop')}
           </button>
           <button
             onClick={() => fileInputRef.current?.click()}
-            className="bg-white/20 px-4 py-3 rounded-lg text-white"
+            className="ds-sh-btn-secondary px-4 py-3"
           >
             {t('camera:buttons.upload_device')}
           </button>
@@ -751,21 +847,21 @@ export default function CameraCaptureStep({ onNext }: Props) {
             <>
               <button
                 onClick={switchCamera}
-                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700 transition-colors"
+                className="ds-sh-icon-btn p-3 transition-colors"
               >
                 <SwitchCameraIcon className="w-6 h-6" />
               </button>
 
               <button
                 onClick={handleManualCapture}
-                className="p-4 sm:p-5 bg-primary-600 rounded-full shadow-lg"
+                className="ds-sh-btn-primary p-4 sm:p-5"
               >
                 <Camera className="text-white" size={28} />
               </button>
 
               <button
                 onClick={() => fileInputRef.current?.click()}
-                className="p-3 bg-gray-200 hover:bg-gray-300 rounded-full text-gray-700 transition-colors"
+                className="ds-sh-icon-btn p-3 transition-colors"
               >
                 <Upload className="w-6 h-6" />
               </button>
@@ -774,13 +870,13 @@ export default function CameraCaptureStep({ onNext }: Props) {
             <>
               <button
                 onClick={retakePhoto}
-                className="px-6 py-3 bg-gray-300 rounded-lg flex items-center gap-3"
+                className="ds-sh-btn-secondary px-6 py-3 flex items-center gap-3"
               >
                 <Redo2 size={20} /> {t('camera:buttons.retake')}
               </button>
               <button
                 onClick={confirmPhoto}
-                className="px-6 py-3 bg-primary-600 text-white rounded-lg flex items-center gap-3"
+                className="ds-sh-btn-primary px-6 py-3 flex items-center gap-3"
               >
                 <CheckCircle2 size={20} /> {t('camera:buttons.send')}
               </button>

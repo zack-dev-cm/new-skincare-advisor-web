@@ -150,6 +150,7 @@ export default function SkinAnalysisImage({
   const containerRef = useRef<HTMLDivElement>(null);
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
+  const canvasSizeRef = useRef({ width: 0, height: 0 });
 
   // Transform to mimic object-contain
   const [drawTransform, setDrawTransform] = useState({
@@ -158,9 +159,16 @@ export default function SkinAnalysisImage({
     offsetX: 0,
     offsetY: 0,
   });
+  const drawTransformRef = useRef({
+    scaleX: 1,
+    scaleY: 1,
+    offsetX: 0,
+    offsetY: 0,
+  });
 
   // Keep for convenience; now it's uniform (scaleX === scaleY)
   const [scaleFactors, setScaleFactors] = useState({ x: 1, y: 1 });
+  const scaleFactorsRef = useRef({ x: 1, y: 1 });
 
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
@@ -342,14 +350,40 @@ export default function SkinAnalysisImage({
     const ctx = canvas.getContext('2d');
     if (ctx) ctx.scale(dpr, dpr);
 
-    setCanvasSize({ width: containerWidth, height: containerHeight });
-    setScaleFactors({ x: scale, y: scale });
-    setDrawTransform({
+    const nextCanvasSize = { width: containerWidth, height: containerHeight };
+    const nextScaleFactors = { x: scale, y: scale };
+    const nextDrawTransform = {
       scaleX: scale,
       scaleY: scale,
       offsetX,
       offsetY,
-    });
+    };
+
+    if (
+      canvasSizeRef.current.width !== nextCanvasSize.width ||
+      canvasSizeRef.current.height !== nextCanvasSize.height
+    ) {
+      canvasSizeRef.current = nextCanvasSize;
+      setCanvasSize(nextCanvasSize);
+    }
+
+    if (
+      scaleFactorsRef.current.x !== nextScaleFactors.x ||
+      scaleFactorsRef.current.y !== nextScaleFactors.y
+    ) {
+      scaleFactorsRef.current = nextScaleFactors;
+      setScaleFactors(nextScaleFactors);
+    }
+
+    if (
+      drawTransformRef.current.scaleX !== nextDrawTransform.scaleX ||
+      drawTransformRef.current.scaleY !== nextDrawTransform.scaleY ||
+      drawTransformRef.current.offsetX !== nextDrawTransform.offsetX ||
+      drawTransformRef.current.offsetY !== nextDrawTransform.offsetY
+    ) {
+      drawTransformRef.current = nextDrawTransform;
+      setDrawTransform(nextDrawTransform);
+    }
 
     // Debug log removed for production
     // console.log('Canvas/object-contain setup:', { ... });
@@ -361,7 +395,7 @@ export default function SkinAnalysisImage({
       setupCanvasTransform();
       setTimeout(() => redrawCanvas(), 100);
     }
-  }, [imageLoaded, setupCanvasTransform, redrawCanvas]);
+  }, [imageLoaded, setupCanvasTransform]);
 
   // Redraw on view / overlay toggle
   useEffect(() => {
@@ -644,15 +678,15 @@ export default function SkinAnalysisImage({
 
         {/* View Toggle Buttons */}
         <div className="flex justify-center mb-4 mt-8">
-          <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-primary-100">
+          <div className="ds-sh-tab-group flex space-x-2 p-1">
             {carouselImages.map((image, index) => (
               <button
                 key={index}
                 onClick={() => goToImage(index)}
-                className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors ${
+                className={`ds-sh-tab-btn px-4 py-2 text-sm font-semibold transition-colors ${
                   currentImageIndex === index
-                    ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow'
-                    : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'
+                    ? 'ds-sh-tab-btn-active'
+                    : 'ds-sh-tab-btn-idle'
                 }`}
               >
                 {image.label}
@@ -662,7 +696,7 @@ export default function SkinAnalysisImage({
         </div>
 
         {/* Legend / Info Bar */}
-        <div className="bg-white rounded-lg p-4 shadow-sm border">
+        <div className="ds-sh-surface-card p-4">
           <h3 className="text-sm font-medium text-gray-700 mb-3">
             {carouselImages[currentImageIndex].label}{t('image.legend_suffix')}
           </h3>
@@ -671,7 +705,7 @@ export default function SkinAnalysisImage({
             /* Pores view: single chip matching overlay annotation color */
             <div className="flex flex-wrap gap-2 justify-center">
               <div
-                className="px-3 py-1 rounded-full text-sm font-medium"
+                className="ds-sh-legend-chip px-3 py-1 text-sm font-medium"
                 style={{ backgroundColor: '#00FF00', color: '#000000' }}
               >
                 {t('image.pores_analysis')}
@@ -688,7 +722,7 @@ export default function SkinAnalysisImage({
                 return (
                   <div
                     key={className}
-                    className="px-3 py-1 rounded rounded-full text-sm font-medium transition-all hover:opacity-80"
+                    className="ds-sh-legend-chip px-3 py-1 text-sm font-medium transition-all hover:opacity-80"
                     style={{
                       backgroundColor: color,
                       color: textColor,

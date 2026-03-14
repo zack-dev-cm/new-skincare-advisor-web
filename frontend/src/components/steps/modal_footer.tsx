@@ -61,14 +61,14 @@ export default function ModalFooter({
         <div className="routine-btns w-full flex">
           <button
             onClick={() => onTabChange('results')}
-            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent'}
+            className={activeTab === 'results' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600 ds-sh-tab-btn ds-sh-tab-btn-active' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent ds-sh-tab-btn ds-sh-tab-btn-idle'}
           >
             <ResultsIcon className="opacity-90 shrink-0" />
             <p className="text-xs font-semibold">{t('modal_footer.results_tab')}</p>
           </button>
           <button
             onClick={() => onTabChange('routine')}
-            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent'}
+            className={activeTab === 'routine' ? 'w-full flex flex-col items-center justify-center text-primary-600 py-0.5 border-b-2 border-primary-600 ds-sh-tab-btn ds-sh-tab-btn-active' : 'w-full flex flex-col items-center justify-center text-muted-foreground py-0.5 border-b-2 border-transparent ds-sh-tab-btn ds-sh-tab-btn-idle'}
           >
             <RoutineIcon className="opacity-90 shrink-0" />
             <p className="text-xs font-semibold">{t('modal_footer.routine_tab')}</p>
@@ -80,7 +80,7 @@ export default function ModalFooter({
             {Array.from({ length: totalSteps }, (_, index) => (
               <div
                 key={index}
-                className={`w-3 h-3 rounded-full ${
+                className={`ds-sh-progress-dot ${
                   index < currentStep ? 'bg-primary-500' : 'bg-gray-300'
                 }`}
               />

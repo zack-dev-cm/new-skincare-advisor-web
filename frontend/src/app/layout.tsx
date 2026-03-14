@@ -8,6 +8,9 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'] });
 export const metadata: Metadata = {
   title: 'Dermaself - AI Skin Analysis',
   description: 'Advanced AI-powered skin analysis and personalized product recommendations',
+  icons: {
+    icon: 'https://www.shiseido.it/on/demandware.static/Sites-shiseido_global_it-Site/-/default/dw31ce404d/images/favicon.ico?frz-v=155',
+  },
   keywords: 'skin analysis, AI, skincare, beauty, dermatology, personalized recommendations',
   authors: [{ name: 'Dermaself Team' }],
   robots: 'index, follow',

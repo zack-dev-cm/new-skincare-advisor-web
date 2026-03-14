@@ -1,6 +1,522 @@
+/* Hide Next.js dev indicator/portal for screen recordings (dev only) */
+nextjs-portal {
+  display: none !important;
+}
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Shiseido-inspired homepage design system */
+@font-face {
+  font-family: 'GinzaRegular';
+  src: local('Arial');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GinzaMedium';
+  src: local('Arial Bold');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'GinzaBold';
+  src: local('Arial Bold');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  --sh-color-primary-red: rgb(200, 16, 46);
+  --sh-color-accent-red: rgb(203, 41, 63);
+  --sh-color-red-deep: rgb(137, 1, 23);
+  --sh-color-red-light: rgb(237, 58, 91);
+  --sh-color-red-medium: rgb(209, 15, 42);
+  --sh-color-black: rgb(0, 0, 0);
+  --sh-color-white: rgb(255, 255, 255);
+  --sh-color-grey-100: rgb(248, 248, 248);
+  --sh-color-grey-200: rgb(241, 241, 241);
+  --sh-color-grey-400: rgb(204, 204, 204);
+  --sh-color-grey-500: rgb(136, 136, 136);
+  --sh-color-grey-600: rgb(102, 102, 102);
+  --sh-color-grey-850: rgb(38, 38, 38);
+  --sh-color-overlay-dark: rgba(0, 0, 0, 0.5);
+  --sh-color-badge-bg: rgba(238, 238, 238, 0.5);
+  --sh-color-badge-border: rgba(0, 0, 0, 0.05);
+  --sh-space-2: 8px;
+  --sh-space-3: 10px;
+  --sh-space-4: 12px;
+  --sh-space-5: 14px;
+  --sh-space-6: 16px;
+  --sh-space-8: 24px;
+  --sh-space-9: 28px;
+  --sh-space-10: 40px;
+  --sh-max-width-page: 1440px;
+  --sh-max-width-nav: 995px;
+  --sh-width-logo: 130px;
+  --sh-width-search: 1000px;
+}
+
+.sh-home {
+  font-family: 'GinzaRegular', Arial, Helvetica, sans-serif;
+  background: var(--sh-color-white);
+  color: var(--sh-color-black);
+}
+
+.sh-top-banner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 var(--sh-space-3);
+  background: linear-gradient(-45deg, #000, #d10f2a, #ed3a5b, #890117);
+  background-size: 400% 400%;
+  animation: gradient-shift 6s ease infinite;
+  color: var(--sh-color-grey-200);
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.sh-header {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  background: var(--sh-color-black);
+  color: var(--sh-color-white);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.sh-header-inner {
+  max-width: var(--sh-max-width-page);
+  margin: 0 auto;
+  padding: 5.5px 20px 2px 20px;
+}
+
+.sh-header-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sh-space-6);
+}
+
+.sh-logo {
+  width: var(--sh-width-logo);
+  font-family: 'GinzaBold', Arial, sans-serif;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+.sh-search {
+  width: 100%;
+  max-width: var(--sh-width-search);
+  height: 36px;
+  border-radius: 4px;
+  background: var(--sh-color-white);
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+}
+
+.sh-search input {
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 16px;
+  letter-spacing: 0.3px;
+  color: var(--sh-color-black);
+}
+
+.sh-nav {
+  max-width: var(--sh-max-width-nav);
+  margin: 11px auto 24px auto;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  justify-content: center;
+}
+
+.sh-nav-link {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: -0.1px;
+  text-transform: uppercase;
+  color: var(--sh-color-white);
+}
+
+.sh-nav-link-red {
+  color: var(--sh-color-primary-red);
+}
+
+.sh-section-title {
+  font-family: 'GinzaBold', Arial, sans-serif;
+  font-size: 30px;
+  font-weight: 500;
+  letter-spacing: 1.3px;
+  text-align: center;
+}
+
+.sh-hero-title {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(26px, 3vw, 28px);
+  font-weight: 700;
+  letter-spacing: 1.05px;
+  text-transform: uppercase;
+}
+
+.sh-hero-body {
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: clamp(16px, 2vw, 18px);
+  letter-spacing: -0.1px;
+}
+
+.sh-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 300px;
+  min-height: 52px;
+  padding: 16px 28px;
+  border: 1px solid var(--sh-color-black);
+  border-radius: 0;
+  background: var(--sh-color-black);
+  color: var(--sh-color-white);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.57px;
+  text-transform: uppercase;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.sh-btn-primary:hover {
+  background: var(--sh-color-white);
+  color: var(--sh-color-black);
+}
+
+.sh-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 40px;
+  border: 1px solid var(--sh-color-white);
+  border-radius: 0;
+  background: var(--sh-color-white);
+  color: var(--sh-color-black);
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 14px;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+}
+
+.sh-product-tile {
+  background: var(--sh-color-grey-100);
+  border-radius: 0;
+}
+
+.sh-product-name {
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 15px;
+  line-height: 18px;
+  color: var(--sh-color-grey-850);
+  text-transform: capitalize;
+}
+
+.sh-badge {
+  display: inline-block;
+  background: var(--sh-color-badge-bg);
+  border: 1px solid var(--sh-color-badge-border);
+  color: var(--sh-color-grey-600);
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 8px 8px 6px 8px;
+}
+
+.sh-price {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.sh-size,
+.sh-variant {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  color: var(--sh-color-grey-500);
+}
+
+.sh-size {
+  font-size: 12px;
+}
+
+.sh-variant {
+  font-size: 13px;
+}
+
+.sh-rating {
+  color: var(--sh-color-primary-red);
+  letter-spacing: 2px;
+}
+
+.sh-footer {
+  background: var(--sh-color-black);
+  color: var(--sh-color-white);
+}
+
+.sh-footer-title {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 28px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+}
+
+.sh-footer-link {
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 12px;
+}
+
+.sh-newsletter-input {
+  width: 100%;
+  min-height: 50px;
+  background: var(--sh-color-black);
+  color: var(--sh-color-white);
+  border: 1px solid var(--sh-color-white);
+  padding: 10px;
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 14px;
+}
+
+.homepage-bestseller-carousel {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+
+.homepage-bestseller-carousel .slick-btn-wrapper {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding-top: 120px;
+}
+
+.homepage-bestseller-carousel .slick-prev,
+.homepage-bestseller-carousel .slick-next {
+  width: 32px;
+  height: 32px;
+  border: 1px solid #000;
+  background: #fff;
+  color: #000;
+}
+
+.homepage-bestseller-carousel .prev::before {
+  content: '‹';
+  font-size: 18px;
+}
+
+.homepage-bestseller-carousel .next::before {
+  content: '›';
+  font-size: 18px;
+}
+
+.homepage-bestseller-carousel .slick-list {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: thin;
+}
+
+.homepage-bestseller-carousel .slick-track {
+  display: flex;
+  gap: 20px;
+  min-width: max-content;
+  padding-bottom: 8px;
+}
+
+.homepage-bestseller-carousel .slick-slide {
+  width: 200px;
+  flex: 0 0 200px;
+}
+
+.homepage-bestseller-carousel .product-tile-outer {
+  width: 200px;
+  background: var(--sh-color-grey-100);
+}
+
+.homepage-bestseller-carousel .product-tile-inner {
+  padding: 0;
+}
+
+.homepage-bestseller-carousel .product-tile {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+}
+
+.homepage-bestseller-carousel .product-image.product-tile-plp {
+  position: relative;
+}
+
+.homepage-bestseller-carousel .badge-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 10px 10px 0;
+}
+
+.homepage-bestseller-carousel .badge-product {
+  margin: 0;
+}
+
+.homepage-bestseller-carousel .badge-product p {
+  margin: 0;
+}
+
+.homepage-bestseller-carousel .product-packshot-wrapper {
+  padding: 8px 10px 0;
+}
+
+.homepage-bestseller-carousel .thumb-link {
+  display: block;
+}
+
+.homepage-bestseller-carousel .thumb-image {
+  width: 100%;
+  height: 188px;
+  object-fit: cover;
+  background: #fff;
+}
+
+.homepage-bestseller-carousel .product-tile-info {
+  padding: 8px 16px 14px;
+}
+
+.homepage-bestseller-carousel .bv-rating-wrapper {
+  color: var(--sh-color-primary-red);
+  font-size: 11px;
+  letter-spacing: 1px;
+  min-height: 16px;
+}
+
+.homepage-bestseller-carousel .product-name {
+  margin: 8px 0 0;
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 400;
+  line-height: 18px;
+  letter-spacing: -0.1px;
+  color: rgb(38, 38, 38);
+  text-transform: capitalize;
+}
+
+.homepage-bestseller-carousel .product-variants-wrapper {
+  margin-top: 8px;
+}
+
+.homepage-bestseller-carousel .variant-details {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: rgb(136, 136, 136);
+  letter-spacing: -0.1px;
+}
+
+.homepage-bestseller-carousel .shade-name {
+  display: inline;
+}
+
+.homepage-bestseller-carousel .product-pricing {
+  margin-top: 10px;
+}
+
+.homepage-bestseller-carousel .price-sales {
+  margin: 0;
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 15px;
+  font-weight: 500;
+  color: #000;
+}
+
+.homepage-bestseller-carousel .attribute.single-size .value span {
+  font-family: 'GinzaMedium', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(136, 136, 136);
+}
+
+.homepage-bestseller-carousel .ominibus-price-wrapper {
+  margin-top: 6px;
+}
+
+.homepage-bestseller-carousel .ominibus-minimum-list-price {
+  margin: 0;
+  font-size: 11px;
+  color: rgb(102, 102, 102);
+}
+
+.homepage-bestseller-carousel .ominibus-price-standard {
+  margin-left: 4px;
+}
+
+.homepage-bestseller-carousel .skin-description {
+  margin-top: 12px;
+}
+
+.homepage-bestseller-carousel .skin-type-title {
+  margin: 0 0 4px;
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  color: #000;
+}
+
+.homepage-bestseller-carousel .skin-type-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+}
+
+.homepage-bestseller-carousel .skin-type-item {
+  font-family: 'GinzaRegular', Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: rgb(84, 84, 84);
+}
+
+@keyframes gradient-shift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+@media (max-width: 1024px) {
+  .sh-search {
+    max-width: 100%;
+  }
+
+  .sh-btn-primary {
+    min-width: 220px;
+  }
+
+  .homepage-bestseller-carousel {
+    grid-template-columns: 1fr;
+  }
+
+  .homepage-bestseller-carousel .slick-btn-wrapper {
+    display: none;
+  }
+}
 
 /* Background: solid white (no images) */
 .bg-main,
@@ -1168,4 +1684,169 @@ body {
 .fit-pill-safe {
   background-color: #f5de0a;
   color: #431407;
+}
+
+/* Demo-fast Shiseido integration */
+.demo-fast-shiseido {
+  --radius: 0px;
+  --kiko-font-family: 'GinzaRegular', Arial, Helvetica, sans-serif;
+}
+
+.demo-fast-shiseido .derma-modal-root,
+.demo-fast-shiseido .derma-modal-root * {
+  font-family: var(--kiko-font-family);
+}
+
+.demo-fast-shiseido .modal-header-bar,
+.demo-fast-shiseido .modal-footer-bar {
+  background: #fff;
+  border-color: rgba(0, 0, 0, 0.16);
+}
+
+.demo-fast-shiseido .step-content-card {
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 0;
+  background: #fff;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: none;
+}
+
+.demo-fast-shiseido .ds-sh-icon-btn {
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+}
+
+.demo-fast-shiseido .ds-sh-icon-btn:hover {
+  background: #f6f6f6;
+}
+
+.demo-fast-shiseido .ds-sh-btn-primary {
+  min-height: 48px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #000;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.demo-fast-shiseido .ds-sh-btn-primary:hover {
+  background: #fff;
+  color: #000;
+}
+
+.demo-fast-shiseido .ds-sh-btn-primary:disabled {
+  border-color: #bdbdbd;
+  background: #d9d9d9;
+  color: #707070;
+}
+
+.demo-fast-shiseido .ds-sh-btn-secondary {
+  min-height: 48px;
+  border: 1px solid #000;
+  border-radius: 0;
+  background: #fff;
+  color: #000;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.demo-fast-shiseido .ds-sh-btn-secondary:hover {
+  background: #000;
+  color: #fff;
+}
+
+.demo-fast-shiseido .ds-sh-option-card {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.demo-fast-shiseido .ds-sh-option-card-active {
+  border-color: rgb(200, 16, 46);
+  box-shadow: inset 0 0 0 1px rgb(200, 16, 46);
+}
+
+.demo-fast-shiseido .ds-sh-option-card-idle:hover {
+  border-color: rgba(0, 0, 0, 0.38);
+}
+
+.demo-fast-shiseido .ds-sh-option-icon-wrap {
+  background: #f3f3f3;
+}
+
+.demo-fast-shiseido .ds-sh-surface-card {
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.demo-fast-shiseido .ds-sh-tab-group {
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0;
+  background: #fff;
+  box-shadow: none;
+}
+
+.demo-fast-shiseido .ds-sh-tab-btn {
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.demo-fast-shiseido .ds-sh-tab-btn-active {
+  background: #000;
+  color: #fff;
+}
+
+.demo-fast-shiseido .ds-sh-tab-btn-idle {
+  color: #222;
+}
+
+.demo-fast-shiseido .ds-sh-tab-btn-idle:hover {
+  background: #f5f5f5;
+}
+
+.demo-fast-shiseido .ds-sh-progress-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+
+.demo-fast-shiseido .ds-sh-legend-chip {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.demo-fast-shiseido .ds-sh-chart-row {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 0;
+  background: #f7f7f7;
+}
+
+.demo-fast-shiseido .ds-sh-status-chip {
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* Force demo SVG iconography to black (excluding brand logo) */
+.demo-fast-shiseido img[src$=".svg"]:not(.logo-violet),
+.demo-fast-shiseido img[src*=".svg?"]:not(.logo-violet),
+.demo-fast-shiseido .modal-header-bar img:not(.logo-violet),
+.demo-fast-shiseido .modal-footer-bar img:not(.logo-violet) {
+  filter: brightness(0) saturate(100%);
 }

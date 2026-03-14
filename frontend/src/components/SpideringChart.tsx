@@ -192,17 +192,17 @@ export default function SpideringChart({
   };
 
   return (
-    <div className="bg-white rounded-2xl shadow-lg p-4 sm:p-6">
-      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center">{t('chart.overview_title')}</h3>
+    <div className="ds-sh-surface-card p-4 sm:p-6">
+      <h3 className="text-lg sm:text-xl font-bold text-gray-800 mb-3 sm:mb-4 text-center uppercase tracking-[0.04em]">{t('chart.overview_title')}</h3>
       
       {/* Legend info - Above chart */}
-      <div className="mb-4 flex items-center justify-center gap-4 text-xs sm:text-sm text-gray-500">
+      <div className="mb-4 flex items-center justify-center gap-4 text-xs sm:text-sm text-gray-500 uppercase tracking-[0.04em]">
         <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 bg-purple-600"></div>
+          <div className="w-3 h-0.5 bg-black"></div>
           <span>{t('chart.your_skin')}</span>
         </div>
         <div className="flex items-center gap-2">
-          <div className="w-3 h-0.5 border-t-2 border-green-600 border-dashed"></div>
+          <div className="w-3 h-0.5 border-t-2 border-[#c8102e] border-dashed"></div>
           <span>{t('chart.reference_value')}</span>
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function SpideringChart({
           return (
             <motion.div
               key={index}
-              className="flex items-center justify-between p-3 rounded-lg border border-gray-100 bg-gray-50"
+              className="ds-sh-chart-row flex items-center justify-between p-3"
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ duration: 0.5, delay: 0.5 + index * 0.1 }}
@@ -354,7 +354,7 @@ export default function SpideringChart({
               {/* Left: Indicator + Label */}
               <div className="flex items-center space-x-3">
                 <div 
-                  className="w-3 h-3 rounded-full shrink-0"
+                  className="w-3 h-3 rounded-none shrink-0"
                   style={{ backgroundColor: metric.color }}
                 />
                 <span className="text-sm sm:text-base font-medium text-gray-700">
@@ -363,7 +363,7 @@ export default function SpideringChart({
               </div>
               
               {/* Right: Status Badge */}
-              <div className={`inline-flex items-center px-3 py-1 rounded-full text-xs sm:text-sm font-medium ${
+              <div className={`ds-sh-status-chip inline-flex items-center px-3 py-1 text-xs sm:text-sm font-medium ${
                 isOk 
                   ? 'bg-green-100 text-green-700' 
                   : 'bg-amber-100 text-amber-700'

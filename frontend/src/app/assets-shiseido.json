@@ -1,0 +1,41 @@
+{
+  "source": "https://www.shiseido.it/it/it/",
+  "generatedAt": "2026-03-11",
+  "favicon": [
+    "https://www.shiseido.it/on/demandware.static/Sites-shiseido_global_it-Site/-/default/dw31ce404d/images/favicon.ico?frz-v=155"
+  ],
+  "stylesheets": [],
+  "scripts": [],
+  "fonts": [],
+  "images": {
+    "hero": [
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dwcccc4469/images/home/shiseido-fathers_day_30_men_gwp-hero-m-it.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dw6d0a09c6/images/home/shiseido-kit_vpn_with_109-hero_banner-m-it.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dw47cd9539/images/home/260305-shiseido_ultimune_power_infusing_oil-hero_banner-mobile.jpg?frz-v=155"
+    ],
+    "categories": [
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dwdb4b502b/images/highlights/shiseido-hp-daycream.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dw4d3c3a4f/images/highlights/shiseido-hp-serums.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dwfd1120ac/images/shiseido-highlights/shiseido-hp-iconic-foundation.jpg?frz-v=155"
+    ],
+    "services": [
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dwcc3c2f1a/images/shiseido-highlights/shiseido_moisturiser_finder.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dw70653d3e/images/shiseido-highlights/shiseido_eyecare_finder.jpg?frz-v=155",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-shiseido_global_it-Library/default/dw37343f61/images/shiseido-highlights/shiseido_foundation_finder_v2.jpg?frz-v=155"
+    ],
+    "featuredProducts": [
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw42814d23/images/pdp-images/SS25/729238218369_BOP/BOP_Microneedle_main.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw3e82ffd1/images/pdp-images/1_Resizing_Project/768614215493_1.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dwbce8285a/images/pdp-images/1_Resizing_Project/SS_Radiant/729238217003_1.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw5f24c977/images/pdp-images/1_Resizing_Project/UV_Protective/730852213142_1BIS.jpg"
+    ],
+    "deals": [
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw634f0ae4/images/pdp-images/AW23/Ultimune%20men/Serum_men_ULTIMUNE_Power_Infusing_Concentrate_729238171534A.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw1b7e4a11/images/products/14775/14775_S_01.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw2c9ecf57/images/pdp-images/BOP-skin-filler-set/3423222136079-BOP-skin-filler-set-packshot-1.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw01cb3f85/images/pdp-images/20SS/Tanning%20Compact/Natural.jpg",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw63c46a42/images/pdp-images/23SS/Ginza/GINZA%20EDPI%20SS23%20-%2030ml%20without%20shadow_RGB.png",
+      "https://www.shiseido.it/on/demandware.static/-/Sites-itemmaster_shiseido_emea/default/dw98fb3b08/images/pdp-images/1_Resizing_Project/730852164055_S_SMU_ShimmerGelGloss_KurumiBeige03_1.jpg"
+    ]
+  }
+}

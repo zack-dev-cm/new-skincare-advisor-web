@@ -5,6 +5,7 @@ import { AppConfigProvider } from '@/lib/AppConfigContext';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 import { startBackgroundLoading } from '@/lib/backgroundLoader';
 import { AppConfig } from '@/types/app-config';
+import { SHISEIDO_DEMO_THEME } from '@/lib/widget-theme';
 
 /**
  * DEMO FAST PAGE
@@ -26,7 +27,7 @@ const DEMO_CONFIG: AppConfig = {
   enableShopifyIntegration: false,
   skipOnboarding: false,
   defaultUserData: {
-    skin_type: 'Normale',
+    skin_type: 'normal',
     ageRange: '26 - 35',
     gender: 'female',
     budget_level: 'High',
@@ -36,27 +37,33 @@ const DEMO_CONFIG: AppConfig = {
 
 export default function DemoFastPage() {
   const [showModal, setShowModal] = useState(true);
+  const [isInIframe, setIsInIframe] = useState(false);
 
   // Start background loading for face detection and images
   useEffect(() => {
+    setIsInIframe(window.parent !== window);
     startBackgroundLoading();
     console.log('🚀 Demo Fast: Background loading started, modal opened immediately');
   }, []);
 
   const handleCloseModal = () => {
     setShowModal(false);
+    if (window.parent !== window) {
+      window.parent.postMessage({ type: 'DEMO_FAST_CLOSED' }, '*');
+    }
     console.log('Demo modal closed');
   };
 
   return (
     <AppConfigProvider config={DEMO_CONFIG}>
-      <div className="w-full h-screen bg-black/20 flex items-center justify-center p-0 md:p-4">
+      <div className={`demo-fast-shiseido w-full h-screen ${isInIframe ? 'bg-white' : 'bg-black/20'} flex items-center justify-center p-0 md:p-4`}>
         <SkinAnalysisModal 
           isOpen={showModal} 
           onClose={handleCloseModal} 
-          embedded={false}
+          embedded={isInIframe}
           fastMode={true}
           initialStep="gender"
+          themeConfig={SHISEIDO_DEMO_THEME}
         />
       </div>
     </AppConfigProvider>

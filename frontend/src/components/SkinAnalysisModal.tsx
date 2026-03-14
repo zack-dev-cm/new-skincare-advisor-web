@@ -27,8 +27,8 @@ import { applyThemeConfig, type WidgetThemeConfig } from '@/lib/widget-theme';
 
 import dynamic from 'next/dynamic';
 
-// Brand logo (violet SVG)
-const LOGO_VIOLET = '/RGM_Logo_Violet.svg';
+// Default brand logo (Shiseido asset served by local reference-image API)
+const LOGO_VIOLET = '/shiseido_logo.png';
 
 const CameraCaptureStep = dynamic(() => import('./steps/camera_capture_step'), {
   loading: () => <ImagePreloader mode="initial" onComplete={() => {}}><div></div></ImagePreloader>,
@@ -115,8 +115,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
       case '18-24': return '18 - 25';
       case '25-34': return '26 - 35';
       case '35-44': return '36 - 45';
-      case '45-54': return 'Più di 45';
-      case '55+': return 'Più di 45';
+      case '45-54': return 'Over 45';
+      case '55+': return 'Over 45';
       default: return '26 - 35';
     }
   };
@@ -133,7 +133,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
 
   // Prevent body scrolling when modal is open
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !embedded) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
@@ -142,7 +142,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
     return () => {
       document.body.style.overflow = 'unset';
     };
-  }, [isOpen]);
+  }, [isOpen, embedded]);
 
   // State management
   const [currentStep, setCurrentStep] = useState<Step>('onboarding');
@@ -353,15 +353,16 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   if (!isOpen) return null;
 
   return (
-    <div className="derma-modal-root fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={appConfig.skipOnboarding ? undefined : handleClose}
-      />
+    <div className={embedded ? 'derma-modal-root relative h-full w-full' : 'derma-modal-root fixed inset-0 z-50 flex items-center justify-center'}>
+      {!embedded ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={appConfig.skipOnboarding ? undefined : handleClose}
+        />
+      ) : null}
 
       {/* Modal Container */}
       <motion.div
@@ -370,7 +371,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.2 }}
-        className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]"
+        className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh] md:border md:border-black/15"
       >
         {/* Fixed Header inside Modal - Sticky on all screen sizes */}
         <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
@@ -379,7 +380,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
               <button
                 onClick={handleBack}
-                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
+                className="ds-sh-icon-btn w-8 h-8 flex items-center justify-center transition-colors"
                 aria-label={t('common:buttons.go_back')}
                 title={t('common:buttons.go_back')}
               >
@@ -395,8 +396,8 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             <div className={`${currentStep === 'onboarding' || appConfig.skipOnboarding ? 'pl-0' : ''}`}>
               <img
                 src={themeConfig?.logoUrl || LOGO_VIOLET}
-                alt="Dermaself"
-                className="inline-block h-5 w-auto max-h-5 logo-violet"
+                alt="Shiseido"
+                className="inline-block h-10 w-auto max-h-10 logo-violet object-contain"
               />
             </div>
           </div>
@@ -406,7 +407,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
             {!appConfig.skipOnboarding && (
               <button
                 onClick={handleClose}
-                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
+                className="ds-sh-icon-btn w-8 h-8 flex items-center justify-center transition-colors"
                 aria-label={t('common:buttons.close_modal_aria')}
                 title={t('common:buttons.close_modal_aria')}
               >

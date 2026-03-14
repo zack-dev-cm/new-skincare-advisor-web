@@ -34,7 +34,7 @@ i18n
         photo_instructions: translations.en.photo_instructions,
       },
     },
-    fallbackLng: 'it',
+    fallbackLng: 'en',
     supportedLngs: ['it', 'es', 'en'],
     
     // Namespace configuration

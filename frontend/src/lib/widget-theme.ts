@@ -48,6 +48,17 @@ export const THEME_DEFAULTS: Required<WidgetThemeConfig> = {
   logoUrl: '',
 };
 
+export const SHISEIDO_DEMO_THEME: WidgetThemeConfig = {
+  primaryColor: '#c8102e',
+  backgroundColor: '#ffffff',
+  textColor: '#000000',
+  mutedTextColor: '#666666',
+  borderColor: '#e5e5e5',
+  fontFamily: "'GinzaRegular', Arial, Helvetica, sans-serif",
+  borderRadius: '0px',
+  logoUrl: '/shiseido_logo.png',
+};
+
 // ---------------------------------------------------------------------------
 // Colour helpers
 // ---------------------------------------------------------------------------

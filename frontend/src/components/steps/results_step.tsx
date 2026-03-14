@@ -487,10 +487,10 @@ export default function ResultsStep({
           <div className="bg-white min-h-full p-6">
             {/* Category Selector */}
             <div className="mb-4 sticky top-0 z-30 bg-transparent py-2 flex justify-center">
-                      <div className="flex space-x-2 bg-white rounded-lg p-1 shadow-sm border border-primary-100">
+                      <div className="ds-sh-tab-group flex space-x-2 p-1">
                 {/* Skincare Morning */}
                 <button
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_morning' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
+                  className={`ds-sh-tab-btn px-3 py-2 text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_morning' ? 'ds-sh-tab-btn-active' : 'ds-sh-tab-btn-idle'}`}
                   onClick={() => setSelectedCategory('skincare_morning')}
                   title={t('analysis:results_labels.skincare_morning')}
                 >
@@ -499,7 +499,7 @@ export default function ResultsStep({
                 </button>
                 {/* Skincare Evening */}
                 <button
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_evening' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
+                  className={`ds-sh-tab-btn px-3 py-2 text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_evening' ? 'ds-sh-tab-btn-active' : 'ds-sh-tab-btn-idle'}`}
                   onClick={() => setSelectedCategory('skincare_evening')}
                   title={t('analysis:results_labels.skincare_evening')}
                 >
@@ -508,7 +508,7 @@ export default function ResultsStep({
                 </button>
                 {/* Skincare Weekly */}
                 <button
-                  className={`px-3 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_weekly' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
+                  className={`ds-sh-tab-btn px-3 py-2 text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'skincare_weekly' ? 'ds-sh-tab-btn-active' : 'ds-sh-tab-btn-idle'}`}
                   onClick={() => setSelectedCategory('skincare_weekly')}
                   title={t('analysis:results_labels.skincare_weekly')}
                 >
@@ -517,7 +517,7 @@ export default function ResultsStep({
                 </button>
                 {/* Makeup */}
                 <button
-                  className={`px-4 py-2 rounded-md text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'makeup' ? 'bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow' : 'text-gray-700 hover:bg-primary-50 hover:text-primary-700'}`}
+                  className={`ds-sh-tab-btn px-4 py-2 text-sm font-semibold transition-colors inline-flex items-center gap-1 ${selectedCategory === 'makeup' ? 'ds-sh-tab-btn-active' : 'ds-sh-tab-btn-idle'}`}
                   onClick={() => setSelectedCategory('makeup')}
                 >
                   <Palette className="w-4 h-4" />
@@ -530,7 +530,7 @@ export default function ResultsStep({
             {isLoadingProducts ? (
               <div className="space-y-6">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className="bg-white rounded-2xl shadow-lg border border-primary-100 p-6">
+                  <div key={i} className="ds-sh-surface-card p-6">
                     <div className="animate-pulse">
                       <div className="h-8 bg-primary-200 rounded mb-4"></div>
                       <div className="h-32 bg-primary-100 rounded"></div>
@@ -545,7 +545,7 @@ export default function ResultsStep({
                   routineSteps
                     .filter(step => (step.category || '').toLowerCase() === selectedCategory)
                     .map((step, index, arr) => (
-                      <div key={`${step.category}-${index + 1}`} className="bg-white rounded-2xl shadow-lg border border-primary-100 p-6">
+                      <div key={`${step.category}-${index + 1}`} className="ds-sh-surface-card p-6">
                       <div className="space-y-3">
                         <RoutineProductCard
                           product={step.mainProduct as any}
@@ -592,8 +592,8 @@ export default function ResultsStep({
                     </div>
                   ))
                 ) : (
-                  <div className="bg-white rounded-2xl shadow-lg border border-primary-100 p-8 text-center">
-                    <div className="w-16 h-16 bg-primary-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <div className="ds-sh-surface-card p-8 text-center">
+                    <div className="w-16 h-16 bg-primary-100 rounded-none flex items-center justify-center mx-auto mb-4">
                       <span className="text-2xl">💄</span>
                     </div>
                     <p className="text-gray-600 font-medium">{t('analysis:results_labels.no_routine_data')}</p>
@@ -610,7 +610,7 @@ export default function ResultsStep({
       <div className="p-6 bg-white border-t border-primary-100">
         <motion.button
           onClick={onRestart}
-          className="w-full py-4 px-6 bg-gradient-to-r from-primary-600 to-primary-500 text-white font-semibold rounded-2xl hover:from-primary-700 hover:to-primary-600 transition-all duration-300 flex items-center justify-center shadow-lg"
+          className="ds-sh-btn-primary w-full py-4 px-6 font-semibold transition-all duration-300 flex items-center justify-center"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >

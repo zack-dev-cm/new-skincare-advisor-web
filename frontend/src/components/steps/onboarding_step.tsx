@@ -52,7 +52,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
               type="checkbox"
               checked={consentGiven}
               onChange={(e) => setConsentGiven(e.target.checked)}
-              className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+              className="mt-1 w-4 h-4 text-primary-600 border-gray-300 rounded-none focus:ring-primary-500"
             />
             <span className="text-sm text-gray-700">
               {t('steps:onboarding.consent_text')}
@@ -68,10 +68,10 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
             }
           }}
           disabled={!consentGiven}
-            className={`py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto ${
+            className={`ds-sh-btn-primary py-3 px-8 transition-colors duration-200 w-full md:w-auto mx-auto ${
             consentGiven 
-              ? 'bg-primary-600 hover:bg-primary-700 text-white' 
-              : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+              ? '' 
+              : 'cursor-not-allowed'
           }`}
           whileHover={consentGiven ? { scale: 1.02 } : {}}
           whileTap={consentGiven ? { scale: 0.98 } : {}}
@@ -81,7 +81,7 @@ export default function OnboardingStep({ onNext, onClose }: OnboardingStepProps)
         {/* Fake login button */}
         <motion.button
           onClick={() => { /* fake button - no action */ }}
-          className="mt-3 py-3 px-8 rounded-lg transition-colors duration-200 w-full md:w-auto mx-auto bg-primary-200 hover:bg-primary-300 text-gray-900 flex items-center justify-center gap-2"
+          className="ds-sh-btn-secondary mt-3 py-3 px-8 transition-colors duration-200 w-full md:w-auto mx-auto flex items-center justify-center gap-2"
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
         >
