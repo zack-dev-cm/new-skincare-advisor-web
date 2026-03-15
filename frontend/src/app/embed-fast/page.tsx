@@ -248,6 +248,7 @@ export default function FastEmbedPage() {
             onClose={handleCloseModal}
             storeData={storeData}
             translations={quizTranslations}
+            logoUrl={themeConfig?.logoUrl}
           />
         </div>
       </div>
