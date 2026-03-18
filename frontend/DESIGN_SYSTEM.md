@@ -125,7 +125,7 @@ All shadows use the brand violet `#7547F2` (`hsl(256 87% 55%)`) with reduced opa
 |---|---|
 | `shadow-card` | `0 1px 3px 0 hsl(256 87% 55% / 0.1), 0 1px 2px -1px hsl(256 87% 55% / 0.1)` |
 | `shadow-card-hover` | `0 10px 25px -3px hsl(256 87% 55% / 0.15), 0 4px 6px -2px hsl(256 87% 55% / 0.1)` |
-| `shadow-bottom-nav` | `0 -4px 20px -2px hsl(256 87% 55% / 0.1), 0 -1px 0 0 hsl(0 0% 90% / 0.5)` |
+| `shadow-bottom-v` | `0 -4px 20px -2px hsl(256 87% 55% / 0.1), 0 -1px 0 0 hsl(0 0% 90% / 0.5)` |
 
 ### CSS Shadow Variables (`--dermaself-shadow-*`)
 
