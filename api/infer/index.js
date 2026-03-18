@@ -188,8 +188,14 @@ const wrinklesBreaker = cache.createCircuitBreaker(callWrinklesAPI, {
 });
 
 // Circuit breaker per Pores API (Cloud Run)
+// Keep this independent from legacy PORES_API_TIMEOUT env values that may still
+// be set to short budgets (e.g. 55000ms) on older deployments.
+const poresBreakerTimeoutMs = Math.max(
+  parseInt(process.env.PORES_BREAKER_TIMEOUT_MS || '', 10) || config.pores.timeout || 300000,
+  180000
+);
 const poresBreaker = cache.createCircuitBreaker(callPoresAPI, {
-  timeout: config.pores.timeout,
+  timeout: poresBreakerTimeoutMs,
   errorThresholdPercentage: 50,
   resetTimeout: 30000,
   name: 'PoresAPI',
@@ -1147,11 +1153,23 @@ async function callPoresAPI(base64Image) {
 
   const startTime = Date.now();
   const imageBuffer = Buffer.from(base64Image, 'base64');
+  const progressPollTimeoutMs = parseInt(process.env.PORES_PROGRESS_POLL_TIMEOUT_MS || '15000', 10);
+  const resultsFetchTimeoutMs = parseInt(process.env.PORES_RESULTS_TIMEOUT_MS || '20000', 10);
+  const cloudRunTask = process.env.PORES_API_CLOUDRUN_TASK || 'pores+wrinkles';
+
+  logger.info('Pores API runtime config', {
+    cloudRunTask,
+    progressPollTimeoutMs,
+    resultsFetchTimeoutMs,
+    breakerTimeoutMs: poresBreakerTimeoutMs
+  });
 
   // Build multipart form using Node.js 20 native FormData + Blob
   const form = new FormData();
   form.append('image', new Blob([imageBuffer], { type: 'image/jpeg' }), 'photo.jpg');
-  form.append('task', 'pores');
+  // Workaround for current Cloud Run stability issue on pores-only branch.
+  // We still return pores-only data to the frontend from the combined payload.
+  form.append('task', cloudRunTask);
   form.append('run_async', 'true');
   form.append('face_focus', 'true');
   form.append('remove_background', 'true');
@@ -1169,12 +1187,35 @@ async function callPoresAPI(base64Image) {
   // Azure Function hard limit is 600s (10 min) — all three are now aligned.
   const deadline = Date.now() + 270000;
   let lastStatus = 'pending';
+  let pollAttempt = 0;
+  let transientPollErrors = 0;
   while (Date.now() < deadline) {
     await new Promise(r => setTimeout(r, 1500));
-    const prog = await axios.get(`${apiUrl}${progress_url}`, { timeout: 5000 });
-    lastStatus = prog.data.status;
-    if (lastStatus === 'completed') break;
-    if (lastStatus === 'failed') throw new Error(`Pores analysis job failed: ${prog.data.detail || 'unknown reason'}`);
+    pollAttempt += 1;
+    try {
+      const prog = await axios.get(`${apiUrl}${progress_url}`, { timeout: progressPollTimeoutMs });
+      transientPollErrors = 0;
+      lastStatus = prog.data.status;
+      if (lastStatus === 'completed') break;
+      if (lastStatus === 'failed') throw new Error(`Pores analysis job failed: ${prog.data.detail || 'unknown reason'}`);
+    } catch (error) {
+      const isTimeout = error?.code === 'ECONNABORTED' || /timeout/i.test(error?.message || '');
+      const isRetryableStatus = [408, 429, 500, 502, 503, 504].includes(error?.response?.status);
+      const hasRemainingBudget = Date.now() + 1000 < deadline;
+
+      if ((isTimeout || isRetryableStatus) && hasRemainingBudget) {
+        transientPollErrors += 1;
+        logger.warn('Pores progress poll transient error; retrying', {
+          pollAttempt,
+          transientPollErrors,
+          timeoutMs: progressPollTimeoutMs,
+          status: error?.response?.status,
+          reason: error?.message
+        });
+        continue;
+      }
+      throw error;
+    }
   }
 
   if (lastStatus !== 'completed') {
@@ -1182,7 +1223,7 @@ async function callPoresAPI(base64Image) {
   }
 
   // Fetch final results
-  const resultsResp = await axios.get(`${apiUrl}${results_url}`, { timeout: 10000 });
+  const resultsResp = await axios.get(`${apiUrl}${results_url}`, { timeout: resultsFetchTimeoutMs });
   const r = resultsResp.data;
 
   const duration = Date.now() - startTime;
