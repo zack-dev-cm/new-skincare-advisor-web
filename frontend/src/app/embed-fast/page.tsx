@@ -49,6 +49,7 @@ export default function FastEmbedPage() {
   const [themeConfig, setThemeConfig] = useState<Partial<WidgetThemeConfig> | null>(null);
   const [mode, setMode] = useState<'default' | 'quiz'>('default');
   const [loadingConfig, setLoadingConfig] = useState(true);
+  const [hasBuilderConfig, setHasBuilderConfig] = useState(false);
 
   // Callback ref: applies theme as soon as the DOM node is attached (or when
   // themeConfig changes, which creates a new callback identity and causes React
@@ -199,8 +200,9 @@ export default function FastEmbedPage() {
           console.log('🌍 Language changed to:', locale);
         }
         
-        // Fetch quiz config with the Shopify locale
-        if (payload.shop) {
+        // Fetch quiz config with the Shopify locale only if we are NOT in preview
+        // mode using builder-provided config.
+        if (!hasBuilderConfig && payload.shop) {
           fetchQuizConfig(payload.shop, locale).finally(() => {
             setLoadingConfig(false);
           });
@@ -223,13 +225,14 @@ export default function FastEmbedPage() {
           setMode('quiz');
           setShowModal(true);
           setLoadingConfig(false);
+          setHasBuilderConfig(true);
         }
       }
     };
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [fetchQuizConfig]);
+  }, [fetchQuizConfig, hasBuilderConfig]);
 
   const handleCloseModal = () => {
     setShowModal(false);
