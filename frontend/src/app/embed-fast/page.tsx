@@ -207,6 +207,23 @@ export default function FastEmbedPage() {
         } else {
           setLoadingConfig(false);
         }
+      } else if (event.data.type === 'QUIZ_CONFIG_UPDATE') {
+        // Preview mode from Shopify Quiz Builder: use config sent via postMessage,
+        // including the question order defined there.
+        const payload = event.data as {
+          type: string;
+          shop?: string;
+          config?: QuizConfig;
+        };
+
+        if (payload.config) {
+          console.log('🧩 QUIZ_CONFIG_UPDATE received from parent, using builder config for preview');
+          setQuizConfig(payload.config);
+          setQuizTranslations(null);
+          setMode('quiz');
+          setShowModal(true);
+          setLoadingConfig(false);
+        }
       }
     };
 

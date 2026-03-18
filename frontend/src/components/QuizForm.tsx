@@ -13,6 +13,7 @@ const ScanStep = dynamic(() => import('./steps/scan_step'), { ssr: false });
 const ResultsStep = dynamic(() => import('./steps/results_step'), { ssr: false });
 import ImagePreloader from './ImagePreloader';
 import { useLocale } from '@/lib/LocaleContext';
+import { useAppConfig } from '@/lib/AppConfigContext';
 
 // Brand logo (violet SVG) – same default as SkinAnalysisModal
 const LOGO_VIOLET = '/RGM_Logo_Violet.svg';
@@ -73,6 +74,7 @@ type QuizStep = 'quiz' | 'photo-instructions' | 'camera-capture' | 'scan' | 'res
 export default function QuizForm({ config, isOpen, onClose, storeData, translations, logoUrl }: QuizFormProps) {
   const { t } = useTranslation(['steps', 'common']);
   const { locale } = useLocale();
+  const appConfig = useAppConfig();
   const [currentStep, setCurrentStep] = useState<QuizStep>('quiz');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
@@ -114,6 +116,28 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
     const translationKey = `question.${questionId}.option.${option.id}.label`;
     const translated = getTranslation(translationKey, undefined, undefined);
     return translated === translationKey ? option.label : translated;
+  };
+
+  // Helper functions to map user selections to backend API format
+  const mapAgeToAgeRange = (ageSelection: string): string => {
+    switch (ageSelection) {
+      case '18-24': return '18 - 25';
+      case '25-34': return '26 - 35';
+      case '35-44': return '36 - 45';
+      case '45-54': return 'Più di 45';
+      case '55+': return 'Più di 45';
+      default: return '26 - 35';
+    }
+  };
+
+  const mapGenderToApiFormat = (genderSelection: string): string => {
+    switch (genderSelection) {
+      case 'woman': return 'female';
+      case 'man': return 'male';
+      case 'non-binary': return 'non_binary';
+      case 'prefer-not-to-specify': return 'non_binary';
+      default: return 'female';
+    }
   };
 
   // Sort questions by order
@@ -215,14 +239,26 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
     try {
       const { analyzeSkinWithRecommendations } = await import('../lib/api');
 
+      const defaults = appConfig.defaultUserData;
+      const selectedAge = typeof answers.age === 'string' ? answers.age : '';
+      const selectedGender = typeof answers.gender === 'string' ? answers.gender : '';
+      const selectedSkinType = typeof answers.skinType === 'string' ? answers.skinType : '';
+      const selectedConcerns = Array.isArray(answers.concerns) ? answers.concerns : (answers.concerns ? [String(answers.concerns)] : []);
+      const selectedSensitivity = (typeof answers.sensitivity === 'string' ? answers.sensitivity : undefined);
+
       const userData = {
-        first_name: 'User',
-        last_name: 'Quiz',
-        ageRange: typeof answers.age === 'string' ? answers.age : (typeof answers.age === 'number' ? String(answers.age) : '26 - 35'),
-        gender: typeof answers.gender === 'string' ? answers.gender : (typeof answers.gender === 'number' ? String(answers.gender) : 'female'),
-        skin_type: typeof answers.skinType === 'string' ? answers.skinType : (typeof answers.skinType === 'number' ? String(answers.skinType) : 'Normale'),
-        concerns: Array.isArray(answers.concerns) ? answers.concerns : (answers.concerns ? [String(answers.concerns)] : []),
-        budget_level: 'High' as const,
+        first_name: appConfig.mode === 'demo' ? 'Demo' : 'User',
+        last_name: appConfig.mode === 'demo' ? 'User' : 'Test',
+        ageRange: selectedAge
+          ? mapAgeToAgeRange(selectedAge)
+          : (defaults?.ageRange ?? '26 - 35'),
+        gender: selectedGender
+          ? mapGenderToApiFormat(selectedGender)
+          : (defaults?.gender ?? 'female'),
+        skin_type: selectedSkinType || defaults?.skin_type || 'normal',
+        concerns: selectedConcerns.length > 0 ? selectedConcerns : [],
+        sensitivity: (selectedSensitivity || defaults?.sensitivity || 'medium') as 'high' | 'medium' | 'low',
+        budget_level: (defaults?.budget_level ?? 'High') as 'Low' | 'Medium' | 'High',
       };
 
       const analysisResult = await analyzeSkinWithRecommendations(imageData, userData, undefined, locale);
