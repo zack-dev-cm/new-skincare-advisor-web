@@ -8,6 +8,7 @@ import {
   WIDGET_HEADER_LOGO_IMG_CLASS,
   type WidgetThemeConfig,
 } from '@/lib/widget-theme';
+import { useWidgetThemeConfig } from '@/lib/WidgetThemeConfigContext';
 import UploadingScreen from './common/UploadingScreen';
 
 interface ImagePreloaderProps {
@@ -26,12 +27,22 @@ export default function ImagePreloader({
   mode = 'initial',
 	  analysisProgress = 0,
 	  analysisImageUrl,
+  themeConfig,
 }: ImagePreloaderProps) {
   const { t } = useTranslation('analysis');
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState('');
   const [currentPhase, setCurrentPhase] = useState<'preparing' | 'analyzing' | 'complete'>('preparing');
+
+  const ctxThemeConfig = useWidgetThemeConfig();
+
+  const headerLogoSrc = useMemo(() => {
+    const logoUrl = (themeConfig?.logoUrl ?? ctxThemeConfig?.logoUrl) ?? '';
+    return typeof logoUrl === 'string' && logoUrl.trim() !== ''
+      ? logoUrl
+      : WIDGET_DEFAULT_LOGO_SRC;
+  }, [themeConfig?.logoUrl, ctxThemeConfig?.logoUrl]);
 
   useEffect(() => {
     const loadImages = async () => {

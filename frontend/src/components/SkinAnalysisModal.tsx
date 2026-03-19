@@ -23,6 +23,7 @@ import ImagePreloader from './ImagePreloader';
 // Import app configuration
 import { useAppConfig } from '@/lib/AppConfigContext';
 import { useLocale } from '@/lib/LocaleContext';
+import { WidgetThemeConfigProvider } from '@/lib/WidgetThemeConfigContext';
 import {
   applyThemeConfig,
   WIDGET_HEADER_LOGO_IMG_CLASS,
@@ -357,27 +358,28 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
   if (!isOpen) return null;
 
   return (
-    <div className="derma-modal-root fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black bg-opacity-50"
-        onClick={appConfig.skipOnboarding ? undefined : handleClose}
-      />
+    <WidgetThemeConfigProvider value={themeConfig ?? null}>
+      <div className="derma-modal-root fixed inset-0 z-50 flex items-center justify-center">
+        {/* Backdrop */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="absolute inset-0 bg-black bg-opacity-50"
+          onClick={appConfig.skipOnboarding ? undefined : handleClose}
+        />
 
-      {/* Modal Container */}
-      <motion.div
-        ref={modalRootCallback}
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ duration: 0.2 }}
-        className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]"
-      >
-        {/* Fixed Header inside Modal - Sticky on all screen sizes */}
-        <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
+        {/* Modal Container */}
+        <motion.div
+          ref={modalRootCallback}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.2 }}
+          className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]"
+        >
+          {/* Fixed Header inside Modal - Sticky on all screen sizes */}
+          <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
           {/* Back Button - hidden in demo mode */}
           <div className="flex items-center min-w-[32px]">
             {!appConfig.skipOnboarding && currentStep !== 'onboarding' && (
@@ -418,10 +420,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               </button>
             )}
           </div>
-        </div>
+          </div>
 
-        {/* Content - Scrollable area */}
-        <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0">
+          {/* Content - Scrollable area */}
+          <div className="derma-step-content flex-1 overflow-y-auto overflow-x-hidden min-h-0">
             <AnimatePresence key="content-steps" mode="wait">
             {currentStep === 'onboarding' && (
               <OnboardingStep
@@ -430,14 +432,14 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               />
             )}
 
-            {currentStep === 'gender' && (
-              <GenderStep
-                selectedGender={selectedGender}
-                onGenderSelect={setSelectedGender}
-                onNext={handleNext}
-                onBack={handleBack}
-              />
-            )}
+              {currentStep === 'gender' && (
+                <GenderStep
+                  selectedGender={selectedGender}
+                  onGenderSelect={setSelectedGender}
+                  onNext={handleNext}
+                  onBack={handleBack}
+                />
+              )}
 
             {currentStep === 'age' && (
               <AgeStep
@@ -535,20 +537,21 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                 />
               )
             )}
-          </AnimatePresence>
-        </div>
+            </AnimatePresence>
+          </div>
 
-        {/* Fixed Footer - Sticky on all screen sizes */}
-        <div className="sticky bottom-0 z-50 flex-shrink-0">
-          <ModalFooter
-            currentStep={getCurrentStepNumber()}
-            totalSteps={10}
-            showTabButtons={currentStep === 'results' && !loading}
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-          />
-        </div>
-      </motion.div>
-    </div>
+          {/* Fixed Footer - Sticky on all screen sizes */}
+          <div className="sticky bottom-0 z-50 flex-shrink-0">
+            <ModalFooter
+              currentStep={getCurrentStepNumber()}
+              totalSteps={10}
+              showTabButtons={currentStep === 'results' && !loading}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+            />
+          </div>
+        </motion.div>
+      </div>
+    </WidgetThemeConfigProvider>
   );
 }
