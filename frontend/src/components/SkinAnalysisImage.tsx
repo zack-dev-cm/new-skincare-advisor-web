@@ -151,31 +151,6 @@ export default function SkinAnalysisImage({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
-  // Cached blob URL for the pores overlay so it's fetched only once
-  const [poresBlobUrl, setPoresBlobUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    const overlayUrl = analysisData.poresData?.overlay_circles_preview_url;
-    if (!overlayUrl) return;
-
-    let revoked = false;
-    fetch(overlayUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(`Pores overlay fetch failed: ${res.status}`);
-        return res.blob();
-      })
-      .then(blob => {
-        if (revoked) return;
-        setPoresBlobUrl(URL.createObjectURL(blob));
-      })
-      .catch(err => console.warn('Failed to preload pores overlay:', err));
-
-    return () => {
-      revoked = true;
-      setPoresBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
-    };
-  }, [analysisData.poresData?.overlay_circles_preview_url]);
-
   // Transform to mimic object-contain
   const [drawTransform, setDrawTransform] = useState({
     scaleX: 1,
@@ -190,12 +165,12 @@ export default function SkinAnalysisImage({
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
     { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const },
-    ...(poresBlobUrl
-      ? [{ url: poresBlobUrl, label: t('image.pores_analysis'), view: 'pores' as const }]
+    ...(analysisData.poresData?.overlay_circles_preview_url
+      ? [{ url: analysisData.poresData.overlay_circles_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
       : [])
   ];
 
-  // Clamp index if carouselImages shrinks (e.g. poresBlobUrl revoked)
+  // Clamp index if carouselImages shrinks (e.g. pores data unavailable)
   useEffect(() => {
     if (currentImageIndex >= carouselImages.length) {
       const lastIdx = carouselImages.length - 1;
@@ -569,40 +544,40 @@ export default function SkinAnalysisImage({
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                {currentView === 'pores' && poresBlobUrl ? (
+                {analysisData.poresData?.overlay_circles_preview_url && (
                   <img
-                    src={poresBlobUrl}
+                    src={analysisData.poresData.overlay_circles_preview_url}
                     alt={t('image.pores_analysis')}
-                    className="w-full object-contain rounded-xl"
-                    style={{ maxHeight: '384px', display: 'block', margin: '0 auto' }}
+                    className={`w-full object-contain rounded-xl ${currentView === 'pores' ? 'block' : 'hidden'}`}
+                    style={{ maxHeight: '384px', margin: '0 auto' }}
                   />
-                ) : (
-                  <>
-                    {/* Hidden image only for dimensions & load */}
-                    <img
-                      ref={imageRef}
-                      src={carouselImages[currentImageIndex].url}
-                      alt={carouselImages[currentImageIndex].label}
-                      className="hidden"
-                      onLoad={handleImageLoad}
-                      key={carouselImages[currentImageIndex].url}
-                    />
-
-                    {/* Canvas that contains image (object-contain) + overlays */}
-                    {imageLoaded && (
-                      <canvas
-                        ref={canvasRef}
-                        className="w-full h-full pointer-events-auto cursor-pointer"
-                        onClick={handleCanvasClick}
-                        style={{
-                          maxWidth: '100%',
-                          height: 'auto',
-                          display: 'block',
-                        }}
-                      />
-                    )}
-                  </>
                 )}
+
+                <div className={currentView === 'pores' ? 'hidden' : 'block'}>
+                  {/* Hidden image only for dimensions & load */}
+                  <img
+                    ref={imageRef}
+                    src={carouselImages[currentImageIndex].url}
+                    alt={carouselImages[currentImageIndex].label}
+                    className="hidden"
+                    onLoad={handleImageLoad}
+                    key={carouselImages[currentImageIndex].url}
+                  />
+
+                  {/* Canvas that contains image (object-contain) + overlays */}
+                  {imageLoaded && (
+                    <canvas
+                      ref={canvasRef}
+                      className="w-full h-full pointer-events-auto cursor-pointer"
+                      onClick={handleCanvasClick}
+                      style={{
+                        maxWidth: '100%',
+                        height: 'auto',
+                        display: 'block',
+                      }}
+                    />
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
           </div>
