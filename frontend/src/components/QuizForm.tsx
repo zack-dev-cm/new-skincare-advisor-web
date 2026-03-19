@@ -372,7 +372,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
               className="bg-bg2 bg-cover bg-center min-h-full flex flex-col justify-center"
             >
               <div className="step-content-card flex flex-col px-4 py-4 overflow-y-auto my-4 mx-4">
-                <div className="mb-4">
+                <div className="mb-4 pl-4">
                   <h1 className="text-xl font-bold text-gray-900 mb-2">
                     {getQuestionTitle(currentQuestion)}
                   </h1>
@@ -389,7 +389,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
 
                 {/* Multiple Choice */}
                 {currentQuestion.type === 'multiple-choice' && (
-                  <div className="space-y-3">
+                  <div className="space-y-3 w-full max-w-md mx-auto">
                     {currentQuestion.options?.map((option) => {
                       const isSelected = answers[currentQuestion.id] === option.value;
                       return (
@@ -411,7 +411,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                               : 'border-transparent hover:border-primary-300'
                           }`}>
                             <div className="flex bg-white">
-                              <div className="flex-1 min-w-0 px-6 py-4 flex flex-col justify-center">
+                              <div className="flex-1 min-w-0 px-6 py-4 flex flex-col items-center justify-center text-center">
                                 <div className="font-semibold text-gray-900 text-sm">
                                   {getOptionLabel(currentQuestion.id, option)}
                                 </div>
@@ -426,7 +426,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
 
                 {/* Image Choice */}
                 {currentQuestion.type === 'image-choice' && (
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3 w-full max-w-md mx-auto">
                     {currentQuestion.options?.map((option) => {
                       const isSelected = answers[currentQuestion.id] === option.value;
                       return (
@@ -510,7 +510,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                 )}
 
                 {/* Action Buttons – inside the step content card */}
-                <div className="flex gap-3 mt-6">
+                <div className="flex gap-3 mt-6 w-full max-w-md mx-auto">
                   {!currentQuestion.required && (
                     <motion.button
                       onClick={handleSkip}
