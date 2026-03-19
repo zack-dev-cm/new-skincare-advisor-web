@@ -567,8 +567,8 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                 themeConfig={{ logoUrl }}
                 onBack={handleBack}
                 onClose={onClose}
-                showBack={!appConfig.skipOnboarding && showBack}
-                showClose={!appConfig.skipOnboarding}
+                showBack={showBack}
+                showClose={true}
                 onComplete={() => setLoading(false)}
               >
                 <ResultsStep
