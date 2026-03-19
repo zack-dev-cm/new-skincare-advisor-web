@@ -513,7 +513,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                   themeConfig={themeConfig}
                   onBack={handleBack}
                   onClose={handleClose}
-                  showBack={currentStep !== 'onboarding'}
+                  showBack={true}
                   showClose={true}
                   onComplete={() => setLoading(false)}
                 >

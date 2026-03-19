@@ -53,6 +53,11 @@ export default function ImagePreloader({
       : WIDGET_DEFAULT_LOGO_SRC;
   }, [themeConfig?.logoUrl, ctxThemeConfig?.logoUrl]);
 
+  // If caller doesn't explicitly control visibility, keep scanner header actions visible
+  // whenever corresponding handlers are provided.
+  const shouldShowBack = (showBack ?? true) && Boolean(onBack);
+  const shouldShowClose = (showClose ?? true) && Boolean(onClose);
+
   useEffect(() => {
     const loadImages = async () => {
       try {
@@ -152,7 +157,7 @@ export default function ImagePreloader({
 	        <div className="px-4 py-3 flex items-center justify-between border-b modal-header-bar flex-shrink-0">
 	          {/* Back Button */}
 	          <div className="flex items-center min-w-[32px]">
-	            {showBack && onBack && (
+	            {shouldShowBack && (
 	              <button
 	                onClick={onBack}
 	                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
@@ -177,7 +182,7 @@ export default function ImagePreloader({
 
 	          {/* Close Button */}
 	          <div className="flex items-center min-w-[32px]">
-	            {showClose && onClose && (
+	            {shouldShowClose && (
 	              <button
 	                onClick={onClose}
 	                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
