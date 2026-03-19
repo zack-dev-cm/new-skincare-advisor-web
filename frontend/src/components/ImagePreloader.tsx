@@ -140,7 +140,7 @@ export default function ImagePreloader({
 	        transition={{ duration: 0.15 }}
 	        className="absolute inset-0 z-[100] bg-white flex flex-col overflow-hidden"
 	      >
-	        <div className="px-4 py-2 flex items-center justify-center border-b modal-header-bar flex-shrink-0 safe-area-top">
+	        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar flex-shrink-0">
 	          <div className="flex-1 text-center flex items-center justify-center">
 	            <img
 	              src={headerLogoSrc}
@@ -174,7 +174,7 @@ export default function ImagePreloader({
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Intestazione - Stesso stile della modale */}
-        <div className="px-4 py-2 flex items-center justify-center border-b modal-header-bar safe-area-top">
+        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar">
           <div className="flex-1 text-center flex items-center justify-center">
             <img
               src={headerLogoSrc}
