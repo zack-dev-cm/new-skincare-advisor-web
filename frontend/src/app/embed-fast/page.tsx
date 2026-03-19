@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import SkinAnalysisModal from '@/components/SkinAnalysisModal';
 import { startBackgroundLoading } from '@/lib/backgroundLoader';
 import i18n from '@/lib/i18n';
@@ -50,6 +50,7 @@ export default function FastEmbedPage() {
   const [mode, setMode] = useState<'default' | 'quiz'>('default');
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [hasBuilderConfig, setHasBuilderConfig] = useState(false);
+  const previewFallbackTimerRef = useRef<number | null>(null);
 
   // Callback ref: applies theme as soon as the DOM node is attached (or when
   // themeConfig changes, which creates a new callback identity and causes React
@@ -127,6 +128,8 @@ export default function FastEmbedPage() {
 
   // Load quiz configuration from API and initialize
   useEffect(() => {
+    let cancelled = false;
+
     const initialize = async () => {
       // Avvia background loading NON BLOCCANTE
       startBackgroundLoading();
@@ -140,7 +143,8 @@ export default function FastEmbedPage() {
       const market = urlParams.get('market');
       const country = urlParams.get('country');
       const connectorUrlParam = urlParams.get('connectorUrl');
-      
+      const quizBuilderPreview = urlParams.get('quizBuilderPreview') === '1';
+
       // Normalize locale from URL params (e.g., 'it-IT' -> 'it')
       const locale = rawLocale?.split('-')[0] ?? null;
       
@@ -155,10 +159,29 @@ export default function FastEmbedPage() {
         console.log('Store data from URL params:', { shop, locale, currency, market, country, connectorUrl: connectorUrlParam });
       }
 
+      // Quiz Builder preview: never fetch API (API enforces essential-first order). Use parent config only.
+      if (shop && quizBuilderPreview) {
+        console.log(
+          '🧪 quizBuilderPreview: skipping API fetch; requesting config from parent via QUIZ_CONFIG_REQUEST',
+        );
+        if (window.parent !== window) {
+          window.parent.postMessage({ type: 'QUIZ_CONFIG_REQUEST' }, '*');
+        }
+        if (previewFallbackTimerRef.current != null) window.clearTimeout(previewFallbackTimerRef.current);
+        previewFallbackTimerRef.current = window.setTimeout(() => {
+          if (!cancelled) {
+            setLoadingConfig(false);
+            console.warn('⚠️ quizBuilderPreview: no config from parent within 15s');
+          }
+          previewFallbackTimerRef.current = null;
+        }, 15000) as unknown as number;
+        return;
+      }
+
       // Fetch quiz configuration from API if shop is provided in URL params
       if (shop) {
         await fetchQuizConfig(shop, locale ?? undefined, connectorUrlParam ?? undefined);
-        setLoadingConfig(false);
+        if (!cancelled) setLoadingConfig(false);
       } else {
         // No shop in URL params — iframe might have been loaded without query params.
         // Ask parent Shopify page for store data via postMessage and wait briefly.
@@ -169,12 +192,19 @@ export default function FastEmbedPage() {
         // Give the parent a short window to respond with SHOPIFY_STORE_DATA
         // before falling back to the default flow
         setTimeout(() => {
-          setLoadingConfig(false);
+          if (!cancelled) setLoadingConfig(false);
         }, 2000);
       }
     };
 
-    initialize();
+    void initialize();
+    return () => {
+      cancelled = true;
+      if (previewFallbackTimerRef.current) {
+        window.clearTimeout(previewFallbackTimerRef.current);
+        previewFallbackTimerRef.current = null;
+      }
+    };
   }, [fetchQuizConfig]);
 
   // Listen for messages from parent Shopify page
@@ -219,6 +249,10 @@ export default function FastEmbedPage() {
         };
 
         if (payload.config) {
+          if (previewFallbackTimerRef.current) {
+            window.clearTimeout(previewFallbackTimerRef.current);
+            previewFallbackTimerRef.current = null;
+          }
           console.log('🧩 QUIZ_CONFIG_UPDATE received from parent, using builder config for preview');
           setQuizConfig(payload.config);
           setQuizTranslations(null);
