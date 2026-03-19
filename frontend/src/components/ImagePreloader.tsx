@@ -1,10 +1,13 @@
 "use client";
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { preloadStepImages, getLoadingProgress } from '../lib/imagePreloader';
-import LogoWhite from '../app/RGB_Logo_White.png';
+import {
+  WIDGET_DEFAULT_LOGO_SRC,
+  WIDGET_HEADER_LOGO_IMG_CLASS,
+  type WidgetThemeConfig,
+} from '@/lib/widget-theme';
 import UploadingScreen from './common/UploadingScreen';
 
 interface ImagePreloaderProps {
@@ -13,6 +16,8 @@ interface ImagePreloaderProps {
 	  mode?: 'initial' | 'analysis'; // Nuova prop per differenziare le modalità di caricamento
 	  analysisProgress?: number; // Progresso dell'analisi opzionale per la modalità analisi
 	  analysisImageUrl?: string; // Immagine da mostrare durante l'analisi (per UploadingScreen)
+  /** Same merchant logo as SkinAnalysisModal / QuizForm header (optional). */
+  themeConfig?: Partial<WidgetThemeConfig> | null;
 }
 
 export default function ImagePreloader({ 
@@ -124,9 +129,13 @@ export default function ImagePreloader({
 	        transition={{ duration: 0.15 }}
 	        className="absolute inset-0 z-[100] bg-white flex flex-col overflow-hidden"
 	      >
-	        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar flex-shrink-0">
+	        <div className="px-4 py-2 flex items-center justify-center border-b modal-header-bar flex-shrink-0 safe-area-top">
 	          <div className="flex-1 text-center flex items-center justify-center">
-	            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+	            <img
+	              src={headerLogoSrc}
+	              alt="Dermaself"
+	              className={WIDGET_HEADER_LOGO_IMG_CLASS}
+	            />
 	          </div>
 	        </div>
 	        <div className="flex-1 min-h-0 flex flex-col">
@@ -154,9 +163,13 @@ export default function ImagePreloader({
         className="relative w-full bg-white overflow-hidden flex flex-col h-full md:max-w-[540px] w-full h-full md:max-h-[95vh]"
       >
         {/* Intestazione - Stesso stile della modale */}
-        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar">
+        <div className="px-4 py-2 flex items-center justify-center border-b modal-header-bar safe-area-top">
           <div className="flex-1 text-center flex items-center justify-center">
-            <Image src={LogoWhite} alt="Dermaself" className="h-12 w-auto" priority />
+            <img
+              src={headerLogoSrc}
+              alt="Dermaself"
+              className={WIDGET_HEADER_LOGO_IMG_CLASS}
+            />
           </div>
         </div>
 

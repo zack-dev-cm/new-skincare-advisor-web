@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { WIDGET_HEADER_LOGO_IMG_CLASS } from '@/lib/widget-theme';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import PhotoInstructionsStep from './steps/photo_instructions_step';
@@ -337,7 +338,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
             <img
               src={logoUrl || LOGO_VIOLET}
               alt="Dermaself"
-              className="inline-block h-5 w-auto max-h-5 logo-violet"
+              className={WIDGET_HEADER_LOGO_IMG_CLASS}
             />
           </div>
         </div>
@@ -561,6 +562,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                 mode="analysis"
                 analysisProgress={loading ? 75 : 100}
                 analysisImageUrl={capturedImage || ''}
+                themeConfig={{ logoUrl }}
                 onComplete={() => setLoading(false)}
               >
                 <ResultsStep

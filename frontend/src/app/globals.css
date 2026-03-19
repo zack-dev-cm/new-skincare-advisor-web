@@ -332,9 +332,25 @@ body {
 }
 
 /* Modal header/footer - light chrome (design system: bottom nav "light gradient", sheet bg-background) */
+/* Default header logo height (matches previous h-5 ≈ 20px). Custom uploads scale to this box. */
+:root {
+  --widget-header-logo-height: 1.25rem;
+}
+
 .modal-header-bar {
   background-color: hsl(var(--background));
   border-bottom: 1px solid hsl(var(--border));
+}
+
+.modal-header-bar img.logo-violet {
+  display: inline-block;
+  height: var(--widget-header-logo-height);
+  max-height: var(--widget-header-logo-height);
+  width: auto;
+  max-width: min(45vw, 9rem);
+  object-fit: contain;
+  object-position: center;
+  vertical-align: middle;
 }
 
 .modal-footer-bar {

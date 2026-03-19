@@ -37,6 +37,16 @@ export interface WidgetThemeConfig {
 // Defaults
 // ---------------------------------------------------------------------------
 
+/** Default header logo when merchant clears custom logo (must match QuizForm / SkinAnalysisModal). */
+export const WIDGET_DEFAULT_LOGO_SRC = '/RGM_Logo_Violet.svg';
+
+/**
+ * Class for the modal header brand `<img>`. Size is controlled in `globals.css`
+ * (`.modal-header-bar img.logo-violet` + `--widget-header-logo-height`) so default
+ * and merchant logos share the same height.
+ */
+export const WIDGET_HEADER_LOGO_IMG_CLASS = 'logo-violet';
+
 export const THEME_DEFAULTS: Required<WidgetThemeConfig> = {
   primaryColor: '#7547F2',
   backgroundColor: '#FFFFFF',
@@ -185,11 +195,9 @@ export function applyThemeConfig(
   // --- Shape ---
   rootEl.style.setProperty('--radius', c.borderRadius);
 
-  // --- Logo ---
-  if (c.logoUrl) {
-    const logoImg = rootEl.querySelector('.logo-violet') as HTMLImageElement | null;
-    if (logoImg) {
-      logoImg.src = c.logoUrl;
-    }
+  // --- Logo (reset to default when merchant clears custom logo) ---
+  const logoImg = rootEl.querySelector('.logo-violet') as HTMLImageElement | null;
+  if (logoImg) {
+    logoImg.src = c.logoUrl && c.logoUrl.trim() !== '' ? c.logoUrl : WIDGET_DEFAULT_LOGO_SRC;
   }
 }

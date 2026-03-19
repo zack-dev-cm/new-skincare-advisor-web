@@ -23,7 +23,11 @@ import ImagePreloader from './ImagePreloader';
 // Import app configuration
 import { useAppConfig } from '@/lib/AppConfigContext';
 import { useLocale } from '@/lib/LocaleContext';
-import { applyThemeConfig, type WidgetThemeConfig } from '@/lib/widget-theme';
+import {
+  applyThemeConfig,
+  WIDGET_HEADER_LOGO_IMG_CLASS,
+  type WidgetThemeConfig,
+} from '@/lib/widget-theme';
 
 import dynamic from 'next/dynamic';
 
@@ -396,7 +400,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
               <img
                 src={themeConfig?.logoUrl || LOGO_VIOLET}
                 alt="Dermaself"
-                className="inline-block h-5 w-auto max-h-5 logo-violet"
+                className={WIDGET_HEADER_LOGO_IMG_CLASS}
               />
             </div>
           </div>
@@ -504,6 +508,7 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                   mode="analysis" 
                   analysisProgress={loading ? 75 : 100}
 	                analysisImageUrl={capturedImage || ''}
+                  themeConfig={themeConfig}
                   onComplete={() => setLoading(false)}
                 >
                   <ResultsStep
