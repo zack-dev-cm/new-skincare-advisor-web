@@ -511,6 +511,10 @@ export default function SkinAnalysisModal({ isOpen, onClose, embedded = false, o
                   analysisProgress={loading ? 75 : 100}
 	                analysisImageUrl={capturedImage || ''}
                   themeConfig={themeConfig}
+                  onBack={handleBack}
+                  onClose={handleClose}
+                  showBack={!appConfig.skipOnboarding && currentStep !== 'onboarding'}
+                  showClose={!appConfig.skipOnboarding}
                   onComplete={() => setLoading(false)}
                 >
                   <ResultsStep

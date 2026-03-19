@@ -563,6 +563,10 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                 analysisProgress={loading ? 75 : 100}
                 analysisImageUrl={capturedImage || ''}
                 themeConfig={{ logoUrl }}
+                onBack={handleBack}
+                onClose={onClose}
+                showBack={!appConfig.skipOnboarding && showBack}
+                showClose={!appConfig.skipOnboarding}
                 onComplete={() => setLoading(false)}
               >
                 <ResultsStep

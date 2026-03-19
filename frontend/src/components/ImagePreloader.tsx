@@ -19,6 +19,11 @@ interface ImagePreloaderProps {
 	  analysisImageUrl?: string; // Immagine da mostrare durante l'analisi (per UploadingScreen)
   /** Same merchant logo as SkinAnalysisModal / QuizForm header (optional). */
   themeConfig?: Partial<WidgetThemeConfig> | null;
+  /** Optional: when used as upload/analysis overlay, show same header buttons as other screens. */
+  onBack?: () => void;
+  onClose?: () => void;
+  showBack?: boolean;
+  showClose?: boolean;
 }
 
 export default function ImagePreloader({ 
@@ -28,8 +33,12 @@ export default function ImagePreloader({
 	  analysisProgress = 0,
 	  analysisImageUrl,
   themeConfig,
+  onBack,
+  onClose,
+  showBack,
+  showClose,
 }: ImagePreloaderProps) {
-  const { t } = useTranslation('analysis');
+  const { t } = useTranslation(['analysis', 'common']);
   const [isLoading, setIsLoading] = useState(true);
   const [progress, setProgress] = useState(0);
   const [loadingText, setLoadingText] = useState('');
@@ -140,13 +149,47 @@ export default function ImagePreloader({
 	        transition={{ duration: 0.15 }}
 	        className="absolute inset-0 z-[100] bg-white flex flex-col overflow-hidden"
 	      >
-	        <div className="px-4 py-3 flex items-center justify-center border-b modal-header-bar flex-shrink-0">
+	        <div className="px-4 py-3 flex items-center justify-between border-b modal-header-bar flex-shrink-0">
+	          {/* Back Button */}
+	          <div className="flex items-center min-w-[32px]">
+	            {showBack && onBack && (
+	              <button
+	                onClick={onBack}
+	                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
+	                aria-label={t('common:buttons.go_back')}
+	                title={t('common:buttons.go_back')}
+	              >
+	                <svg className="w-4 h-4 text-current" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+	                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+	                </svg>
+	              </button>
+	            )}
+	          </div>
+
+	          {/* Centered Brand Logo */}
 	          <div className="flex-1 text-center flex items-center justify-center">
 	            <img
 	              src={headerLogoSrc}
 	              alt="Dermaself"
 	              className={WIDGET_HEADER_LOGO_IMG_CLASS}
 	            />
+	          </div>
+
+	          {/* Close Button */}
+	          <div className="flex items-center min-w-[32px]">
+	            {showClose && onClose && (
+	              <button
+	                onClick={onClose}
+	                className="w-8 h-8 bg-gray-200 hover:bg-gray-300 rounded-lg flex items-center justify-center transition-colors text-gray-700"
+	                aria-label={t('common:buttons.close_modal_aria')}
+	                title={t('common:buttons.close_modal_aria')}
+	              >
+	                <svg className="w-5 h-5 text-current" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+	                  <line x1="18" y1="6" x2="6" y2="18" />
+	                  <line x1="6" y1="6" x2="18" y2="18" />
+	                </svg>
+	              </button>
+	            )}
 	          </div>
 	        </div>
 	        <div className="flex-1 min-h-0 flex flex-col">
