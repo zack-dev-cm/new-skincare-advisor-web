@@ -205,9 +205,11 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   };
 
   const handleSkip = () => {
-    if (config.settings.allowSkipping) {
-      handleNext();
-    }
+    // Skip is governed by the per-question "required" flag.
+    // This prevents bypassing mandatory questions via a global setting.
+    if (!currentQuestion) return;
+    if (currentQuestion.required) return;
+    handleNext();
   };
 
   const handleComplete = () => {
@@ -509,7 +511,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
 
                 {/* Action Buttons – inside the step content card */}
                 <div className="flex gap-3 mt-6">
-                  {config.settings.allowSkipping && (
+                  {!currentQuestion.required && (
                     <motion.button
                       onClick={handleSkip}
                       className="px-6 py-3 rounded-lg border-2 border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors"
