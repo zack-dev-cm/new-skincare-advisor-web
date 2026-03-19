@@ -151,6 +151,31 @@ export default function SkinAnalysisImage({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [canvasSize, setCanvasSize] = useState({ width: 0, height: 0 });
 
+  // Cached blob URL for the pores overlay so it's fetched only once
+  const [poresBlobUrl, setPoresBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const overlayUrl = analysisData.poresData?.overlay_circles_preview_url;
+    if (!overlayUrl) return;
+
+    let revoked = false;
+    fetch(overlayUrl)
+      .then(res => {
+        if (!res.ok) throw new Error(`Pores overlay fetch failed: ${res.status}`);
+        return res.blob();
+      })
+      .then(blob => {
+        if (revoked) return;
+        setPoresBlobUrl(URL.createObjectURL(blob));
+      })
+      .catch(err => console.warn('Failed to preload pores overlay:', err));
+
+    return () => {
+      revoked = true;
+      setPoresBlobUrl(prev => { if (prev) URL.revokeObjectURL(prev); return null; });
+    };
+  }, [analysisData.poresData?.overlay_circles_preview_url]);
+
   // Transform to mimic object-contain
   const [drawTransform, setDrawTransform] = useState({
     scaleX: 1,
@@ -165,10 +190,19 @@ export default function SkinAnalysisImage({
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
     { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const },
-    ...(analysisData.poresData?.overlay_circles_preview_url
-      ? [{ url: analysisData.poresData.overlay_circles_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
+    ...(poresBlobUrl
+      ? [{ url: poresBlobUrl, label: t('image.pores_analysis'), view: 'pores' as const }]
       : [])
   ];
+
+  // Clamp index if carouselImages shrinks (e.g. poresBlobUrl revoked)
+  useEffect(() => {
+    if (currentImageIndex >= carouselImages.length) {
+      const lastIdx = carouselImages.length - 1;
+      setCurrentImageIndex(lastIdx);
+      setCurrentView(carouselImages[lastIdx].view);
+    }
+  }, [carouselImages.length]);
 
   const drawImage = useCallback(
     (ctx: CanvasRenderingContext2D, img: HTMLImageElement) => {
@@ -357,34 +391,32 @@ export default function SkinAnalysisImage({
 
   // Initial setup when image loaded
   useEffect(() => {
-    if (imageLoaded) {
-      setupCanvasTransform();
-      setTimeout(() => redrawCanvas(), 100);
-    }
+    if (!imageLoaded) return;
+    setupCanvasTransform();
+    const id = setTimeout(() => redrawCanvas(), 100);
+    return () => clearTimeout(id);
   }, [imageLoaded, setupCanvasTransform, redrawCanvas]);
 
-  // Redraw on view / overlay toggle
+  // Redraw on view / overlay toggle (synchronous — no setTimeout needed)
   useEffect(() => {
     redrawCanvas();
   }, [redrawCanvas]);
 
-  // Redraw when carousel image changes
-  useEffect(() => {
-    if (imageLoaded) {
-      setTimeout(() => redrawCanvas(), 50);
-    }
-  }, [currentImageIndex, redrawCanvas, imageLoaded]);
-
   // Window resize → recompute transform & redraw
   useEffect(() => {
+    let timerId: ReturnType<typeof setTimeout>;
     const handleResize = () => {
       if (!imageRef.current) return;
       setupCanvasTransform();
-      setTimeout(() => redrawCanvas(), 100);
+      clearTimeout(timerId);
+      timerId = setTimeout(() => redrawCanvas(), 100);
     };
 
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timerId);
+    };
   }, [setupCanvasTransform, redrawCanvas]);
 
   const handleImageLoad = () => {
@@ -450,44 +482,19 @@ export default function SkinAnalysisImage({
     return 'text-red-600';
   };
 
-  const nextImage = () => {
-    setImageLoaded(false);
-    setCurrentImageIndex((prev: number) => (prev + 1) % carouselImages.length);
-  };
-
-  const prevImage = () => {
-    setImageLoaded(false);
-    setCurrentImageIndex(
-      (prev: number) => (prev - 1 + carouselImages.length) % carouselImages.length
-    );
-  };
-
-  const goToImage = (index: number) => {
-    // Don't reset imageLoaded if clicking on the already selected image
-    // This prevents the canvas from disappearing when clicking the same option
-    if (index !== currentImageIndex) {
+  const switchTo = (index: number) => {
+    if (index === currentImageIndex) return;
+    const urlChanged = carouselImages[index].url !== carouselImages[currentImageIndex].url;
+    if (urlChanged) {
       setImageLoaded(false);
     }
     setCurrentImageIndex(index);
     setCurrentView(carouselImages[index].view);
   };
 
-  useEffect(() => {
-    console.log('Carousel image changed:', {
-      currentImageIndex,
-      view: carouselImages[currentImageIndex].view,
-      currentView,
-    });
-    setCurrentView(carouselImages[currentImageIndex].view);
-  }, [currentImageIndex]);
-
-  useEffect(() => {
-    if (analysisData && analysisData.predictions && analysisData.predictions.length > 0) {
-      if (currentImageIndex === 0) {
-        setCurrentView('acne');
-      }
-    }
-  }, [analysisData, currentImageIndex]);
+  const nextImage = () => switchTo((currentImageIndex + 1) % carouselImages.length);
+  const prevImage = () => switchTo((currentImageIndex - 1 + carouselImages.length) % carouselImages.length);
+  const goToImage = (index: number) => switchTo(index);
 
   const getUniqueClasses = () => {
     const classes = new Set<string>();
@@ -555,18 +562,16 @@ export default function SkinAnalysisImage({
           >
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentImageIndex}
+                key={carouselImages[currentImageIndex].url}
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: -20 }}
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                {currentView === 'pores' && analysisData.poresData?.overlay_circles_preview_url ? (
-                  /* Pores: render the circles-only Cloud Run overlay directly as <img>.
-                     Using <img> (not canvas) avoids cross-origin canvas tainting. */
+                {currentView === 'pores' && poresBlobUrl ? (
                   <img
-                    src={analysisData.poresData.overlay_circles_preview_url}
+                    src={poresBlobUrl}
                     alt={t('image.pores_analysis')}
                     className="w-full object-contain rounded-xl"
                     style={{ maxHeight: '384px', display: 'block', margin: '0 auto' }}
@@ -580,7 +585,7 @@ export default function SkinAnalysisImage({
                       alt={carouselImages[currentImageIndex].label}
                       className="hidden"
                       onLoad={handleImageLoad}
-                      key={`${carouselImages[currentImageIndex].url}-${currentImageIndex}`}
+                      key={carouselImages[currentImageIndex].url}
                     />
 
                     {/* Canvas that contains image (object-contain) + overlays */}
