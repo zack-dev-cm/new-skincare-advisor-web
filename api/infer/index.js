@@ -697,7 +697,7 @@ module.exports = async function (context, req) {
     };
     
     // Calculate skin metrics (poresData populates skinMetrics.pores)
-    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData);
+    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData, userData || {});
     const skinBenchmarks = getBenchmarks(userData.ageRange || '26-35', userData.gender || 'female');
 
     // Build final result matching JavaScript structure EXACTLY

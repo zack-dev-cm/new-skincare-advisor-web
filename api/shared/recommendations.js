@@ -60,7 +60,9 @@ function determineRecommendationStrategy(inferenceResult, userData) {
         calculateSkinMetrics(
           inferenceResult.acneFullData,
           inferenceResult.laxityRednessData,
-          inferenceResult.wrinklesData
+          inferenceResult.wrinklesData,
+          inferenceResult.poresData,
+          inferenceResult.userData || userData || {}
         );
       benchmarks =
         inferenceResult.skinBenchmarks ||
