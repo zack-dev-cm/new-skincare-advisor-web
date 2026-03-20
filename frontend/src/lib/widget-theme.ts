@@ -113,6 +113,32 @@ function shiftLightness(hslValues: string, delta: number): string {
   return `${h} ${s}% ${l}%`;
 }
 
+/**
+ * Convert primary brand colour to the lighter/lower-saturation "lilac" tint
+ * used by gradients and subtle accents.
+ *
+ * Tuned so that when primary is the default '#7547F2', the result matches
+ * the existing static token '254 73% 78%'.
+ */
+function deriveLilacFitFromPrimary(primaryHex: string): string {
+  const base = hexToHslValues(primaryHex); // "h s% l%"
+  const parts = base.match(/(\d+)\s+(\d+)%\s+(\d+)%/);
+  if (!parts) return '254 73% 78%';
+
+  const h = parseInt(parts[1]);
+  const s = parseInt(parts[2]); // already without %
+  const l = parseInt(parts[3]); // already without %
+
+  // Match existing relationship:
+  //   primary: 256 87% 61%
+  //   lilac:   254 73% 78%
+  // So: s - 14, l + 17. Hue stays as-is from primary.
+  const lilacS = Math.max(0, Math.min(100, Math.round(s - 14)));
+  const lilacL = Math.max(0, Math.min(100, Math.round(l + 17)));
+
+  return `${h} ${lilacS}% ${lilacL}%`;
+}
+
 // ---------------------------------------------------------------------------
 // Primary colour scale generator
 // ---------------------------------------------------------------------------
@@ -166,6 +192,13 @@ export function applyThemeConfig(
   for (const [prop, value] of Object.entries(primaryScale)) {
     rootEl.style.setProperty(prop, value);
   }
+
+  // --- Lilac tint (used by gradients & subtle accents) ---
+  // The widget previously had a static lilac token; merchants could change
+  // `primaryColor` but gradients still stayed lilac. We derive it here.
+  const lilacFit = deriveLilacFitFromPrimary(c.primaryColor);
+  rootEl.style.setProperty('--lilac-fit', lilacFit);
+  rootEl.style.setProperty('--accent', lilacFit);
 
   // --- Background ---
   const bgHsl = hexToHslValues(c.backgroundColor);
