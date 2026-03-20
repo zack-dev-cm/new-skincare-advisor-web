@@ -98,9 +98,10 @@ export default function FastEmbedPage() {
         if (result.success && result.config && result.isActive) {
           console.log('✅ Quiz configuration loaded from API:', result.config);
           console.log('📝 Quiz translations loaded:', result.translations);
-          if (result.template) {
-            console.log('🎨 Widget theme config loaded:', result.template);
-            setThemeConfig(result.template);
+          const tpl = result.template;
+          if (tpl && typeof tpl === 'object' && !Array.isArray(tpl)) {
+            console.log('🎨 Widget theme config loaded:', tpl);
+            setThemeConfig(tpl as Partial<WidgetThemeConfig>);
           }
           setQuizConfig(result.config);
           setQuizTranslations(result.translations || null);
@@ -109,9 +110,10 @@ export default function FastEmbedPage() {
           return true;
         } else {
           // Even without active quiz, apply template theme if present
-          if (result.template) {
-            console.log('🎨 Widget theme config loaded (no quiz):', result.template);
-            setThemeConfig(result.template);
+          const tplInactive = result.template;
+          if (tplInactive && typeof tplInactive === 'object' && !Array.isArray(tplInactive)) {
+            console.log('🎨 Widget theme config loaded (no quiz):', tplInactive);
+            setThemeConfig(tplInactive as Partial<WidgetThemeConfig>);
           }
           console.log('ℹ️ No active quiz configuration found, using default flow');
           return false;
@@ -145,9 +147,10 @@ export default function FastEmbedPage() {
         });
         if (!response.ok) return;
         const result = await response.json();
-        if (result.template && typeof result.template === 'object') {
+        const tpl = result.template;
+        if (tpl && typeof tpl === 'object' && !Array.isArray(tpl)) {
           // Let postMessage template override when present (arrives after this fetch).
-          setThemeConfig((prev) => ({ ...result.template, ...(prev || {}) }));
+          setThemeConfig((prev) => ({ ...(tpl as Partial<WidgetThemeConfig>), ...(prev || {}) }));
         }
       } catch (e) {
         console.warn('Quiz builder preview: could not load widget template from API', e);
@@ -310,8 +313,9 @@ export default function FastEmbedPage() {
           setLoadingConfig(false);
           setHasBuilderConfig(true);
           // postMessage template wins over API preview fetch (same DB; supports newer admin fields).
-          if (payload.template && typeof payload.template === 'object') {
-            setThemeConfig((prev) => ({ ...(prev || {}), ...payload.template }));
+          const tpl = payload.template;
+          if (tpl && typeof tpl === 'object' && !Array.isArray(tpl)) {
+            setThemeConfig((prev) => ({ ...(prev || {}), ...(tpl as Partial<WidgetThemeConfig>) }));
           }
         }
       }
@@ -346,9 +350,11 @@ export default function FastEmbedPage() {
   }
 
   if (mode === 'quiz' && quizConfig) {
+    // Theme is applied inside QuizForm (useLayoutEffect on quiz root). Skip outer ref so we do not run
+    // applyThemeConfig before the lazy-loaded form (and .logo-violet) have mounted.
     return (
       <div className="w-full h-screen bg-black/20 backdrop-blur-sm flex items-center justify-center p-0 md:p-4">
-        <div ref={widgetRootCallback} className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
+        <div className="w-full max-w-[540px] h-[95vh] max-h-[800px] bg-white rounded-xl shadow-2xl overflow-hidden border border-gray-200 relative md:rounded-xl rounded-none">
           <QuizForm 
             config={quizConfig}
             isOpen={showModal}

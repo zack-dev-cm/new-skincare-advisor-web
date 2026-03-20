@@ -108,9 +108,9 @@ export default function QuizForm({
     themeConfig ?? (logoUrl && logoUrl.trim() !== '' ? { logoUrl } : undefined);
 
   // Apply merchant theme on this root after children (including header logo) have committed.
-  // Parent embed uses a ref on an outer wrapper; with dynamic() import the logo often did not exist yet.
+  // Embed-fast skips the outer widget ref in quiz mode so this is the only applyThemeConfig call for QuizForm.
   useLayoutEffect(() => {
-    if (!isOpen || !themeConfig || !quizRootRef.current) return;
+    if (!isOpen || themeConfig == null || !quizRootRef.current) return;
     applyThemeConfig(quizRootRef.current, themeConfig);
   }, [isOpen, themeConfig]);
 
