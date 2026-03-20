@@ -15,6 +15,10 @@ const logger = createLogger('infer');
 
 const disableCache =
   (process.env.DISABLE_INFER_CACHE || '').toLowerCase() === 'true';
+const inferSyncBudgetMs = Math.max(
+  parseInt(process.env.INFER_SYNC_BUDGET_MS || '', 10) || 58000,
+  1000
+);
 
 // Schema di validazione robusto
 const requestSchema = Joi.object({
@@ -544,21 +548,63 @@ module.exports = async function (context, req) {
     // Esegui chiamate alle tre API in parallelo
     const base64Image = await imageUrlToBase64(imageUrl);
     
-    const [acneFullResp, laxityRednessResp, wrinklesResp, poresResp] = await Promise.allSettled([
-      pRetry(() => acneBreaker.fire(base64Image), {
+    const syncDeadline = Date.now() + inferSyncBudgetMs;
+    const settleWithinSyncBudget = (promise, apiName) => {
+      const remainingMs = syncDeadline - Date.now();
+      if (remainingMs <= 0) {
+        return Promise.resolve({
+          status: 'rejected',
+          reason: new Error(`${apiName} skipped: sync budget already exhausted`)
+        });
+      }
+
+      return new Promise((resolve) => {
+        let settled = false;
+        const finish = (result) => {
+          if (settled) return;
+          settled = true;
+          resolve(result);
+        };
+
+        const timeout = setTimeout(() => {
+          finish({
+            status: 'rejected',
+            reason: new Error(`${apiName} skipped: exceeded sync budget (${inferSyncBudgetMs}ms)`)
+          });
+        }, remainingMs);
+
+        promise
+          .then((value) => {
+            clearTimeout(timeout);
+            finish({ status: 'fulfilled', value });
+          })
+          .catch((reason) => {
+            clearTimeout(timeout);
+            finish({ status: 'rejected', reason });
+          });
+      });
+    };
+
+    const acneFullPromise = pRetry(() => acneBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Acne attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
-      }),
-      pRetry(() => laxityRednessBreaker.fire(base64Image), {
+      });
+    const laxityRednessPromise = pRetry(() => laxityRednessBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Laxity-Redness attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
-      }),
-      pRetry(() => wrinklesBreaker.fire(base64Image), {
+      });
+    const wrinklesPromise = pRetry(() => wrinklesBreaker.fire(base64Image), {
         retries: 3,
         onFailedAttempt: error => logger.warn(`Wrinkles attempt ${error.attemptNumber} failed. Retries left: ${error.retriesLeft}`)
-      }),
-      // Pores runs without retry to stay within the Azure Functions 60s wall-clock budget
-      poresBreaker.fire(base64Image)
+      });
+    // Pores runs without retry and can be skipped when sync budget expires
+    const poresPromise = poresBreaker.fire(base64Image);
+
+    const [acneFullResp, laxityRednessResp, wrinklesResp, poresResp] = await Promise.all([
+      settleWithinSyncBudget(acneFullPromise, 'AcneDetectionFullAPI'),
+      settleWithinSyncBudget(laxityRednessPromise, 'LaxityRednessAPI'),
+      settleWithinSyncBudget(wrinklesPromise, 'WrinklesAPI'),
+      settleWithinSyncBudget(poresPromise, 'PoresAPI')
     ]);
     
     // Handle fulfilled/rejected responses
@@ -566,6 +612,16 @@ module.exports = async function (context, req) {
     logApiOutcome('LaxityRednessAPI', laxityRednessResp);
     logApiOutcome('WrinklesAPI', wrinklesResp);
     logApiOutcome('PoresAPI', poresResp);
+    const apiOutcomes = {
+      acne: acneFullResp.status,
+      laxityRedness: laxityRednessResp.status,
+      wrinkles: wrinklesResp.status,
+      pores: poresResp.status
+    };
+    const skippedApis = Object.entries(apiOutcomes)
+      .filter(([, outcome]) => outcome !== 'fulfilled')
+      .map(([apiName]) => apiName);
+    const partial = skippedApis.length > 0;
 
     const acneFullData = acneFullResp.status === 'fulfilled' ? acneFullResp.value : {
       predictions: [],
@@ -657,7 +713,10 @@ module.exports = async function (context, req) {
       // Add isNewScan flag for email/contact updates
       isNewScan: true,
       // Add userData for frontend access (age, gender, etc.)
-      userData: userData
+      userData: userData,
+      // Internal delivery metadata. Frontend can ignore these fields safely.
+      partial,
+      skippedApis
     };
     
     // Enrich with recommendations if requested
@@ -674,7 +733,7 @@ module.exports = async function (context, req) {
     }
     
     // Save to cache only when all APIs returned real data (no fallbacks, pores not null)
-    if (!disableCache && !acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback && poresData !== null) {
+    if (!disableCache && !partial && !acneFullData.fallback && !laxityRednessData.fallback && !wrinklesData.fallback && poresData !== null) {
       await cache.set(cacheKey, finalResult, 300); // Cache for 5 minutes
     }
 
@@ -703,6 +762,8 @@ module.exports = async function (context, req) {
       wrinklesSeverity: wrinklesData.wrinkleSeverity?.overall?.severity,
       wrinklesPredictions: wrinklesData.predictions?.length || 0,
       wrinklesProcessingTime: wrinklesData.time || 0,
+      partial,
+      skippedApis,
       cached: false,
       metadata: metadata || null
     });
