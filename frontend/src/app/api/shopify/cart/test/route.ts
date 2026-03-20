@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getShopifySession } from '../../../../../lib/shopify-session-store';
 import { validateShopParameter } from '../../../../../lib/shopify-oauth';
-
-const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+import { getStorefrontAccessTokenForShop } from '../../../../../lib/shopify-storefront-token';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,13 +20,15 @@ export async function GET(request: NextRequest) {
 
     const session = getShopifySession(shop!);
 
-    // Check environment variables
+    const storefrontToken = session
+      ? getStorefrontAccessTokenForShop(session.shop)
+      : undefined;
     const envCheck = {
       shop: shop,
       session: session ? 'Loaded' : 'Missing',
-      SHOPIFY_STOREFRONT_ACCESS_TOKEN: SHOPIFY_STOREFRONT_ACCESS_TOKEN ? 'Set' : 'Missing',
+      storefrontTokenForShop: storefrontToken ? 'Set' : 'Missing',
       hasSession: !!session,
-      hasToken: !!SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+      hasToken: !!storefrontToken,
     };
 
     if (!session) {
@@ -38,10 +39,10 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    if (!storefrontToken) {
       return NextResponse.json({
         success: false,
-        error: 'Missing Shopify Storefront access token',
+        error: 'Missing Shopify Storefront access token for this shop',
         envCheck,
       });
     }
@@ -64,7 +65,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
-        'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
+        'X-Shopify-Storefront-Access-Token': storefrontToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ query: testQuery }),

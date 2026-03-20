@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getShopifySession } from '../../../../lib/shopify-session-store';
 import { validateShopParameter } from '../../../../lib/shopify-oauth';
+import { getStorefrontAccessTokenForShop } from '../../../../lib/shopify-storefront-token';
 
-const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+function storefrontHeaders(shop: string): HeadersInit {
+  const token = getStorefrontAccessTokenForShop(shop);
+  if (!token) {
+    throw new Error('Missing Shopify Storefront access token for this shop');
+  }
+  return {
+    'X-Shopify-Storefront-Access-Token': token,
+    'Content-Type': 'application/json',
+  };
+}
 
 // GET endpoint for retrieving cart
 export async function GET(request: NextRequest) {
@@ -16,14 +26,18 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    const { shop } = sessionResolution.session;
+    if (!getStorefrontAccessTokenForShop(shop)) {
       return NextResponse.json(
-        { error: 'Missing Shopify Storefront access token' },
+        {
+          error: 'Missing Shopify Storefront access token for this shop',
+          shop,
+          hint: 'Set SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON for this shop or SHOPIFY_STOREFRONT_ACCESS_TOKEN for a single store.',
+        },
         { status: 500 }
       );
     }
 
-    const { shop } = sessionResolution.session;
     const cartId = request.nextUrl.searchParams.get('cartId');
 
     if (!cartId) {
@@ -49,6 +63,7 @@ export async function GET(request: NextRequest) {
 
 // POST endpoint for cart mutations
 export async function POST(request: NextRequest) {
+  let shopForDiagnostics: string | undefined;
   try {
     const sessionResolution = resolveSession(request);
 
@@ -59,14 +74,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    const { shop } = sessionResolution.session;
+    shopForDiagnostics = shop;
+    if (!getStorefrontAccessTokenForShop(shop)) {
       return NextResponse.json(
-        { error: 'Missing Shopify Storefront access token' },
+        {
+          error: 'Missing Shopify Storefront access token for this shop',
+          shop,
+          hint: 'Set SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON for this shop or SHOPIFY_STOREFRONT_ACCESS_TOKEN for a single store.',
+        },
         { status: 500 }
       );
     }
-
-    const { shop } = sessionResolution.session;
 
     const body = await request.json();
     const { action, cartId, lineId, variantId, quantity, customAttributes, lines } = body;
@@ -129,7 +148,9 @@ export async function POST(request: NextRequest) {
     console.error('Error details:', {
       message: error instanceof Error ? error.message : 'Unknown error',
       stack: error instanceof Error ? error.stack : undefined,
-      hasToken: !!SHOPIFY_STOREFRONT_ACCESS_TOKEN
+      hasToken: shopForDiagnostics
+        ? !!getStorefrontAccessTokenForShop(shopForDiagnostics)
+        : false,
     });
     return NextResponse.json(
       { 
@@ -207,10 +228,7 @@ async function createCart(
 
   const response = await fetch(`https://${shop}/api/2024-01/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-      'Content-Type': 'application/json',
-    },
+    headers: storefrontHeaders(shop),
     body: JSON.stringify({
       query: mutation,
       variables: {
@@ -315,10 +333,7 @@ async function addToCart(
 
   const response = await fetch(`https://${shop}/api/2024-01/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-      'Content-Type': 'application/json',
-    },
+    headers: storefrontHeaders(shop),
     body: JSON.stringify({
       query: mutation,
       variables: {
@@ -416,10 +431,7 @@ async function updateCartItem(shop: string, cartId: string, lineId: string, quan
 
   const response = await fetch(`https://${shop}/api/2024-01/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-      'Content-Type': 'application/json',
-    },
+    headers: storefrontHeaders(shop),
     body: JSON.stringify({
       query: mutation,
       variables: {
@@ -516,10 +528,7 @@ async function removeFromCart(shop: string, cartId: string, lineId: string) {
 
   const response = await fetch(`https://${shop}/api/2024-01/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-      'Content-Type': 'application/json',
-    },
+    headers: storefrontHeaders(shop),
     body: JSON.stringify({
       query: mutation,
       variables: {
@@ -605,10 +614,7 @@ async function getCart(shop: string, cartId: string) {
 
   const response = await fetch(`https://${shop}/api/2024-01/graphql.json`, {
     method: 'POST',
-    headers: {
-      'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
-      'Content-Type': 'application/json',
-    },
+    headers: storefrontHeaders(shop),
     body: JSON.stringify({
       query: query,
       variables: {

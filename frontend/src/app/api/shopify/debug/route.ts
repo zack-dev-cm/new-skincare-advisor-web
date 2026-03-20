@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getShopifySession } from '../../../../lib/shopify-session-store';
 import { validateShopParameter } from '../../../../lib/shopify-oauth';
-
-const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+import { getStorefrontAccessTokenForShop } from '../../../../lib/shopify-storefront-token';
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,10 +27,13 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    const storefrontToken = getStorefrontAccessTokenForShop(session.shop);
+    if (!storefrontToken) {
       return NextResponse.json({
         success: false,
-        error: 'Missing Shopify Storefront access token',
+        error: 'Missing Shopify Storefront access token for this shop',
+        shop: session.shop,
+        hint: 'Set SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON or SHOPIFY_STOREFRONT_ACCESS_TOKEN.',
       });
     }
 
@@ -102,7 +104,7 @@ export async function GET(request: NextRequest) {
       const storefrontResponse = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
         method: 'POST',
         headers: {
-          'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
+          'X-Shopify-Storefront-Access-Token': storefrontToken,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query: simpleQuery }),
@@ -180,7 +182,7 @@ export async function GET(request: NextRequest) {
         const specificResponse = await fetch(`https://${session.shop}/api/2024-01/graphql.json`, {
           method: 'POST',
           headers: {
-            'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN!,
+            'X-Shopify-Storefront-Access-Token': storefrontToken,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({ 

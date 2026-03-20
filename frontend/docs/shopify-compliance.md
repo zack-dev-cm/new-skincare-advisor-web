@@ -8,7 +8,8 @@ Set the following (server-side unless indicated):
 - `SHOPIFY_API_SECRET`
 - `SHOPIFY_APP_URL` (public HTTPS entrypoint of the app)
 - `SHOPIFY_API_SCOPES` (comma-separated scopes, e.g. `read_products,write_checkouts,write_cart,write_storefront_access_tokens`)
-- `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (Storefront API token stored server-side)
+- `SHOPIFY_STOREFRONT_ACCESS_TOKEN` (single-store: Storefront API token for that shop)
+- `SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON` (optional multi-store: JSON object mapping `store.myshopify.com` → Storefront access token)
 - `SHOPIFY_WEBHOOK_SECRET` (shared secret used to validate incoming webhooks)
 - `NEXT_PUBLIC_SHOPIFY_API_KEY` (client-side key required for App Bridge bootstrap)
 
@@ -25,7 +26,7 @@ Legacy `NEXT_PUBLIC_SHOPIFY_ACCESS_TOKEN` is no longer used; Admin tokens stay s
 ## API Behaviour
 
 - Admin endpoints (`/api/shopify`) require an authenticated session. The server retrieves the access token from the session store; no public env tokens are used.
-- Storefront endpoints (`/api/shopify/cart`, `/api/shopify/storefront`, product lookups) inspect the session to determine the shop domain and call the Storefront API with the server-held token.
+- Storefront endpoints resolve the token via `getStorefrontAccessTokenForShop` (`shopify-storefront-token.ts`): per-shop entry in `SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON`, else `SHOPIFY_STOREFRONT_ACCESS_TOKEN`. `/api/shopify/products/by-variant-ids` uses the `shop` query param and does not require OAuth, but still needs the correct Storefront token for that shop or Shopify returns 401.
 - SSE endpoint `/api/shopify/cart-events` now validates that the shop is authenticated before streaming updates.
 - Webhook registration (`/api/shopify/setup-webhooks`) pulls the Admin token from the session and uses `SHOPIFY_WEBHOOK_SECRET` for signature verification.
 

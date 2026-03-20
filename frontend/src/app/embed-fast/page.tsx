@@ -126,6 +126,36 @@ export default function FastEmbedPage() {
     }
   }, []);
 
+  /** Preview iframe skips full quiz-config fetch; still load template from API so branding matches the live widget. */
+  const fetchWidgetTemplateForPreview = useCallback(
+    async (shop: string, locale?: string, connectorUrlOverride?: string) => {
+      try {
+        const connectorApiUrl = (
+          connectorUrlOverride ||
+          process.env.NEXT_PUBLIC_SHOPIFY_CONNECTOR_URL ||
+          'https://connector.dermaself.it'
+        ).replace(/\/$/, '');
+        if (!connectorApiUrl) return;
+
+        const apiLocale = (locale || i18n.language || 'en').split('-')[0];
+        const apiUrl = `${connectorApiUrl}/api/quiz-config?shop=${encodeURIComponent(shop)}&locale=${encodeURIComponent(apiLocale)}`;
+        const response = await fetch(apiUrl, {
+          method: 'GET',
+          headers: { 'Content-Type': 'application/json' },
+        });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.template && typeof result.template === 'object') {
+          // Let postMessage template override when present (arrives after this fetch).
+          setThemeConfig((prev) => ({ ...result.template, ...(prev || {}) }));
+        }
+      } catch (e) {
+        console.warn('Quiz builder preview: could not load widget template from API', e);
+      }
+    },
+    [],
+  );
+
   // Load quiz configuration from API and initialize
   useEffect(() => {
     let cancelled = false;
@@ -159,11 +189,12 @@ export default function FastEmbedPage() {
         console.log('Store data from URL params:', { shop, locale, currency, market, country, connectorUrl: connectorUrlParam });
       }
 
-      // Quiz Builder preview: never fetch API (API enforces essential-first order). Use parent config only.
+      // Quiz Builder preview: do not use API for quiz steps (order). Load template from API + questions from parent.
       if (shop && quizBuilderPreview) {
         console.log(
-          '🧪 quizBuilderPreview: skipping API fetch; requesting config from parent via QUIZ_CONFIG_REQUEST',
+          '🧪 quizBuilderPreview: loading template from API; requesting quiz config from parent via QUIZ_CONFIG_REQUEST',
         );
+        void fetchWidgetTemplateForPreview(shop, locale ?? undefined, connectorUrlParam ?? undefined);
         if (window.parent !== window) {
           window.parent.postMessage({ type: 'QUIZ_CONFIG_REQUEST' }, '*');
         }
@@ -205,26 +236,42 @@ export default function FastEmbedPage() {
         previewFallbackTimerRef.current = null;
       }
     };
-  }, [fetchQuizConfig]);
+  }, [fetchQuizConfig, fetchWidgetTemplateForPreview]);
 
   // Listen for messages from parent Shopify page
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'OPEN_SKIN_ANALYSIS') {
+      const raw = event.data;
+      const data =
+        raw && typeof raw === 'object' && 'type' in raw
+          ? raw
+          : typeof raw === 'string'
+            ? (() => {
+                try {
+                  return JSON.parse(raw) as { type?: string };
+                } catch {
+                  return null;
+                }
+              })()
+            : null;
+      if (!data || typeof data !== 'object') return;
+
+      if (data.type === 'OPEN_SKIN_ANALYSIS') {
         setShowModal(true);
         // Riavvia background loading se necessario
         startBackgroundLoading();
-      } else if (event.data.type === 'CLOSE_SKIN_ANALYSIS') {
+      } else if (data.type === 'CLOSE_SKIN_ANALYSIS') {
         setShowModal(false);
-      } else if (event.data.type === 'SHOPIFY_STORE_DATA') {
+      } else if (data.type === 'SHOPIFY_STORE_DATA') {
         // Receive store data via postMessage from Shopify parent page
         // This is the primary way locale is passed from Shopify's Liquid context
-        const payload = event.data.payload;
+        const payload = (data as { payload?: Record<string, unknown> }).payload;
         setStoreData(payload);
         console.log('🌍 Store data received via postMessage:', payload);
         
         // Normalize locale from Shopify (e.g. "it-IT" → "it")
-        const locale = payload.locale?.split('-')[0];
+        const locale =
+          payload && typeof payload.locale === 'string' ? payload.locale.split('-')[0] : undefined;
         if (locale && ['it', 'es', 'en'].includes(locale) && i18n.language !== locale) {
           i18n.changeLanguage(locale);
           console.log('🌍 Language changed to:', locale);
@@ -232,20 +279,22 @@ export default function FastEmbedPage() {
         
         // Fetch quiz config with the Shopify locale only if we are NOT in preview
         // mode using builder-provided config.
-        if (!hasBuilderConfig && payload.shop) {
-          fetchQuizConfig(payload.shop, locale).finally(() => {
+        if (!hasBuilderConfig && payload && typeof payload === 'object' && 'shop' in payload && (payload as { shop?: string }).shop) {
+          const p = payload as { shop: string; locale?: string };
+          fetchQuizConfig(p.shop, locale).finally(() => {
             setLoadingConfig(false);
           });
         } else {
           setLoadingConfig(false);
         }
-      } else if (event.data.type === 'QUIZ_CONFIG_UPDATE') {
+      } else if (data.type === 'QUIZ_CONFIG_UPDATE') {
         // Preview mode from Shopify Quiz Builder: use config sent via postMessage,
         // including the question order defined there.
-        const payload = event.data as {
+        const payload = data as {
           type: string;
           shop?: string;
           config?: QuizConfig;
+          template?: Partial<WidgetThemeConfig>;
         };
 
         if (payload.config) {
@@ -260,6 +309,10 @@ export default function FastEmbedPage() {
           setShowModal(true);
           setLoadingConfig(false);
           setHasBuilderConfig(true);
+          // postMessage template wins over API preview fetch (same DB; supports newer admin fields).
+          if (payload.template && typeof payload.template === 'object') {
+            setThemeConfig((prev) => ({ ...(prev || {}), ...payload.template }));
+          }
         }
       }
     };
@@ -302,7 +355,7 @@ export default function FastEmbedPage() {
             onClose={handleCloseModal}
             storeData={storeData}
             translations={quizTranslations}
-            logoUrl={themeConfig?.logoUrl}
+            themeConfig={themeConfig ?? undefined}
           />
         </div>
       </div>

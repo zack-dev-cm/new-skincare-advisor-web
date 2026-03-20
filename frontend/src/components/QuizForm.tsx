@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { WIDGET_HEADER_LOGO_IMG_CLASS } from '@/lib/widget-theme';
+import {
+  WIDGET_HEADER_LOGO_IMG_CLASS,
+  applyThemeConfig,
+  type WidgetThemeConfig,
+} from '@/lib/widget-theme';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
 import PhotoInstructionsStep from './steps/photo_instructions_step';
@@ -64,6 +68,8 @@ interface QuizFormProps {
   translations?: QuizTranslations | null;
   /** Custom logo URL from merchant theme config. Falls back to Dermaself logo. */
   logoUrl?: string;
+  /** Full merchant theme (same as live embed). Applied on this subtree after mount so dynamic import cannot skip the logo. */
+  themeConfig?: Partial<WidgetThemeConfig>;
 }
 
 interface QuizAnswers {
@@ -72,10 +78,19 @@ interface QuizAnswers {
 
 type QuizStep = 'quiz' | 'photo-instructions' | 'camera-capture' | 'scan' | 'results';
 
-export default function QuizForm({ config, isOpen, onClose, storeData, translations, logoUrl }: QuizFormProps) {
+export default function QuizForm({
+  config,
+  isOpen,
+  onClose,
+  storeData,
+  translations,
+  logoUrl,
+  themeConfig,
+}: QuizFormProps) {
   const { t } = useTranslation(['steps', 'common']);
   const { locale } = useLocale();
   const appConfig = useAppConfig();
+  const quizRootRef = useRef<HTMLDivElement>(null);
   const [currentStep, setCurrentStep] = useState<QuizStep>('quiz');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<QuizAnswers>({});
@@ -83,6 +98,21 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'results' | 'routine'>('results');
+
+  const resolvedLogoSrc =
+    (themeConfig?.logoUrl && themeConfig.logoUrl.trim() !== '' ? themeConfig.logoUrl : null) ||
+    (logoUrl && logoUrl.trim() !== '' ? logoUrl : null) ||
+    LOGO_VIOLET;
+
+  const themeForNested =
+    themeConfig ?? (logoUrl && logoUrl.trim() !== '' ? { logoUrl } : undefined);
+
+  // Apply merchant theme on this root after children (including header logo) have committed.
+  // Parent embed uses a ref on an outer wrapper; with dynamic() import the logo often did not exist yet.
+  useLayoutEffect(() => {
+    if (!isOpen || !themeConfig || !quizRootRef.current) return;
+    applyThemeConfig(quizRootRef.current, themeConfig);
+  }, [isOpen, themeConfig]);
 
   // Helper function to get translated text, falling back to i18n or default
   const getTranslation = (key: string, fallbackKey?: string, params?: Record<string, any>): string => {
@@ -315,7 +345,10 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
   const showBack = currentStep !== 'quiz' || currentQuestionIndex > 0;
 
   return (
-    <div className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]">
+    <div
+      ref={quizRootRef}
+      className="relative w-full h-full bg-white overflow-clip flex flex-col md:max-w-[540px] md:max-h-[100vh]"
+    >
       {/* ─── Fixed Header ─── same as SkinAnalysisModal ─── */}
       <div className="sticky top-0 z-50 modal-header-bar px-4 py-2 safe-area-top flex items-center justify-between border-b flex-shrink-0">
         {/* Back Button */}
@@ -338,7 +371,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
         <div className="flex-1 text-center flex items-center justify-center">
           <div>
             <img
-              src={logoUrl || LOGO_VIOLET}
+              src={resolvedLogoSrc}
               alt="Dermaself"
               className={WIDGET_HEADER_LOGO_IMG_CLASS}
             />
@@ -564,7 +597,7 @@ export default function QuizForm({ config, isOpen, onClose, storeData, translati
                 mode="analysis"
                 analysisProgress={loading ? 75 : 100}
                 analysisImageUrl={capturedImage || ''}
-                themeConfig={{ logoUrl }}
+                themeConfig={themeForNested}
                 onBack={handleBack}
                 onClose={onClose}
                 showBack={showBack}

@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { validateShopParameter } from '../../../../../lib/shopify-oauth';
 import { normalizeShopifyDomain } from '../../../../../lib/shopify';
-
-const SHOPIFY_STOREFRONT_ACCESS_TOKEN = process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN;
+import { getStorefrontAccessTokenForShop } from '../../../../../lib/shopify-storefront-token';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,10 +19,15 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedShop = normalizeShopifyDomain(shop!);
+    const storefrontToken = getStorefrontAccessTokenForShop(normalizedShop);
 
-    if (!SHOPIFY_STOREFRONT_ACCESS_TOKEN) {
+    if (!storefrontToken) {
       return NextResponse.json(
-        { error: 'Missing Shopify Storefront access token' },
+        {
+          error: 'Missing Shopify Storefront access token for this shop',
+          shop: normalizedShop,
+          hint: 'Add this shop to SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON or set SHOPIFY_STOREFRONT_ACCESS_TOKEN to that store’s Storefront API token.',
+        },
         { status: 500 }
       );
     }
@@ -105,7 +109,7 @@ export async function POST(request: NextRequest) {
     const response = await fetch(`https://${normalizedShop}/api/2024-01/graphql.json`, {
       method: 'POST',
       headers: {
-        'X-Shopify-Storefront-Access-Token': SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+        'X-Shopify-Storefront-Access-Token': storefrontToken,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ 
@@ -120,14 +124,15 @@ export async function POST(request: NextRequest) {
       const errorText = await response.text();
       console.error(`❌ Shopify API error: ${response.status} ${response.statusText}`);
       console.error(`❌ Error response: ${errorText}`);
-      return NextResponse.json(
-        { 
-          error: 'Shopify API error',
-          status: response.status,
-          details: errorText
-        },
-        { status: response.status }
-      );
+      const body: Record<string, unknown> = {
+        error: 'Shopify API error',
+        status: response.status,
+        details: errorText,
+      };
+      if (response.status === 401) {
+        body.hint = `Storefront API rejected the token for ${normalizedShop}. Use that store’s Storefront access token from Admin → Settings → Apps → your app → API credentials, or add "${normalizedShop}" to SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON.`;
+      }
+      return NextResponse.json(body, { status: response.status });
     }
 
     const data = await response.json();

@@ -7,6 +7,8 @@ export async function GET(request: NextRequest) {
     SHOPIFY_API_KEY_SET: !!process.env.SHOPIFY_API_KEY,
     SHOPIFY_API_SECRET_SET: !!process.env.SHOPIFY_API_SECRET,
     SHOPIFY_STOREFRONT_ACCESS_TOKEN_SET: !!process.env.SHOPIFY_STOREFRONT_ACCESS_TOKEN,
+    SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON_SET:
+      !!process.env.SHOPIFY_STOREFRONT_ACCESS_TOKENS_JSON,
     ALL_ENV_KEYS: Object.keys(process.env).filter((key) => key.includes('SHOPIFY')),
   });
 } 
