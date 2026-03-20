@@ -88,6 +88,65 @@ Note:
 - Non serve disattivare la cache in produzione: l’URL del blob cambia a ogni iterazione.
 - Se vuoi testare un’altra immagine, imposta `IMAGE_URL` (deve essere pubblicamente accessibile).
 
+## Smoke test Node.js: upload-url -> infer
+Per una verifica rapida post-deploy senza k6:
+
+```bash
+cd api
+npm run smoke:e2e
+```
+
+Override supportati:
+- `INFER_URL`
+- `UPLOAD_URL`
+- `IMAGE_URL`
+- `UPLOAD_MIME_TYPE`
+- `REQUEST_TIMEOUT_MS`
+- `INCLUDE_RECOMMENDATIONS`
+- `EXPECT_WRINKLE_SERVICE_OVERLAYS`
+
+Esempio per validare il nuovo path pores+wrinkles dopo deploy:
+
+```bash
+cd api
+EXPECT_WRINKLE_SERVICE_OVERLAYS=true INCLUDE_RECOMMENDATIONS=false npm run smoke:e2e
+```
+
+Criteri di successo per il cutover GPU:
+- `infer_status = 200`
+- `partial = false`
+- `skipped_apis` assente o vuoto
+- `has_pores_data = true`
+- `has_wrinkle_service_overlays = true`
+- `pores_overlay_url` e `wrinkle_service_overlay_url` valorizzati
+- `overlay_checks[].ok = true`
+
+## Smoke test Node.js: local infer module -> live upload-url + live GPU VM
+Per verificare il codice locale di `api/infer` senza `func start`, ma usando:
+- `api/upload-url` live per creare il blob
+- il modulo locale `api/infer/index.js`
+- il backend GPU VM live per `pores+wrinkles`
+
+```bash
+cd api
+npm run smoke:local-infer
+```
+
+Override supportati:
+- `UPLOAD_URL`
+- `IMAGE_URL`
+- `UPLOAD_MIME_TYPE`
+- `REQUEST_TIMEOUT_MS`
+- `PORES_API_URL`
+- `PORES_API_CLOUDRUN_TASK`
+- `PORES_BREAKER_TIMEOUT_MS`
+- `INFER_SYNC_BUDGET_MS`
+
+Note:
+- Lo script forza `NODE_ENV=test` e `DISABLE_INFER_CACHE=true`.
+- Se gli endpoint legacy `acne/laxity/wrinkles` non sono configurati localmente, quelle chiamate andranno in fallback, ma il path GPU `pores+wrinkles` verrà comunque validato.
+- Questo smoke è utile per distinguere un problema di codice locale da un problema di deploy/config del Function App.
+
 ## Analisi con Application Insights
 Usa le query KQL in `api/tests/application-insights-queries.kql` impostando la finestra temporale del test. Focus:
 - `requests`: tempi e codici di risposta di `/api/infer`
@@ -104,5 +163,3 @@ Punti chiave da verificare:
 ## Suggerimenti
 - Se vuoi evitare il rate-limit in ambiente di test, valuta di eseguire contro un ambiente con `NODE_ENV=test` lato server (se supportato) o riduci i VUs.
 - Puoi esportare i risultati anche in formati aggiuntivi con `handleSummary`.
-
-

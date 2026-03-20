@@ -62,6 +62,93 @@ export interface UploadUrlResponse {
   expiresAt: string;
 }
 
+type WrinkleAnalysisPayload = {
+  predictions: Array<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    confidence: number;
+    class: string;
+    detection_id?: string;
+    points?: Array<{ x: number; y: number }>;
+  }>;
+  image: { width: number; height: number };
+  scaling_factors?: { x: number; y: number };
+  original_resolution?: { width: number; height: number };
+  counts?: Record<string, number>;
+  severity?: string;
+  has_forehead_wrinkles?: boolean;
+  has_expression_lines?: boolean;
+  has_under_eye_concerns?: boolean;
+  wrinkleSeverity?: {
+    overall?: {
+      severity?: number;
+    };
+  };
+  service_overlays?: {
+    source: string;
+    wrinkle_total: number;
+    wrinkles_visibility: string | null;
+    estimated_age_band: string | null;
+    skin_quality_score_0_100: number | null;
+    selected_region: string;
+    selected_preview_url: string | null;
+    selected_url: string | null;
+    full_face_preview_url: string | null;
+    full_face_url: string | null;
+    regions: Array<{
+      key: string;
+      label: string;
+      mask_key: string | null;
+      wrinkle_count: number;
+      bbox_full: { x0: number; y0: number; x1: number; y1: number } | null;
+      quality_visibility: string | null;
+      density_per_mpx: number | null;
+      mean_length_px: number | null;
+      median_length_px: number | null;
+      p90_length_px: number | null;
+      median_score: number | null;
+      median_linearity_score: number | null;
+      orientation_std_deg: number | null;
+      preview_url: string | null;
+      url: string | null;
+    }>;
+  };
+  wrinkleMetrics?: {
+    count?: number;
+    density_per_mpx?: number;
+    roi_area_px?: number;
+    skeleton_fraction?: number;
+    length_px?: {
+      min?: number;
+      max?: number;
+      mean?: number;
+      median?: number;
+      p90?: number;
+    };
+    linearity_score?: {
+      min?: number;
+      max?: number;
+      mean?: number;
+      median?: number;
+      p90?: number;
+    };
+    score?: {
+      min?: number;
+      max?: number;
+      mean?: number;
+      median?: number;
+      p90?: number;
+    };
+  };
+  wrinkleAssessment?: {
+    wrinkles_visibility?: string | null;
+    estimated_age_band?: string | null;
+    skin_quality_score_0_100?: number | null;
+  };
+};
+
 export interface AnalysisResponse {
   // Roboflow inference data
   predictions: Array<any>;
@@ -89,26 +176,8 @@ export interface AnalysisResponse {
     original_resolution?: { width: number; height: number };
   };
   
-  wrinkles?: {
-    predictions: Array<{
-      x: number;
-      y: number;
-      width: number;
-      height: number;
-      confidence: number;
-      class: string;
-      detection_id?: string;
-      points?: Array<{ x: number; y: number }>;
-    }>;
-    image: { width: number; height: number };
-    scaling_factors?: { x: number; y: number };
-    original_resolution?: { width: number; height: number };
-    counts?: Record<string, number>;
-    severity?: string;
-    has_forehead_wrinkles?: boolean;
-    has_expression_lines?: boolean;
-    has_under_eye_concerns?: boolean;
-  };
+  wrinkles?: WrinkleAnalysisPayload;
+  wrinklesData?: WrinkleAnalysisPayload;
   
   // Product recommendations
   recommendations?: {
@@ -536,4 +605,4 @@ export async function retryWithBackoff<T>(
   throw lastError!;
 }
 
-export default api; 
+export default api;

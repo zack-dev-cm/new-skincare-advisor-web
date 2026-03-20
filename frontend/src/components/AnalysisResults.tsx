@@ -288,7 +288,9 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
                 analysisData={{
                   predictions: result.rawAnalysisData.predictions || [],
                   erythema: result.rawAnalysisData.redness?.erythema || false,
+                  wrinklesData: result.rawAnalysisData.wrinklesData || undefined,
                   wrinkles: result.rawAnalysisData.wrinkles || undefined,
+                  poresData: result.rawAnalysisData.poresData || undefined,
                   image: result.rawAnalysisData.image || { width: 0, height: 0 }
                 }}
                 className="mb-4"
@@ -576,4 +578,4 @@ export default function AnalysisResults({ result, onReset }: AnalysisResultsProp
       </motion.div>
     </div>
   );
-} 
+}

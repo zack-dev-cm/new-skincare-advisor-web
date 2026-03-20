@@ -28,6 +28,27 @@ interface WrinklesPrediction {
   points?: Array<{ x: number; y: number }>;
 }
 
+interface WrinkleServiceRegion {
+  key: string;
+  label: string;
+  mask_key: string | null;
+  wrinkle_count: number;
+  preview_url: string | null;
+  url: string | null;
+}
+
+interface WrinkleServiceOverlays {
+  source: string;
+  wrinkle_total: number;
+  wrinkles_visibility: string | null;
+  selected_region: string;
+  selected_preview_url: string | null;
+  selected_url: string | null;
+  full_face_preview_url: string | null;
+  full_face_url: string | null;
+  regions: WrinkleServiceRegion[];
+}
+
 interface AnalysisData {
   predictions: Prediction[];
   laxityRednessData?: {
@@ -42,13 +63,14 @@ interface AnalysisData {
     predictions: WrinklesPrediction[];
     image: { width: number; height: number };
     wrinkleSeverity?: {
-      overall: { severity: number };
+      overall?: { severity?: number };
     };
     counts?: Record<string, number>;
     severity?: string;
     has_forehead_wrinkles?: boolean;
     has_expression_lines?: boolean;
     has_under_eye_concerns?: boolean;
+    service_overlays?: WrinkleServiceOverlays;
   };
   wrinkles?: {
     predictions: WrinklesPrediction[];
@@ -60,6 +82,7 @@ interface AnalysisData {
     has_forehead_wrinkles?: boolean;
     has_expression_lines?: boolean;
     has_under_eye_concerns?: boolean;
+    service_overlays?: WrinkleServiceOverlays;
   };
   poresData?: {
     pore_total: number;
@@ -145,6 +168,7 @@ export default function SkinAnalysisImage({
   const [showOverlays, setShowOverlays] = useState(true);
   const [hoveredDetection, setHoveredDetection] = useState<string | null>(null);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
+  const [selectedWrinkleRegion, setSelectedWrinkleRegion] = useState('full_face');
   const imageRef = useRef<HTMLImageElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -162,9 +186,52 @@ export default function SkinAnalysisImage({
   // Keep for convenience; now it's uniform (scaleX === scaleY)
   const [scaleFactors, setScaleFactors] = useState({ x: 1, y: 1 });
 
+  const wrinklesPayload = analysisData.wrinklesData || analysisData.wrinkles;
+  const wrinkleServiceOverlays = wrinklesPayload?.service_overlays;
+  const hasWrinkleServiceOverlay = Boolean(
+    wrinkleServiceOverlays?.full_face_preview_url ||
+    wrinkleServiceOverlays?.selected_preview_url ||
+    wrinkleServiceOverlays?.regions?.some((region) => region.preview_url || region.url)
+  );
+
+  useEffect(() => {
+    if (!hasWrinkleServiceOverlay) {
+      if (selectedWrinkleRegion !== 'full_face') {
+        setSelectedWrinkleRegion('full_face');
+      }
+      return;
+    }
+
+    const regionExists =
+      selectedWrinkleRegion === 'full_face' ||
+      wrinkleServiceOverlays?.regions?.some((region) => region.key === selectedWrinkleRegion);
+
+    if (!regionExists) {
+      setSelectedWrinkleRegion(wrinkleServiceOverlays?.selected_region || 'full_face');
+    }
+  }, [hasWrinkleServiceOverlay, selectedWrinkleRegion, wrinkleServiceOverlays]);
+
+  const activeWrinkleRegion =
+    selectedWrinkleRegion === 'full_face'
+      ? null
+      : wrinkleServiceOverlays?.regions?.find((region) => region.key === selectedWrinkleRegion) ?? null;
+
+  const selectedWrinkleOverlayUrl =
+    activeWrinkleRegion?.preview_url ||
+    activeWrinkleRegion?.url ||
+    wrinkleServiceOverlays?.full_face_preview_url ||
+    wrinkleServiceOverlays?.selected_preview_url ||
+    wrinkleServiceOverlays?.full_face_url ||
+    wrinkleServiceOverlays?.selected_url ||
+    null;
+
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
-    { url: imageUrl, label: t('image.wrinkles_analysis'), view: 'wrinkles' as const },
+    {
+      url: selectedWrinkleOverlayUrl || imageUrl,
+      label: t('image.wrinkles_analysis'),
+      view: 'wrinkles' as const
+    },
     ...(analysisData.poresData?.overlay_circles_preview_url
       ? [{ url: analysisData.poresData.overlay_circles_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
       : [])
@@ -525,6 +592,13 @@ export default function SkinAnalysisImage({
       .replace(/^./, (match) => match.toUpperCase());
   };
 
+  const hasStaticOverlayImage =
+    currentView === 'pores' ||
+    (currentView === 'wrinkles' && Boolean(selectedWrinkleOverlayUrl));
+
+  const wrinkleLegendRegions =
+    wrinkleServiceOverlays?.regions?.filter((region) => (region.preview_url || region.url) && region.wrinkle_count > 0) ?? [];
+
   return (
     <div className={`relative ${className}`}>
       {/* Image Carousel */}
@@ -544,16 +618,25 @@ export default function SkinAnalysisImage({
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                {analysisData.poresData?.overlay_circles_preview_url && (
+                {currentView === 'pores' && analysisData.poresData?.overlay_circles_preview_url && (
                   <img
                     src={analysisData.poresData.overlay_circles_preview_url}
                     alt={t('image.pores_analysis')}
-                    className={`w-full object-contain rounded-xl ${currentView === 'pores' ? 'block' : 'hidden'}`}
+                    className="w-full object-contain rounded-xl"
                     style={{ maxHeight: '384px', margin: '0 auto' }}
                   />
                 )}
 
-                <div className={currentView === 'pores' ? 'hidden' : 'block'}>
+                {currentView === 'wrinkles' && selectedWrinkleOverlayUrl && (
+                  <img
+                    src={selectedWrinkleOverlayUrl}
+                    alt={t('image.wrinkles_analysis')}
+                    className="w-full object-contain rounded-xl"
+                    style={{ maxHeight: '384px', margin: '0 auto' }}
+                  />
+                )}
+
+                <div className={hasStaticOverlayImage ? 'hidden' : 'block'}>
                   {/* Hidden image only for dimensions & load */}
                   <img
                     ref={imageRef}
@@ -656,6 +739,37 @@ export default function SkinAnalysisImage({
               >
                 {t('image.pores_analysis')}
               </div>
+            </div>
+          ) : currentView === 'wrinkles' && hasWrinkleServiceOverlay ? (
+            <div className="flex flex-wrap gap-2 justify-center">
+              <button
+                type="button"
+                onClick={() => setSelectedWrinkleRegion('full_face')}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                  selectedWrinkleRegion === 'full_face'
+                    ? 'bg-primary-600 text-white shadow'
+                    : 'bg-primary-50 text-primary-700'
+                }`}
+              >
+                {t('image.wrinkles_analysis')}
+                {wrinkleServiceOverlays?.wrinkle_total ? ` · ${wrinkleServiceOverlays.wrinkle_total}` : ''}
+              </button>
+
+              {wrinkleLegendRegions.map((region) => (
+                <button
+                  key={region.key}
+                  type="button"
+                  onClick={() => setSelectedWrinkleRegion(region.key)}
+                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    selectedWrinkleRegion === region.key
+                      ? 'bg-primary-600 text-white shadow'
+                      : 'bg-primary-50 text-primary-700'
+                  }`}
+                >
+                  {region.label}
+                  {region.wrinkle_count ? ` · ${region.wrinkle_count}` : ''}
+                </button>
+              ))}
             </div>
           ) : (
             /* Acne / Wrinkles view: existing class color legend */

@@ -7,6 +7,8 @@
     "build": "npm prune --production",
     "deploy": "npm ci --only=production",
     "test": "jest --runInBand --detectOpenHandles",
+    "smoke:e2e": "node tests/smoke-e2e-upload-infer.js",
+    "smoke:local-infer": "node tests/smoke-local-infer-with-live-upstreams.js",
     "lint": "eslint . --ext .js"
   },
   "dependencies": {

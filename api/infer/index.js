@@ -9,6 +9,7 @@ const { rateLimitMiddleware } = require('../shared/rateLimit');
 const cache = require('../shared/cache');
 const { enrichWithRecommendations } = require('../shared/recommendations');
 const { calculateSkinMetrics, getBenchmarks } = require('../shared/skinMetrics');
+const { mapCombinedPoresWrinklesResult, mergeWrinklesData } = require('./poresWrinklesMapper');
 const { v4: uuidv4 } = require('uuid');
 
 const logger = createLogger('infer');
@@ -671,17 +672,20 @@ module.exports = async function (context, req) {
       }
     }
     
-    const wrinklesData = wrinklesResp.status === 'fulfilled' ? wrinklesResp.value : {
+    const legacyWrinklesData = wrinklesResp.status === 'fulfilled' ? wrinklesResp.value : {
       predictions: [],
       image: { width: 0, height: 0 },
       time: 0,
       wrinkleSeverity: { overall: { severity: 1 } }
     };
 
-    // Pores: null when failed/timed-out — skinMetrics.pores stays null gracefully
-    const poresData = (poresResp.status === 'fulfilled' && poresResp.value !== null)
-      ? poresResp.value
-      : null;
+    let poresData = null;
+    let combinedWrinklesData = null;
+    if (poresResp.status === 'fulfilled' && poresResp.value !== null) {
+      ({ poresData, wrinklesData: combinedWrinklesData } = poresResp.value);
+    }
+
+    const wrinklesData = mergeWrinklesData(legacyWrinklesData, combinedWrinklesData);
 
     // Calculate erythema from redness predictedClass
     const rednessClass = laxityRednessData.predictions?.redness?.predictedClass || 1;
@@ -1313,62 +1317,7 @@ async function callPoresAPI(base64Image) {
     pore_severity_1_5: r.summary?.aggregate?.pore_severity_1_5
   });
 
-  const poreSeverity = r.summary?.analysis?.pore_severity ?? {};
-  const assessment = r.summary?.analysis?.assessment ?? {};
-  const poreMetrics = r.summary?.analysis?.pore_metrics ?? {};
-  const regionBreakdown = r.summary?.analysis?.region_breakdown ?? {};
-  const preprocess = r.preprocess ?? r.summary?.yolo_pores?.preprocess ?? {};
-
-  // Project region bounding boxes — bbox_full is already in original-image pixel space
-  const regions = {};
-  for (const [region, data] of Object.entries(regionBreakdown)) {
-    if (data && typeof data === 'object') {
-      regions[region] = {
-        bbox_full: data.bbox_full ?? null,     // coordinates on the original selfie (pixels)
-        pore_count: data.pores?.metrics?.count ?? 0,
-        visible_count: data.pores?.metrics?.visible_count ?? 0,
-        visible_fraction: data.pores?.metrics?.visible_fraction ?? null,
-        quality_visibility: data.quality?.visibility ?? null,
-      };
-    }
-  }
-
-  return {
-    job_id,
-    // Aggregate counts + severity (1–5 scale)
-    pore_total: r.summary?.aggregate?.pore_total ?? 0,
-    pore_severity_1_5: r.summary?.aggregate?.pore_severity_1_5 ?? null,
-    pore_size_severity_1_5: r.summary?.aggregate?.pore_size_severity_1_5 ?? null,
-    // Severity detail
-    score_label: poreSeverity.score_label ?? null,          // "minimal"|"mild"|"moderate"|"high"|"very_high"
-    score_0_100: poreSeverity.score_0_100 ?? null,          // normalized 0-100 index
-    // Visible pore stats (pores clearly detectable vs low-contrast)
-    visible_count: poreMetrics.visible_count ?? null,
-    visible_fraction: poreMetrics.visible_fraction ?? null, // 0.0-1.0
-    // Assessment flags
-    large_pores_present: assessment.large_pores_present ?? null,
-    pores_visibility: assessment.pores_visibility ?? null,  // "low"|"medium"|"high"
-    // Per-region breakdown with bbox_full in original image coordinates
-    // → use these to draw colored region overlays on the selfie in the frontend
-    regions,
-    // Preprocessor metadata (crop_bbox + resized_scale needed to map crop-space → original space)
-    preprocess: {
-      crop_bbox: preprocess.crop_bbox ?? null,
-      resized_scale: preprocess.resized_scale ?? null,
-      resized_from: preprocess.resized_from ?? null,
-    },
-    // Pre-rendered overlay image — easiest path for frontend display
-    overlay_preview_url: r.selected_overlay_preview_url
-      ? `${apiUrl}${r.selected_overlay_preview_url}`
-      : null,
-    overlay_url: r.selected_overlay_url
-      ? `${apiUrl}${r.selected_overlay_url}`
-      : null,
-    // Circles-only overlay: pores rendered as green dots only, no region masks
-    overlay_circles_preview_url: r.overlay_preview_urls?.pores_circles
-      ? `${apiUrl}${r.overlay_preview_urls.pores_circles}`
-      : null,
-  };
+  return mapCombinedPoresWrinklesResult({ ...r, job_id }, apiUrl);
 }
 
 /**
