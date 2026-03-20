@@ -1236,12 +1236,14 @@ async function callPoresAPI(base64Image) {
 
   const startTime = Date.now();
   const imageBuffer = Buffer.from(base64Image, 'base64');
+  const submitTimeoutMs = parseInt(process.env.PORES_SUBMIT_TIMEOUT_MS || '45000', 10);
   const progressPollTimeoutMs = parseInt(process.env.PORES_PROGRESS_POLL_TIMEOUT_MS || '15000', 10);
   const resultsFetchTimeoutMs = parseInt(process.env.PORES_RESULTS_TIMEOUT_MS || '20000', 10);
   const cloudRunTask = process.env.PORES_API_CLOUDRUN_TASK || 'pores+wrinkles';
 
   logger.info('Pores API runtime config', {
     cloudRunTask,
+    submitTimeoutMs,
     progressPollTimeoutMs,
     resultsFetchTimeoutMs,
     breakerTimeoutMs: poresBreakerTimeoutMs
@@ -1260,7 +1262,7 @@ async function callPoresAPI(base64Image) {
   logger.info('Calling Pores API (submit)', { url: apiUrl });
 
   // Submit the analysis job
-  const startResp = await axios.post(`${apiUrl}/v1/analyze`, form, { timeout: 15000 });
+  const startResp = await axios.post(`${apiUrl}/v1/analyze`, form, { timeout: submitTimeoutMs });
   const { job_id, progress_url, results_url } = startResp.data;
 
   logger.info('Pores API job submitted', { job_id });

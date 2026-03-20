@@ -87,6 +87,20 @@ function mapCombinedPoresWrinklesResult(resultPayload, apiUrl) {
   });
 
   const wrinkleTotal = toFiniteNumber(aggregate.wrinkle_total) ?? toFiniteNumber(analysis.wrinkle_metrics?.count) ?? 0;
+  const wrinkleFullFacePreviewUrl = toAbsoluteApiUrl(
+    apiUrl,
+    payload.overlay_preview_urls?.wrinkles ??
+      payload.selected_overlay_preview_url ??
+      payload.mask_overlay_preview_urls?.wrinkles ??
+      payload.selected_mask_overlay_preview_url
+  );
+  const wrinkleFullFaceUrl = toAbsoluteApiUrl(
+    apiUrl,
+    payload.overlay_urls?.wrinkles ??
+      payload.selected_overlay_url ??
+      payload.mask_overlay_urls?.wrinkles ??
+      payload.selected_mask_overlay_url
+  );
 
   return {
     poresData: {
@@ -125,22 +139,10 @@ function mapCombinedPoresWrinklesResult(resultPayload, apiUrl) {
         estimated_age_band: assessment.estimated_age_band ?? null,
         skin_quality_score_0_100: assessment.skin_quality_score_0_100 ?? null,
         selected_region: 'full_face',
-        selected_preview_url: toAbsoluteApiUrl(
-          apiUrl,
-          payload.mask_overlay_preview_urls?.wrinkles ?? payload.overlay_preview_urls?.wrinkles ?? payload.selected_overlay_preview_url
-        ),
-        selected_url: toAbsoluteApiUrl(
-          apiUrl,
-          payload.mask_overlay_urls?.wrinkles ?? payload.overlay_urls?.wrinkles ?? payload.selected_overlay_url
-        ),
-        full_face_preview_url: toAbsoluteApiUrl(
-          apiUrl,
-          payload.mask_overlay_preview_urls?.wrinkles ?? payload.overlay_preview_urls?.wrinkles ?? payload.selected_overlay_preview_url
-        ),
-        full_face_url: toAbsoluteApiUrl(
-          apiUrl,
-          payload.mask_overlay_urls?.wrinkles ?? payload.overlay_urls?.wrinkles ?? payload.selected_overlay_url
-        ),
+        selected_preview_url: wrinkleFullFacePreviewUrl,
+        selected_url: wrinkleFullFaceUrl,
+        full_face_preview_url: wrinkleFullFacePreviewUrl,
+        full_face_url: wrinkleFullFaceUrl,
         regions: wrinkleRegions,
       },
       wrinkleMetrics: analysis.wrinkle_metrics ?? null,

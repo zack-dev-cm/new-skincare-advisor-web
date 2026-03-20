@@ -90,7 +90,7 @@ describe('poresWrinklesMapper', () => {
 
     expect(mapped.wrinklesData.wrinkleSeverity.overall.severity).toBe(3);
     expect(mapped.wrinklesData.service_overlays.selected_preview_url).toBe(
-      'https://gpu.example.com/v1/results/job-123/mask-overlay/wrinkles?format=jpg'
+      'https://gpu.example.com/v1/results/job-123/overlay/wrinkles?format=jpg'
     );
     expect(mapped.wrinklesData.service_overlays.regions).toHaveLength(1);
     expect(mapped.wrinklesData.service_overlays.regions[0]).toMatchObject({
@@ -141,7 +141,7 @@ describe('poresWrinklesMapper', () => {
     expect(merged.predictions).toEqual([]);
     expect(merged.wrinkleSeverity.overall.severity).toBe(3);
     expect(merged.error).toBeUndefined();
-    expect(merged.service_overlays.selected_preview_url).toContain('/mask-overlay/wrinkles');
+    expect(merged.service_overlays.selected_preview_url).toContain('/overlay/wrinkles');
   });
 
   test('derives stable wrinkle severity buckets from totals', () => {

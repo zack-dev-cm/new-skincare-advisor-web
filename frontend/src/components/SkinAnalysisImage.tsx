@@ -159,6 +159,149 @@ const getTextColor = (backgroundColor: string) => {
   return luminance > 0.5 ? '#000000' : '#ffffff';
 };
 
+const GPU_IMAGE_PROXY_PATH = '/api/gpu-image';
+
+const toDisplayOverlayUrl = (url: string | null | undefined) => {
+  if (!url) return null;
+
+  try {
+    const parsed =
+      typeof window === 'undefined'
+        ? new URL(url, 'http://localhost')
+        : new URL(url, window.location.origin);
+
+    if (parsed.protocol === 'http:') {
+      return `${GPU_IMAGE_PROXY_PATH}?src=${encodeURIComponent(parsed.toString())}`;
+    }
+
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+};
+
+const recolorPoresOverlay = (
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number
+) => {
+  const imageData = ctx.getImageData(0, 0, width, height);
+  const pixels = imageData.data;
+  const target = { r: 255, g: 186, b: 250 };
+
+  for (let index = 0; index < pixels.length; index += 4) {
+    const red = pixels[index];
+    const green = pixels[index + 1];
+    const blue = pixels[index + 2];
+    const alpha = pixels[index + 3];
+
+    if (alpha === 0) {
+      continue;
+    }
+
+    const greenDominance = green - Math.max(red, blue);
+    if (green < 115 || greenDominance < 40) {
+      continue;
+    }
+
+    const strength = Math.min(1, Math.max(0.35, greenDominance / 180));
+    pixels[index] = Math.round(red * (1 - strength) + target.r * strength);
+    pixels[index + 1] = Math.round(green * (1 - strength) + target.g * strength);
+    pixels[index + 2] = Math.round(blue * (1 - strength) + target.b * strength);
+  }
+
+  ctx.putImageData(imageData, 0, 0);
+};
+
+function OverlayImageCanvas({
+  src,
+  alt,
+  recolorPores = false,
+}: {
+  src: string;
+  alt: string;
+  recolorPores?: boolean;
+}) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoadFailed(false);
+    setIsReady(false);
+
+    const img = new window.Image();
+    img.decoding = 'async';
+    img.crossOrigin = 'anonymous';
+
+    img.onload = () => {
+      if (cancelled || !canvasRef.current) {
+        return;
+      }
+
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext('2d');
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+
+      if (!ctx || !width || !height) {
+        setLoadFailed(true);
+        return;
+      }
+
+      canvas.width = width;
+      canvas.height = height;
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      if (recolorPores) {
+        recolorPoresOverlay(ctx, width, height);
+      }
+
+      setIsReady(true);
+    };
+
+    img.onerror = () => {
+      if (!cancelled) {
+        setLoadFailed(true);
+      }
+    };
+
+    img.src = src;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [recolorPores, src]);
+
+  if (loadFailed) {
+    return (
+      <img
+        src={src}
+        alt={alt}
+        className="w-full object-contain rounded-xl"
+        style={{ maxHeight: '384px', margin: '0 auto' }}
+      />
+    );
+  }
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-label={alt}
+      role="img"
+      className="w-full rounded-xl"
+      style={{
+        maxHeight: '384px',
+        margin: '0 auto',
+        display: isReady ? 'block' : 'none',
+        height: 'auto',
+      }}
+    />
+  );
+}
+
 export default function SkinAnalysisImage({ 
   imageUrl, 
   analysisData, 
@@ -225,16 +368,20 @@ export default function SkinAnalysisImage({
     wrinkleServiceOverlays?.full_face_url ||
     wrinkleServiceOverlays?.selected_url ||
     null;
+  const displayWrinkleOverlayUrl = toDisplayOverlayUrl(selectedWrinkleOverlayUrl);
+  const displayPoresOverlayUrl = toDisplayOverlayUrl(
+    analysisData.poresData?.overlay_circles_preview_url
+  );
 
   const carouselImages = [
     { url: imageUrl, label: t('image.imperfections'), view: 'acne' as const },
     {
-      url: selectedWrinkleOverlayUrl || imageUrl,
+      url: displayWrinkleOverlayUrl || imageUrl,
       label: t('image.wrinkles_analysis'),
       view: 'wrinkles' as const
     },
-    ...(analysisData.poresData?.overlay_circles_preview_url
-      ? [{ url: analysisData.poresData.overlay_circles_preview_url, label: t('image.pores_analysis'), view: 'pores' as const }]
+    ...(displayPoresOverlayUrl
+      ? [{ url: displayPoresOverlayUrl, label: t('image.pores_analysis'), view: 'pores' as const }]
       : [])
   ];
 
@@ -595,7 +742,7 @@ export default function SkinAnalysisImage({
 
   const hasStaticOverlayImage =
     currentView === 'pores' ||
-    (currentView === 'wrinkles' && Boolean(selectedWrinkleOverlayUrl));
+    (currentView === 'wrinkles' && Boolean(displayWrinkleOverlayUrl));
 
   const wrinkleLegendRegions =
     wrinkleServiceOverlays?.regions?.filter((region) => (region.preview_url || region.url) && region.wrinkle_count > 0) ?? [];
@@ -619,18 +766,17 @@ export default function SkinAnalysisImage({
                 transition={{ duration: 0.3 }}
                 className="w-full"
               >
-                {currentView === 'pores' && analysisData.poresData?.overlay_circles_preview_url && (
-                  <img
-                    src={analysisData.poresData.overlay_circles_preview_url}
+                {currentView === 'pores' && displayPoresOverlayUrl && (
+                  <OverlayImageCanvas
+                    src={displayPoresOverlayUrl}
                     alt={t('image.pores_analysis')}
-                    className="w-full object-contain rounded-xl"
-                    style={{ maxHeight: '384px', margin: '0 auto' }}
+                    recolorPores
                   />
                 )}
 
-                {currentView === 'wrinkles' && selectedWrinkleOverlayUrl && (
+                {currentView === 'wrinkles' && displayWrinkleOverlayUrl && (
                   <img
-                    src={selectedWrinkleOverlayUrl}
+                    src={displayWrinkleOverlayUrl}
                     alt={t('image.wrinkles_analysis')}
                     className="w-full object-contain rounded-xl"
                     style={{ maxHeight: '384px', margin: '0 auto' }}
