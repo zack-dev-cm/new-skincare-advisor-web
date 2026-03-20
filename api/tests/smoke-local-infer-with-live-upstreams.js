@@ -17,7 +17,7 @@ process.env.PORES_API_CLOUDRUN_TASK =
   process.env.PORES_API_CLOUDRUN_TASK || 'pores+wrinkles';
 process.env.PORES_BREAKER_TIMEOUT_MS =
   process.env.PORES_BREAKER_TIMEOUT_MS || '240000';
-process.env.INFER_SYNC_BUDGET_MS = process.env.INFER_SYNC_BUDGET_MS || '120000';
+process.env.INFER_SYNC_BUDGET_MS = process.env.INFER_SYNC_BUDGET_MS || '300000';
 process.env.INFER_RECOMMENDATIONS_RESERVE_MS =
   process.env.INFER_RECOMMENDATIONS_RESERVE_MS || '1000';
 

@@ -141,9 +141,13 @@ Override supportati:
 - `PORES_API_CLOUDRUN_TASK`
 - `PORES_BREAKER_TIMEOUT_MS`
 - `INFER_SYNC_BUDGET_MS`
+- `INFER_RECOMMENDATIONS_RESERVE_MS`
 
 Note:
 - Lo script forza `NODE_ENV=test` e `DISABLE_INFER_CACHE=true`.
+- Lo smoke usa `INFER_SYNC_BUDGET_MS=300000` di default: il path GPU combinato
+  puo superare i 120 secondi, quindi budget piu bassi possono produrre un
+  fallback `partial: true` pur con il backend GPU sano.
 - Se gli endpoint legacy `acne/laxity/wrinkles` non sono configurati localmente, quelle chiamate andranno in fallback, ma il path GPU `pores+wrinkles` verrà comunque validato.
 - Questo smoke è utile per distinguere un problema di codice locale da un problema di deploy/config del Function App.
 

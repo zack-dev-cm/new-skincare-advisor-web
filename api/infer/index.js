@@ -17,7 +17,7 @@ const logger = createLogger('infer');
 const disableCache =
   (process.env.DISABLE_INFER_CACHE || '').toLowerCase() === 'true';
 const inferSyncBudgetMs = Math.max(
-  parseInt(process.env.INFER_SYNC_BUDGET_MS || '', 10) || 58000,
+  parseInt(process.env.INFER_SYNC_BUDGET_MS || '', 10) || 300000,
   1000
 );
 const inferRecommendationsReserveMs = Math.max(
