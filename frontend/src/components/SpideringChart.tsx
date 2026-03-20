@@ -148,7 +148,7 @@ export default function SpideringChart({
       userValue: userMetrics.pores as number,
       benchmarkValue: (benchmarks.pores as number | null) ?? 2, // 2 = "mild" reference
       max: 5,
-      color: '#7547F2'
+      color: '#ffbafa'
     }] : [])
   ];
 

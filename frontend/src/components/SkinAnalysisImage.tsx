@@ -124,6 +124,7 @@ const ACNE_COLORS = {
 
 const REDNESS_COLOR = '#FF4757';
 const REDNESS_OPACITY = 0.8;
+const PORES_ACCENT_COLOR = '#ffbafa';
 
 // Wrinkles color mapping with transparency
 const WRINKLES_COLORS = {
@@ -566,7 +567,7 @@ export default function SkinAnalysisImage({
         return getWrinkleColor(className);
       case 'pores':
       default:
-        return '#7547F2';
+        return PORES_ACCENT_COLOR;
     }
   };
 
@@ -735,7 +736,7 @@ export default function SkinAnalysisImage({
             <div className="flex flex-wrap gap-2 justify-center">
               <div
                 className="px-3 py-1 rounded-full text-sm font-medium"
-                style={{ backgroundColor: '#00FF00', color: '#000000' }}
+                style={{ backgroundColor: PORES_ACCENT_COLOR, color: '#000000' }}
               >
                 {t('image.pores_analysis')}
               </div>
