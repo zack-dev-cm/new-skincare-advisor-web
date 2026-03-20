@@ -60,7 +60,9 @@ function determineRecommendationStrategy(inferenceResult, userData) {
         calculateSkinMetrics(
           inferenceResult.acneFullData,
           inferenceResult.laxityRednessData,
-          inferenceResult.wrinklesData
+          inferenceResult.wrinklesData,
+          inferenceResult.poresData,
+          inferenceResult.userData || userData || {}
         );
       benchmarks =
         inferenceResult.skinBenchmarks ||
@@ -148,8 +150,12 @@ function mapSkinToRecommendationPayload(inferenceResult, userData, skinCondition
  * @param {Object} userData - User data
  * @returns {Promise<Object>} Recommendations response
  */
-async function getProductRecommendations(inferenceResult, userData = {}, languageCode) {
+async function getProductRecommendations(inferenceResult, userData = {}, languageCode, options = {}) {
   const startTime = Date.now();
+  const timeoutMs = Math.max(
+    parseInt(options.timeoutMs || '', 10) || config.recommendations.timeout,
+    500
+  );
   
   try {
     // Determine which API to use
@@ -178,7 +184,7 @@ async function getProductRecommendations(inferenceResult, userData = {}, languag
         'Content-Type': 'application/json',
         'Accept': 'application/json'
       },
-      timeout: config.recommendations.timeout
+      timeout: timeoutMs
     });
 
     const duration = Date.now() - startTime;
@@ -233,9 +239,9 @@ async function getProductRecommendations(inferenceResult, userData = {}, languag
  * @param {Object} userData - User data
  * @returns {Promise<Object>} Enriched result
  */
-async function enrichWithRecommendations(inferenceResult, userData = {}, languageCode) {
+async function enrichWithRecommendations(inferenceResult, userData = {}, languageCode, options = {}) {
   try {
-    const recommendations = await getProductRecommendations(inferenceResult, userData, languageCode);
+    const recommendations = await getProductRecommendations(inferenceResult, userData, languageCode, options);
     
     return {
       ...inferenceResult,

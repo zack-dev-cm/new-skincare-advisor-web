@@ -19,6 +19,10 @@ const inferSyncBudgetMs = Math.max(
   parseInt(process.env.INFER_SYNC_BUDGET_MS || '', 10) || 58000,
   1000
 );
+const inferRecommendationsReserveMs = Math.max(
+  parseInt(process.env.INFER_RECOMMENDATIONS_RESERVE_MS || '', 10) || 12000,
+  1000
+);
 
 // Schema di validazione robusto
 const requestSchema = Joi.object({
@@ -227,6 +231,7 @@ async function initServiceBus() {
 
 module.exports = async function (context, req) {
   const startTime = Date.now();
+  const syncDeadline = startTime + inferSyncBudgetMs;
   
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -283,6 +288,8 @@ module.exports = async function (context, req) {
       skinMetrics: clientSkinMetrics,
       skinBenchmarks: clientSkinBenchmarks
     } = value;
+    const recommendationsReserveMs = includeRecommendations ? inferRecommendationsReserveMs : 0;
+    const analysisDeadline = syncDeadline - recommendationsReserveMs;
 
     // Modalità solo raccomandazioni: non richiede immagine né analisi pelle
     if (mode === 'recommendationOnly') {
@@ -328,7 +335,13 @@ module.exports = async function (context, req) {
 
       // Enrich con raccomandazioni mantenendo la stessa firma delle funzioni
       if (includeRecommendations) {
-        const enriched = await enrichWithRecommendations(finalResult, userData, language_code);
+        const recommendationsTimeoutMs = Math.max(syncDeadline - Date.now(), 500);
+        const enriched = await enrichWithRecommendations(
+          finalResult,
+          userData,
+          language_code,
+          { timeoutMs: recommendationsTimeoutMs }
+        );
         finalResult = {
           ...enriched,
           recommendationData: enriched.recommendations
@@ -548,13 +561,12 @@ module.exports = async function (context, req) {
     // Esegui chiamate alle tre API in parallelo
     const base64Image = await imageUrlToBase64(imageUrl);
     
-    const syncDeadline = Date.now() + inferSyncBudgetMs;
     const settleWithinSyncBudget = (promise, apiName) => {
-      const remainingMs = syncDeadline - Date.now();
+      const remainingMs = analysisDeadline - Date.now();
       if (remainingMs <= 0) {
         return Promise.resolve({
           status: 'rejected',
-          reason: new Error(`${apiName} skipped: sync budget already exhausted`)
+          reason: new Error(`${apiName} skipped: analysis budget already exhausted`)
         });
       }
 
@@ -569,7 +581,7 @@ module.exports = async function (context, req) {
         const timeout = setTimeout(() => {
           finish({
             status: 'rejected',
-            reason: new Error(`${apiName} skipped: exceeded sync budget (${inferSyncBudgetMs}ms)`)
+            reason: new Error(`${apiName} skipped: exceeded analysis budget (${Math.max(analysisDeadline - startTime, 0)}ms)`)
           });
         }, remainingMs);
 
@@ -685,7 +697,7 @@ module.exports = async function (context, req) {
     };
     
     // Calculate skin metrics (poresData populates skinMetrics.pores)
-    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData);
+    const skinMetrics = calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData, userData || {});
     const skinBenchmarks = getBenchmarks(userData.ageRange || '26-35', userData.gender || 'female');
 
     // Build final result matching JavaScript structure EXACTLY
@@ -721,7 +733,13 @@ module.exports = async function (context, req) {
     
     // Enrich with recommendations if requested
     if (includeRecommendations) {
-      const enriched = await enrichWithRecommendations(finalResult, userData, language_code);
+      const recommendationsTimeoutMs = Math.max(syncDeadline - Date.now(), 500);
+      const enriched = await enrichWithRecommendations(
+        finalResult,
+        userData,
+        language_code,
+        { timeoutMs: recommendationsTimeoutMs }
+      );
       // Add both "recommendations" and "recommendationData" for JavaScript compatibility
       finalResult = {
         ...enriched,

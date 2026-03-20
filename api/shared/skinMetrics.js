@@ -83,14 +83,34 @@ function isYoungAgeRange(ageRange) {
 }
 
 /**
+ * Checks if ageRange corresponds to users older than 45 years
+ * @param {string} ageRange
+ * @returns {boolean}
+ */
+function isAbove45AgeRange(ageRange) {
+  if (!ageRange) return false;
+  const label = ageRange.toLowerCase();
+
+  // Common labels used across frontend/backend mappings
+  if (label.includes("più") || label.includes("oltre") || label.includes("55+") || label.includes(">50")) return true;
+  if (label.includes("45") && (label.includes("54") || label.includes("+"))) return true;
+
+  // Explicit "over 45" labels
+  if (label.includes("45") && (label.includes("over") || label.includes("above"))) return true;
+
+  return false;
+}
+
+/**
  * Calculates all skin metrics from analysis data
  * @param {Object} acneFullData - Acne detection results
  * @param {Object} laxityRednessData - Laxity/redness/dryness results
  * @param {Object} wrinklesData - Wrinkles detection results
  * @param {Object|null} poresData - Pores analysis results from Cloud Run (null if unavailable)
+ * @param {Object} userData - Optional user data (ageRange used for acne remapping)
  * @returns {Object} Metrics with standardized scales
  */
-function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData) {
+function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, poresData, userData = {}) {
   // Validation
   if (!acneFullData || !laxityRednessData || !wrinklesData) {
     logger.error('Incomplete data in calculateSkinMetrics');
@@ -102,13 +122,30 @@ function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, por
     throw new Error('Invalid laxityRednessData structure');
   }
   
-  // Acne (1-4): force to 1 if no-acne, otherwise use severity
+  // Acne:
+  // - Young with acne: keep legacy mapping (None=1, Mild=2, Moderate=3, Severe=4)
+  // - Non-young users: downgrade one level (Mild->1, Moderate->2, Severe->3)
+  // - Above 45 users: stricter downgrade (Mild/Moderate->1, Severe->2)
   let acne = 1;
   const acneClassification = acneFullData["acne-classification"] || "";
+  const ageRange = userData?.ageRange || "";
+  const acneSeverityNum = mapSeverityStringToNumber(acneFullData["acne-severity"]);
+  const youngWithAcne = isYoungWithAcne(ageRange, acneClassification);
+
   if (acneClassification.toLowerCase() === "no-acne") {
     acne = 1;
+  } else if (youngWithAcne) {
+    acne = acneSeverityNum;
   } else {
-    acne = mapSeverityStringToNumber(acneFullData["acne-severity"]);
+    const above45 = isAbove45AgeRange(ageRange);
+    if (above45) {
+      // For >45: None/Mild/Moderate => 1, Severe => 2
+      if (acneSeverityNum >= 4) acne = 2;
+      else acne = 1;
+    } else {
+      // Adult non-young: None/Mild => 1, Moderate => 2, Severe => 3
+      acne = Math.max(1, acneSeverityNum - 1);
+    }
   }
   
   // Spots/Macchie (1-4): from spot-severity
@@ -130,7 +167,10 @@ function calculateSkinMetrics(acneFullData, laxityRednessData, wrinklesData, por
   const laxity = parseInt(laxityRednessData.predictions?.laxity?.predictedClass) || 1;
   
   logger.info('Skin metrics calculated', {
-    acne, spots, dryness, wrinkles, redness, laxity
+    acne, spots, dryness, wrinkles, redness, laxity,
+    acneClassification,
+    ageRange,
+    youngWithAcne
   });
   
   return {

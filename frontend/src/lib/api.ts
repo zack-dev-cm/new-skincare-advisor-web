@@ -2,11 +2,12 @@ import axios from 'axios';
 import { getShopifyDomain } from './shopify';
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://new-skincare-advisor-api-fqc8dffvg5ghene2.westeurope-01.azurewebsites.net/api';
+const API_TIMEOUT_MS = parseInt(process.env.NEXT_PUBLIC_API_TIMEOUT_MS || '120000', 10);
 
 // Axios instance pre-configured for our API
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 60000, // Increased to 60s to match Azure Functions processing time
+  timeout: API_TIMEOUT_MS, // Configurable client timeout (default 120s)
   headers: { 'Content-Type': 'application/json' },
 });
 
