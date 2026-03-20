@@ -51,6 +51,30 @@ export default function FastEmbedPage() {
   const [loadingConfig, setLoadingConfig] = useState(true);
   const [hasBuilderConfig, setHasBuilderConfig] = useState(false);
   const previewFallbackTimerRef = useRef<number | null>(null);
+  // Handshake with parent: parent opens the modal and waits until config is ready,
+  // so we don't show intermediate "Loading..." UI.
+  const loadingConfigRef = useRef<boolean>(loadingConfig);
+  const openRequestIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    loadingConfigRef.current = loadingConfig;
+  }, [loadingConfig]);
+
+  useEffect(() => {
+    if (loadingConfigRef.current) return;
+    const requestId = openRequestIdRef.current;
+    if (!requestId) return;
+    openRequestIdRef.current = null;
+    if (window.parent !== window) {
+      window.parent.postMessage(
+        {
+          type: 'SKIN_ANALYSIS_CONFIG_READY',
+          payload: { requestId },
+        },
+        '*',
+      );
+    }
+  }, [loadingConfig]);
 
   // Callback ref: applies theme as soon as the DOM node is attached (or when
   // themeConfig changes, which creates a new callback identity and causes React
@@ -260,9 +284,26 @@ export default function FastEmbedPage() {
       if (!data || typeof data !== 'object') return;
 
       if (data.type === 'OPEN_SKIN_ANALYSIS') {
+        const payload = (data as { payload?: Record<string, unknown> }).payload;
+        const requestId = payload && typeof payload.requestId === 'string' ? payload.requestId : null;
+        openRequestIdRef.current = requestId;
         setShowModal(true);
         // Riavvia background loading se necessario
         startBackgroundLoading();
+
+        // If config already loaded, acknowledge immediately.
+        if (requestId && !loadingConfigRef.current) {
+          openRequestIdRef.current = null;
+          if (window.parent !== window) {
+            window.parent.postMessage(
+              {
+                type: 'SKIN_ANALYSIS_CONFIG_READY',
+                payload: { requestId },
+              },
+              '*',
+            );
+          }
+        }
       } else if (data.type === 'CLOSE_SKIN_ANALYSIS') {
         setShowModal(false);
       } else if (data.type === 'SHOPIFY_STORE_DATA') {
