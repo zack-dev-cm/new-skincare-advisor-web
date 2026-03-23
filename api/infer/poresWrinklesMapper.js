@@ -1,11 +1,16 @@
 const WRINKLE_REGION_LABELS = {
-  forehead: 'Forehead',
-  under_eye_left: 'Under-eye Left',
-  under_eye_right: 'Under-eye Right',
-  cheek_left: 'Left Cheek',
-  cheek_right: 'Right Cheek',
-  nose: 'Nose',
-  perioral: 'Perioral',
+  forehead: 'Horizontal forehead lines',
+  glabellar: 'Glabellar lines',
+  crows_feet_left: 'Lateral canthal lines (left)',
+  crows_feet_right: 'Lateral canthal lines (right)',
+  under_eye_left: 'Infraorbital rhytides (left)',
+  under_eye_right: 'Infraorbital rhytides (right)',
+  nasolabial_left: 'Nasolabial fold (left)',
+  nasolabial_right: 'Nasolabial fold (right)',
+  nose: 'Nasal rhytides',
+  cheek_left: 'Malar / zygomatic rhytides (left)',
+  cheek_right: 'Malar / zygomatic rhytides (right)',
+  perioral: 'Perioral rhytides',
 };
 
 function toAbsoluteApiUrl(apiUrl, maybePath) {
@@ -64,6 +69,7 @@ function mapCombinedPoresWrinklesResult(resultPayload, apiUrl) {
     wrinkleRegions.push({
       key: regionKey,
       label: WRINKLE_REGION_LABELS[regionKey] ?? regionKey,
+      color_hex: regionData.wrinkles?.color_hex ?? regionData.color_hex ?? null,
       mask_key: wrinkleMaskKey,
       wrinkle_count: wrinkleMetricsByRegion.count ?? 0,
       bbox_full: regionData.bbox_full ?? null,

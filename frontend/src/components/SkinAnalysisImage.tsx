@@ -31,6 +31,7 @@ interface WrinklesPrediction {
 interface WrinkleServiceRegion {
   key: string;
   label: string;
+  color_hex?: string | null;
   mask_key: string | null;
   wrinkle_count: number;
   preview_url: string | null;
@@ -128,17 +129,28 @@ const PORES_ACCENT_COLOR = '#ffbafa';
 
 // Wrinkles color mapping with transparency
 const WRINKLES_COLORS = {
-  'forehead': '#9900ff66',
-  'crows_feet': '#ff660066', 
-  'nasolabial_fold': '#00ccff66',
-  'frown': '#ff006666',
-  'tear_through': '#66ff0066',
-  'mental_crease': '#ffcc0066',
-  'bunny_line': '#ff990066',
-  'droppy_eyelid': '#cc00ff66',
-  'marionette_line': '#00ffcc66',
-  'neck_lines': '#ffff0066',
-  'purse_string': '#ff00cc66'
+  forehead: '#B8A8FF',
+  glabellar: '#FF7FA3',
+  crows_feet_left: '#FFB089',
+  crows_feet_right: '#FFB089',
+  under_eye_left: '#9EE4C7',
+  under_eye_right: '#9EE4C7',
+  nasolabial_left: '#8FD3FF',
+  nasolabial_right: '#8FD3FF',
+  nose: '#FFC48C',
+  cheek_left: '#7FE6D4',
+  cheek_right: '#7FE6D4',
+  perioral: '#DFA0FF',
+  crows_feet: '#FFB089',
+  nasolabial_fold: '#8FD3FF',
+  frown: '#FF7FA3',
+  tear_through: '#9EE4C7',
+  mental_crease: '#DFA0FF',
+  bunny_line: '#FFC48C',
+  droppy_eyelid: '#9EE4C7',
+  marionette_line: '#DFA0FF',
+  neck_lines: '#7FE6D4',
+  purse_string: '#DFA0FF',
 };
 
 const getWrinkleColor = (className: string) => {
@@ -157,6 +169,13 @@ const getTextColor = (backgroundColor: string) => {
   const b = parseInt(hex.substr(4, 2), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.5 ? '#000000' : '#ffffff';
+};
+
+const withAlpha = (hexColor: string | null | undefined, alphaHex: string) => {
+  if (!hexColor) return null;
+  const raw = hexColor.replace('#', '');
+  if (raw.length !== 6) return hexColor;
+  return `#${raw}${alphaHex}`;
 };
 
 const GPU_IMAGE_PROXY_PATH = '/api/gpu-image';
@@ -903,19 +922,28 @@ export default function SkinAnalysisImage({
               </button>
 
               {wrinkleLegendRegions.map((region) => (
-                <button
-                  key={region.key}
-                  type="button"
-                  onClick={() => setSelectedWrinkleRegion(region.key)}
-                  className={`px-3 py-1 rounded-full text-sm font-medium transition-colors ${
-                    selectedWrinkleRegion === region.key
-                      ? 'bg-primary-600 text-white shadow'
-                      : 'bg-primary-50 text-primary-700'
-                  }`}
-                >
-                  {region.label}
-                  {region.wrinkle_count ? ` · ${region.wrinkle_count}` : ''}
-                </button>
+                (() => {
+                  const chipColor = region.color_hex || getWrinkleColor(region.key);
+                  const isSelected = selectedWrinkleRegion === region.key;
+                  return (
+                    <button
+                      key={region.key}
+                      type="button"
+                      onClick={() => setSelectedWrinkleRegion(region.key)}
+                      className="px-3 py-1 rounded-full text-sm font-medium transition-colors border shadow-sm"
+                      style={{
+                        backgroundColor: isSelected
+                          ? chipColor
+                          : withAlpha(chipColor, '22') || '#f5f3ff',
+                        borderColor: chipColor,
+                        color: isSelected ? getTextColor(chipColor) : chipColor,
+                      }}
+                    >
+                      {region.label}
+                      {region.wrinkle_count ? ` · ${region.wrinkle_count}` : ''}
+                    </button>
+                  );
+                })()
               ))}
             </div>
           ) : (

@@ -100,6 +100,7 @@ type WrinkleAnalysisPayload = {
     regions: Array<{
       key: string;
       label: string;
+      color_hex?: string | null;
       mask_key: string | null;
       wrinkle_count: number;
       bbox_full: { x0: number; y0: number; x1: number; y1: number } | null;

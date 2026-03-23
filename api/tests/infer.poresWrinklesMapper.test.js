@@ -55,6 +55,7 @@ describe('poresWrinklesMapper', () => {
         region_breakdown: {
           forehead: {
             bbox_full: { x0: 10, y0: 20, x1: 100, y1: 120 },
+            color_hex: '#B8A8FF',
             pores: {
               metrics: {
                 count: 4,
@@ -67,10 +68,22 @@ describe('poresWrinklesMapper', () => {
             },
             wrinkles: {
               mask_key: 'wrinkles_forehead',
+              color_hex: '#B8A8FF',
               metrics: {
                 count: 18,
                 density_per_mpx: 123.4,
                 mean_length_px: 35.2,
+              },
+            },
+          },
+          glabellar: {
+            bbox_full: { x0: 30, y0: 25, x1: 80, y1: 90 },
+            color_hex: '#FF7FA3',
+            wrinkles: {
+              mask_key: 'wrinkles_glabellar',
+              color_hex: '#FF7FA3',
+              metrics: {
+                count: 4,
               },
             },
           },
@@ -92,12 +105,19 @@ describe('poresWrinklesMapper', () => {
     expect(mapped.wrinklesData.service_overlays.selected_preview_url).toBe(
       'https://gpu.example.com/v1/results/job-123/overlay/wrinkles?format=jpg'
     );
-    expect(mapped.wrinklesData.service_overlays.regions).toHaveLength(1);
+    expect(mapped.wrinklesData.service_overlays.regions).toHaveLength(2);
     expect(mapped.wrinklesData.service_overlays.regions[0]).toMatchObject({
       key: 'forehead',
-      label: 'Forehead',
+      label: 'Horizontal forehead lines',
+      color_hex: '#B8A8FF',
       wrinkle_count: 18,
       preview_url: 'https://gpu.example.com/v1/results/job-123/mask-overlay/wrinkles_forehead?format=jpg',
+    });
+    expect(mapped.wrinklesData.service_overlays.regions[1]).toMatchObject({
+      key: 'glabellar',
+      label: 'Glabellar lines',
+      color_hex: '#FF7FA3',
+      wrinkle_count: 4,
     });
   });
 
